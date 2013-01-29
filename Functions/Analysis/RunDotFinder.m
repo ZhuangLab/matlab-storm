@@ -13,8 +13,11 @@ function RunDotFinder(varargin)
 %--------------------------------------------------------------------------
 %% Outputs
 %               -- InsightM generates files _list.bin and .drift in the
-%                   target directory. 
+%                   target directory. ('method','insight')
 %               -- DaoSTORM generates _mlist.bin files
+%               ('method','DaoSTORM')
+%               -- GPUmultifit generates glist.bin files
+%                ('method','GPUmultifit');   
 %--------------------------------------------------------------------------
 %% Optional Inputs
 % parsfile / string / '' 
@@ -29,7 +32,8 @@ function RunDotFinder(varargin)
 % overwrite / logical / true     
 %               - set true to overwrite existing .bin files
 % method / string / insightM
-%               - method to use for dotfinding analysis.  Options: insightM
+%               - method to use for dotfinding analysis.  
+%               Options: insight, DaoSTORM, GPUmultifit
 % minsize / double / 1E6 
 %               - Minimum size in bytes of dax file 
 % daxroot / string / ''    
@@ -38,8 +42,8 @@ function RunDotFinder(varargin)
 % parsroot / string / ''    
 %               - uses parameter files in same folder as dax file which
 %               contain this string in their file name.
-% verbose / logical / ''
-%               -
+% verbose / logical / true
+%               - print comments and progress to screen?
 %--------------------------------------------------------------------------
 %
 % Alistair Boettiger
@@ -228,8 +232,12 @@ for s=1:Sections % loop through all dax movies in que
             eval([dir_setup, ' && ', DaoSTORMPathSetup, ' && ', ccall,' && exit &']);          
         case 'GPUmultifit'
             load(parsfile);
+            gpuclock = tic;
             mlist = GPUmultifitDax(daxfile,GPUmultiPars);
             WriteMoleculeList(mlist,[dpath,filesep,daxroots{s},datatype]);
+            gputime = toc(gpuclock)/60;
+            disp(['GPU found and fit ',num2str(length(mlist.x)),' molecules']);
+            disp(['in ',num2str(gputime),' minutes']); 
     end    
 
     if verbose
