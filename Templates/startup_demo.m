@@ -14,20 +14,52 @@ close all;
 clear all;
 clc;
 display('------------------------------------------------------------------');
+warning off all
+restoredefaultpath; % Clear previous paths
+warning on all
+addpath('D:\Users\JeffMoffitt\Documents\MATLAB'); %%MODIFY THIS PATH
 %% Define matlab-storm Path
-basePath = 'C:\Users\Alistair\Dropbox\matlab-storm';  %% MODIFY this path for the local machine
+basePath = 'D:\Users\JeffMoffitt\Dropbox\ZhuangLab\Coding\Matlab\matlab-storm';  %% MODIFY this path for the local machine
+addpath(basePath, '-begin');
+
 disp('Base path set to:')
 disp(['     ',basePath]);
-functionPaths = {'Functions\IO', ...
+display('------------------------------------------------------------------');
+
+functionPaths = {'Functions', ...
+    'Functions\Analysis', ...
+    'Functions\File Conversion', ...
+    'Functions\IO', ...
+    'Functions\Plotting and Display', ...
     'Functions\Simulation', ...
     'Functions\Misc', ...
     };
 display('Adding Function Paths');
 for i=1:length(functionPaths)
-    addpath([basePath,filesep,functionPaths{i}], '-end');
+    addpath([basePath,filesep,functionPaths{i}], '-begin');
     display(['    ' functionPaths{i}]);
 end
+
 display('------------------------------------------------------------------');
+GUIpaths = {'GUIs', ...
+    'GUIs\library', ...
+    };
+display('Adding GUI Paths');
+for i=1:length(GUIpaths)
+    addpath([basePath,filesep,GUIpaths{i}], '-begin');
+    display(['    ' GUIpaths{i}]);
+end
+
+display('------------------------------------------------------------------');
+defaultPaths = {'Defaults', ...   
+    };
+display('Adding Default Settings Paths');
+for i=1:length(defaultPaths)
+    addpath([basePath,filesep,defaultPaths{i}], '-begin');
+    display(['    ' defaultPaths{i}]);
+end
+display('------------------------------------------------------------------');
+cd(basePath);
 %% Define Global Variables
 global defaultDataPath; %Default Path to Data
 global defaultSavePath; % Default Path to Save Files
@@ -37,16 +69,18 @@ global PythonPath;  % location of python.exe (Python 2).7 on computer
 global DaoSTORMPathSetup; % .bat file to set paths needed for DaoSTORM.
 global defaultIniFile; % path to default .ini file for InsightM parameters
 global defaultXmlFile; % path to default .xml file for DaoSTORM parameters
+global defaultGPUmFile; % path to default .mat file for GPU parameters
 
 % MODIFY THESE PATHS 
-defaultDataPath = 'C:\Users\Alistair\Desktop\GeneralSTORM\Matlab';
-defaultSavePath = 'C:\Users\Alistair\Desktop\GeneralSTORM\Matlab';
-defaultInsightPath = 'C:\Users\Hazen\Insight3\InsightM.exe';
-defaultMultiFitPath = 'C:\Users\Hazen\storm_analysis\trunk\3d_daostorm\mufit_analysis.py';
+defaultDataPath = 'N:\';
+defaultSavePath = 'D:\Users\JeffMoffitt\Dropbox\ZhuangLab\Coding\Matlab\Data';
+defaultInsightPath = 'D:\Utilities\STORMAnalysis\Insight3\InsightM.exe';
+defaultMultiFitPath = '';
 PythonPath = 'C:\Python27\python.exe'; 
-DaoSTORMPathSetup = 'C:\Users\Hazen\setpaths.bat'; 
-defaultIniFile = 'C:\Users\Alistair\Dropbox\matlab-storm\Templates\647data_pars.ini';
-defaultXmlFile = 'C:\Users\Alistair\Dropbox\matlab-storm\Templates\647_3dmufit_pars.xml';
+DaoSTORMPathSetup = ''; 
+defaultIniFile = [basePath, filesep, 'Defaults\647data_pars.ini'];
+defaultXmlFile = [basePath, filesep, 'Defaults\647_3dmufit_pars.xml'];
+defaultGPUmFile = [basePath, filesep, 'Defaults\GPUmultiPars.mat'];
 
 display(['    Default Data Path Set: ' defaultDataPath]);
 display(['    Default Save Path Set: ' defaultSavePath]);
@@ -54,4 +88,9 @@ display(['    Default Insight Path Set: ' defaultInsightPath]);
 display(['    Default DaoSTORM Path Set: ' defaultMultiFitPath]);
 display(['    Default .ini File Set: ' defaultIniFile]);
 display(['    Default .xml File Set: ' defaultXmlFile]);
+display(['    Default gpu parameters: ' defaultGPUmFile]);
 display('------------------------------------------------------------------');
+
+%% Run local startup
+startup_local
+
