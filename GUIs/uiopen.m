@@ -63,7 +63,11 @@ elseif ((~isempty(findstr(type,'.tif'))) && (direct))
     
 else
   % %   Matlab gets confused by finding these function names
+<<<<<<< HEAD
     builtin('uiopen',type,direct);
+=======
+    builtin('uiopen',type,direct)
+>>>>>>> Minor changes to uiopen and To Do List
 %     %----------DO NOT CHANGE---------------------------
 %     presentPWD = pwd;
 %     cd([matlabroot '/toolbox/matlab/uitools']);
