@@ -29,8 +29,10 @@ function RunDotFinder(varargin)
 %               - directory containing .dax files to be analyzed
 % batchsize / integer / 3
 %               - max number of versions of analysis to run in parallel
-% overwrite / logical / true     
-%               - set true to overwrite existing .bin files
+% overwrite / double / 2     
+%               - Skip files for which bin files already exist (0),
+%               Overwrite any existing bin files without asking (1), Ask
+%               the user what to do if file exists (2). 
 % method / string / insightM
 %               - method to use for dotfinding analysis.  
 %               Options: insight, DaoSTORM, GPUmultifit
@@ -77,7 +79,7 @@ global defaultDaoSTORM
 %--------------------------------------------------------------------------
 % this makes it easy to change default values
 batchsize = 1;
-overwrite = true;
+overwrite = 2; % ask user
 minsize = 1E6;
 daxroot = '';
 parsroot = '';
@@ -116,7 +118,7 @@ if nargin > 1
             case 'minsize'
                 minsize = CheckParameter(parameterValue, 'positive', 'minsize');
             case 'overwrite'
-                overwrite = CheckParameter(parameterValue, 'boolean', 'overwrite');
+                overwrite = CheckParameter(parameterValue, 'positive', 'overwrite');
             case 'parsfile'
                 parsfile = CheckParameter(parameterValue, 'string', 'parsfile');
             case 'daxfile'
@@ -204,26 +206,28 @@ end
     
 % don't analyze movies which have _list.bin files
 if sum(hasbin) ~= 0 
-   txtout = ['warning: found existing ',datatype,' data files for ',...
-       daxnames(logical(hasbin))];
-    if verbose
-       disp(char(txtout));
-    end
-    if overwrite
+    if overwrite == 2
+        txtout = ['warning: found existing ',datatype,' data files for ',...
+        daxnames(logical(hasbin))];
+        disp(char(txtout));
         disp('these files will be overwritten.  ');
-        cont = input('type 1 to continue, 0 to cancel:  ');
-        if cont == 1
-            % files must be physically deleted to enable a fresh daoSTORM
-            % analysis.  
-            if strcmp('method','daoSTORM')
-                allextra = daxroots(logical(hasbin));
-                for a = 1:length(allextra)
-                    delete([allextra(a),datatype]);
-                end
+        overwritefiles = input('type 1 to skip, 2 to overwrite, 0 to cancel:  ');
+    elseif overwrite == 1
+        overwritefiles = 1;
+    elseif overwrite == 0
+        overwritefiles = 0; 
+    else
+        disp(overwrite)
+        disp('is not a valid value for overwrite'); 
+    end
+    if overwritefiles==1
+        % files must be physically deleted to enable a fresh daoSTORM
+        % analysis.  
+        if strcmp('method','daoSTORM')
+            allextra = daxroots(logical(hasbin));
+            for a = 1:length(allextra)
+                delete([allextra(a),datatype]);
             end
-        else
-            disp('skipping these movies...'); 
-            daxnames(logical(hasbin))=[]; % actually removes from que  
         end
     else
         disp('skipping these movies...'); 
