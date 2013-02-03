@@ -76,10 +76,7 @@ if nargin > numMustHaveVariables
         parameterValue = varargin{parameterIndex*2};
         switch parameterName
             case 'flag1'
-                internalVariable1 = parameterValue;
-                if %isvalid value for variable, e.g. if islogical(internalVariable1)
-                    error(['Not a valid value for ' parameterName]);
-                end
+                internalVariable1 = CheckParameter(parameterValue,'parameterclass','flag1'); 
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end

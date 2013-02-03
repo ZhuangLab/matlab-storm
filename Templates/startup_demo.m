@@ -6,7 +6,7 @@
 % script. To be functional, there are specific paths that must be set based
 % on the vlocal machine.  
 % -------------------------------------------------------------------------
-% Jeffrey Moffitt, Alistair Boettinger
+% Jeffrey Moffitt, Alistair Boettiger
 % January 18, 2013
 % -------------------------------------------------------------------------
 %% Clear Existing Workspace
@@ -64,28 +64,32 @@ cd(basePath);
 global defaultDataPath; %Default Path to Data
 global defaultSavePath; % Default Path to Save Files
 global defaultInsightPath; % Path to InsightM.exe
-global defaultMultiFitPath; % Path to DAOSTORM Executible
-global PythonPath;  % location of python.exe (Python 2).7 on computer
-global DaoSTORMPathSetup; % .bat file to set paths needed for DaoSTORM.
+global defaultDaoSTORM; % .bat file to set paths needed for DaoSTORM.
 global defaultIniFile; % path to default .ini file for InsightM parameters
 global defaultXmlFile; % path to default .xml file for DaoSTORM parameters
 global defaultGPUmFile; % path to default .mat file for GPU parameters
 
+
 % MODIFY THESE PATHS 
 defaultDataPath = 'N:\';
 defaultSavePath = 'D:\Users\JeffMoffitt\Dropbox\ZhuangLab\Coding\Matlab\Data';
-defaultInsightPath = 'D:\Utilities\STORMAnalysis\Insight3\InsightM.exe';
-defaultMultiFitPath = '';
-PythonPath = 'C:\Python27\python.exe'; 
-DaoSTORMPathSetup = ''; 
 defaultIniFile = [basePath, filesep, 'Defaults\647data_pars.ini'];
 defaultXmlFile = [basePath, filesep, 'Defaults\647_3dmufit_pars.xml'];
 defaultGPUmFile = [basePath, filesep, 'Defaults\GPUmultiPars.mat'];
 
+% THESE SHOULD NOT NEED TO BE CHANGED
+% Add Dlls & Python to the system path anytime DaoSTORM is called.  
+PythonPath = 'C:\Python27\'; % 
+DllPath =  [basePath,filesep,'External', filesep,'DaoSTORM', filesep, 'dlls',filesep];
+DaoSTORMPath = [basePath,filesep,'External', filesep,'DaoSTORM', filesep, 'mufit_analysis.py'];
+setpath = ['PATH=',PythonPath,';',DllPath,';%PATH%',' & ',PythonPath,'python.exe '];
+defaultDaoSTORM = [setpath, DaoSTORMPath];
+defaultInsightPath = [basePath,filesep,'External', filesep,'Insight3', filesep, 'InsightM.exe'];
+
 display(['    Default Data Path Set: ' defaultDataPath]);
 display(['    Default Save Path Set: ' defaultSavePath]);
 display(['    Default Insight Path Set: ' defaultInsightPath]);
-display(['    Default DaoSTORM Path Set: ' defaultMultiFitPath]);
+display(['    Default DaoSTORM Path Set: ' DaoSTORMPath]);
 display(['    Default .ini File Set: ' defaultIniFile]);
 display(['    Default .xml File Set: ' defaultXmlFile]);
 display(['    Default gpu parameters: ' defaultGPUmFile]);
