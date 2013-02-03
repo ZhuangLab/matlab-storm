@@ -44,6 +44,14 @@ function RunDotFinder(varargin)
 %               contain this string in their file name.
 % verbose / logical / true
 %               - print comments and progress to screen?
+% runinMatlab / logical / false
+%               - Run in matlab command line (single instance only).
+% printprogress / logical / false
+%               - when running in matlab, print progress to terminal?
+% hideterminal / logical / false
+%               - run in a "hidden" external terminal (good for rapidly
+%               launching 100s of processes to keep them from all popping
+%               up on your screen).  
 %--------------------------------------------------------------------------
 %
 % Alistair Boettiger
@@ -78,6 +86,9 @@ daxfile = '';
 parsfile = '';
 dpath = ''; 
 verbose = true; 
+hideterminal = false; 
+runinMatlab = false;
+printprogress = false;
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Arguments
@@ -111,7 +122,13 @@ if nargin > 1
             case 'daxfile'
                 daxfile  = CheckParameter(parameterValue, 'string', 'daxfile');
             case 'verbose'
-                verbose =  CheckParameter(parameterValue, 'boolean', 'daxfile');
+                verbose = CheckParameter(parameterValue, 'boolean', 'verbose');
+            case 'hideterminal'
+                hideterminal = CheckParameter(parameterValue, 'boolean', 'hideterminal');
+            case 'runinMatlab'
+                runinMatlab = CheckParameter(parameterValue, 'boolean', 'runinMatlab');
+            case 'printprogress'
+                printprogress = CheckParameter(parameterValue, 'boolean', 'printprogress');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -154,6 +171,9 @@ switch method
         datatype = '_glist.bin';
         parstype = '.mat';
         processName = ''; % GPU scripts can't be launched in batch
+        if batchsize > 1
+            disp('Batch task execution not available for GPU');
+        end
     otherwise
         error(['method ',method,' not recognized.  Available methods:',...
             ' insight, DaoSTORM, GPUmultifit.']);
@@ -198,8 +218,7 @@ if sum(hasbin) ~= 0
             if strcmp('method','daoSTORM')
                 allextra = daxroots(logical(hasbin));
                 for a = 1:length(allextra)
-                    deletebin = ['del ', allextra(a),datatype];
-                    dos(deletebin);
+                    delete([allextra(a),datatype]);
                 end
             end
         else
@@ -220,11 +239,31 @@ for s=1:Sections % loop through all dax movies in que
     switch method
         case 'insight'
          % display command split up onto multiple lines  
-        % Actually launch insightM and poll computer for number of processes
-        dos([defaultInsightPath,' ',daxfile,' ',parsfile, ' && exit &']); 
+         % Actually launch insightM and poll computer for number of processes
+            if runinMatlab % 
+                if printprogress  % Print fitting progress to command line
+                    system([defaultInsightPath,' ',daxfile,' ',parsfile]);  
+                else  % Don't print to command line (save output in text file)
+                    system([defaultInsightPath,' ',daxfile,' ',parsfile,' >' dpath,'\newlog',num2str(s),'.txt']); 
+                end
+            elseif hideterminal  % Launch silently in the background
+               SystemSilent([defaultInsightPath,' ',daxfile,' ',parsfile, ' && exit &']); 
+            else % Launch an external terminal where processs can run
+                system([defaultInsightPath,' ',daxfile,' ',parsfile, ' && exit &']); 
+            end
         case 'DaoSTORM'
             binfile = [dpath,filesep,daxroots{s},datatype];
-            system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' && exit &']);       
+            if runinMatlab % 
+                if printprogress  % Print fitting progress to command line
+                    system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile]);  
+                else  % Don't print to command line (save output in text file)
+                    system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' >' dpath,'\newlog',num2str(s),'.txt']); 
+                end
+            elseif hideterminal  % Launch silently in the background
+               SystemSilent([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile, ' && exit &']); 
+            else % Launch an external terminal where processs can run
+                system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' && exit &']);  
+            end          
         case 'GPUmultifit'
             load(parsfile);
             gpuclock = tic;
@@ -259,7 +298,9 @@ for s=1:Sections % loop through all dax movies in que
                     running = strfind(result,processName);  
                 end      
            batchwait = toc(batchwait);
-           disp(['time elapsed = ',num2str(batchwait/60),' min']); 
+           if verbose
+            disp(['time elapsed = ',num2str(batchwait/60),' min']); 
+           end
     end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 end
