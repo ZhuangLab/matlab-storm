@@ -176,10 +176,10 @@ global FitPars
         % need to delete any existing bin menufile before we overwrite, or
         % DaoSTORM tries to pick up analysis where it left off.  
          binfile = regexprep([fpath,'mov_temp.dax'],'\.dax','_mlist.bin'); 
-         % system(['del ',binfile]);
-         system(['del ',binfile,' >',fpath,'\jnk.txt']); 
-         % the > jnk.txt hides the output.  
-        
+         if exist(binfile,'file')
+            delete(binfile);
+         end
+         
         % Call DaoSTORM.     
         system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',xmlfile_temp]);
         
@@ -567,7 +567,7 @@ global inifile xmlfile
 modify_script(inifile,[savepath,savename],parameters,struct2cell(FitPars),'');   
     elseif FitMethod == 2
         savename = [savename,'.xml'];
-modify_script(xmlfile,[savepath,savename],parameters,struct2cell(FitPars),''); 
+modify_script(xmlfile,[savepath,savename],parameters,struct2cell(FitPars),'<'); 
     elseif FitMethod == 3
         savename = [savename,'.mat'];
         GPUmultiPars = FitPars; 
