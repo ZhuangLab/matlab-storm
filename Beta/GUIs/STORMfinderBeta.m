@@ -168,8 +168,8 @@ global FitPars
             parameters = {'<start_frame type="int">',...
                             '<max_frame type="int">',...
                             '<drift_correction type="int">'};
-            new_values = {num2str(impars.cframe),...
-                          num2str(impars.cframe+1),...
+            new_values = {num2str(impars.cframe-1),...
+                          num2str(impars.cframe),...
                           '0'}; 
             modify_script(xmlfile,xmlfile_temp,parameters,new_values,'<');     
          
@@ -192,7 +192,15 @@ global FitPars
     end 
     
     if FitMethod~=3
+        try
         mlist = ReadMasterMoleculeList(binfile,'verbose',false);
+        catch er
+            disp('no molecules found to display!');
+            disp('Try changing fit pars');  
+            clear mlist;
+            mlist.x = []; 
+            mlist.y = [];
+        end
     end
 handles.axes1;  cla; 
 imagesc(impars.Im(:,:,1)'); 
@@ -549,12 +557,19 @@ global inifile xmlfile
     FitMethod = get(handles.FitMethod,'Value');
     [FitPars,parameters] = ReadParameterFile(FitMethod);  % load current parameters in FitPars
     [savename, savepath] = uiputfile; % get file path and save name
+    k = strfind(savename,'.');
+    if ~isempty(k);
+        savename = savename(1:k-1);
+    end
     % save current parameters with menufile name / directory specified above
     if FitMethod == 1
+        savename = [savename,'.ini'];
 modify_script(inifile,[savepath,savename],parameters,struct2cell(FitPars),'');   
     elseif FitMethod == 2
+        savename = [savename,'.xml'];
 modify_script(xmlfile,[savepath,savename],parameters,struct2cell(FitPars),''); 
     elseif FitMethod == 3
+        savename = [savename,'.mat'];
         GPUmultiPars = FitPars; 
         save([savepath,savename],'GPUmultiPars');
     end
