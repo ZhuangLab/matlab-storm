@@ -3,6 +3,7 @@ function mlist = GPUmultifitDax(daxfile,varargin)
 %-------------------------------------------------------------------------
 % A small wrapper that reads in frames from a daxfile and feeds them in
 % batches to GPUmultfit for analysis. 
+% This file requires the function GPUmultifit.m
 %-------------------------------------------------------------------------
 % Outputs:
 % mlist / structure         -- molecule list
@@ -12,7 +13,7 @@ function mlist = GPUmultifitDax(daxfile,varargin)
 % daxfile / string          -- full path directory of a daxfile
 %-------------------------------------------------------------------------
 % Optional Inputs
-% GPUmultiPars / structure  -- fitting parameters for GPUmultifit  
+% input 2: GPUmultiPars / structure  -- fitting parameters for GPUmultifit  
 %-------------------------------------------------------------------------
 
 
@@ -23,16 +24,18 @@ if  nargin == 1
     GPUmultiPars = ''; % if not passed record as empty. 
     startFrame = 1;
     maxFrame = inf; 
-else
+elseif nargin == 2 
     GPUmultiPars = varargin{1}; 
     startFrame = str2double(GPUmultiPars.startFrame); % first frame to analyze
     maxFrame = str2double(GPUmultiPars.endFrame); % last frame to analyze
 end
 
-%-------------------------------------------------------------------------
-% Hardcoded variables
-%-------------------------------------------------------------------------
-maxFrames = 5000;  % max number of frames to process in one bout. 
+try 
+    maxFrames = str2double(GPUmultiPars.batchframes);
+catch
+    maxFrames = 5000;
+end
+% max number of frames to process in one bout. 
 % A chunk of the movie must be imported into local memory to be passed to
 % the fitter.  Too many frames uses up more RAM and may cause the GPU to
 % crash.

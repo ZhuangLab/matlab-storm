@@ -53,31 +53,31 @@ function mlist = GPUmultifit(movie,GPUmultiPars)
 % Default Parameters 
 %-------------------------------------------------------------------------
 if isempty(GPUmultiPars)
-GPUmultiPars.PSFsigma='1.2';
-             % estimated PSF sigma in pixels
-GPUmultiPars.Nave = '800'; 
-              % Initial guess for intensity. Intensity is also fitted in 
-              % this 103.3 version unlike described in original publication 2011 May.
-              % This is still an essential guess that would affect model
-              % selection             
-GPUmultiPars.Nmax='5';       
-              %Maximum emitter number in fitting model. ie: 1 for single emitter fitting
-              %5 for multi emitter fitting.            
-GPUmultiPars.pvalue_threshold='0.001'; 
-            % p_value threshold used for test goodness of fitting 
-            % using significance test                      
-GPUmultiPars.resolution='30';      
-               % in nano meters. Resolution target. Estimates with higher uncertainty value
-               % is discarded.                  
-GPUmultiPars.pixelsize='158';        
-               % in nano meters. Pixel size of the camera=real_size/magification.
-               % ie: 100 nm or 80 nm                    
-GPUmultiPars.boxsz='7';    
-               % fitting subregion box size in pixels.
-GPUmultiPars.counts_per_photon = '3';
-              % Code is very sensitive to scaling of intensities.
-% GPUmultiPars.startFrame = '1';
-% GPUmultiPars.endFrame = '-1';
+    GPUmultiPars.PSFsigma='1.2';
+         % estimated PSF sigma in pixels
+    GPUmultiPars.Nave = '800'; 
+          % Initial guess for intensity. Intensity is also fitted in 
+          % this 103.3 version unlike described in original publication 2011 May.
+          % This is still an essential guess that would affect model
+          % selection             
+    GPUmultiPars.Nmax='5';       
+          %Maximum emitter number in fitting model. ie: 1 for single emitter fitting
+          %5 for multi emitter fitting.            
+    GPUmultiPars.pvalue_threshold='0.001'; 
+        % p_value threshold used for test goodness of fitting 
+        % using significance test                      
+    GPUmultiPars.resolution='30';      
+       % in nano meters. Resolution target. Estimates with higher uncertainty value
+       % is discarded.                  
+    GPUmultiPars.pixelsize='158';        
+       % in nano meters. Pixel size of the camera=real_size/magification.
+       % ie: 100 nm or 80 nm                    
+    GPUmultiPars.boxsz='7';    
+       % fitting subregion box size in pixels.
+    GPUmultiPars.counts_per_photon = '3';
+    % Code is very sensitive to scaling of intensities.
+    % GPUmultiPars.startFrame = '1';  % needed only for GPUmultifitDax.m
+    % GPUmultiPars.endFrame = '-1'; % needed only for GPUmultifitDax.m
 end
 %-------------------------------------------------------------------------
 

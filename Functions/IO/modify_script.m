@@ -47,7 +47,7 @@ else
     endmarker = ''; 
 end
 
-verbose = true; % fixed for the moment.  Usful for troubleshooting
+verbose = false; % fixed for the moment.  Usful for troubleshooting
 
 % Main script
 %--------------------------------------------------------------------------
