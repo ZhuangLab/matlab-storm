@@ -63,7 +63,12 @@ elseif ((~isempty(findstr(type,'.tif'))) && (direct))
     
 else
   % %   Matlab gets confused by finding these function names
+<<<<<<< HEAD
+<<<<<<< HEAD
     builtin('uiopen',type,direct);
+=======
+    builtin('uiopen',type,direct)
+>>>>>>> Minor changes to uiopen and To Do List
 %     %----------DO NOT CHANGE---------------------------
 %     presentPWD = pwd;
 %     cd([matlabroot '/toolbox/matlab/uitools']);
@@ -71,6 +76,16 @@ else
 %     eval(strn);
 %     cd(presentPWD);
 %     %----------DO NOT CHANGE---------------------------
+=======
+    % builtin('uiopen.m',type,direct) uiopen is not a builtin function
+    %----------DO NOT CHANGE---------------------------
+    presentPWD = pwd;
+    cd([matlabroot '/toolbox/matlab/uitools']);
+    strn = ['uiopen(''' type ''',' num2str(direct) ')'];
+    eval(strn);
+    cd(presentPWD);
+    %----------DO NOT CHANGE---------------------------
+>>>>>>> Reworking issues with uiopen overloading
 end
 warning off all
 %-------------------------------------------------------------------------
