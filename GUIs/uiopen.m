@@ -4,7 +4,7 @@ function uiopen(type,direct)
 %
 
 global myImage daxfile inffile inifile xmlfile mlist binfile
-
+warning off all
 %---- dax file -----v
 if ((~isempty(findstr(type,'.dax'))) && (direct))
     %-------------------------------------------------
@@ -12,9 +12,14 @@ if ((~isempty(findstr(type,'.dax'))) && (direct))
     %-------------------------------------------------
     disp('reading dax file into global var "daxfile"...');
     disp(type);
-    daxfile = type;
-    inffile = regexprep(type,'.dax','.inf');  
-    STORMfinder;
+     daxfile = type;
+     inffile = regexprep(type,'.dax','.inf');  
+    if ~isempty(daxfile)
+       OpenNew = input('Open in new instance of STORMfinder? 1=yes, 0=no:  ');
+       if OpenNew ==1
+            STORMfinderBeta;      
+       end
+    end
     
 %---- ini file -----v
 elseif ((~isempty(findstr(type,'.ini'))) && (direct))
@@ -37,8 +42,13 @@ elseif ((~isempty(findstr(type,'.xml'))) && (direct))
 elseif  ((~isempty(findstr(type,'.bin'))) && (direct))
     disp(type);
     binfile = type;
-    disp(['reading ',binfile,' into mlist']); 
-    mlist = ReadMasterMoleculeList(binfile);
+    dispresults = input('display image in STORMrenderer? 1=yes, 0=no:  ');
+    if dispresults
+        STORMrender;
+    else
+        disp(['reading ',binfile,' into mlist']); 
+        mlist = ReadMasterMoleculeList(binfile);
+    end
     
 %---- tif file -----v
 elseif ((~isempty(findstr(type,'.tif'))) && (direct))
@@ -53,13 +63,14 @@ elseif ((~isempty(findstr(type,'.tif'))) && (direct))
     
 else
   % %   Matlab gets confused by finding these function names
-    
-    %----------DO NOT CHANGE---------------------------
-    presentPWD = pwd;
-    cd([matlabroot '/toolbox/matlab/uitools']);
-    strn = ['uiopen(''' type ''',' num2str(direct) ')'];
-    eval(strn);
-    cd(presentPWD);
-    %----------DO NOT CHANGE---------------------------
+    builtin('uiopen',type,direct);
+%     %----------DO NOT CHANGE---------------------------
+%     presentPWD = pwd;
+%     cd([matlabroot '/toolbox/matlab/uitools']);
+%     strn = ['uiopen(''' type ''',' num2str(direct) ')'];
+%     eval(strn);
+%     cd(presentPWD);
+%     %----------DO NOT CHANGE---------------------------
 end
+warning off all
 %-------------------------------------------------------------------------

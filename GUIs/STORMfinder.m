@@ -1,19 +1,19 @@
-function varargout = STORMfinder(varargin)
-% STORMFINDER MATLAB code for STORMfinder.fig
-%      STORMFINDER, by itself, creates a new STORMFINDER or raises the existing
+function varargout = STORMfinderBeta(varargin)
+% STORMFINDERBETA MATLAB code for STORMfinderBeta.fig
+%      STORMFINDERBETA, by itself, creates a new STORMFINDERBETA or raises the existing
 %      singleton*.
 %
-%      H = STORMFINDER returns the handle to a new STORMFINDER or the handle to
+%      H = STORMFINDERBETA returns the handle to a new STORMFINDERBETA or the handle to
 %      the existing singleton*.
 %
-%      STORMFINDER('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in STORMFINDER.M with the given input arguments.
+%      STORMFINDERBETA('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in STORMFINDERBETA.M with the given input arguments.
 %
-%      STORMFINDER('Property','Value',...) creates a new STORMFINDER or raises the
+%      STORMFINDERBETA('Property','Value',...) creates a new STORMFINDERBETA or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before STORMfinder_OpeningFcn gets called.  An
+%      applied to the GUI before STORMfinderBeta_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to STORMfinder_OpeningFcn via varargin.
+%      stop.  All inputs are passed to STORMfinderBeta_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
@@ -26,16 +26,16 @@ function varargout = STORMfinder(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help STORMfinder
+% Edit the above text to modify the response to help STORMfinderBeta
 
-% Last Modified by GUIDE v2.5 19-Jan-2013 18:33:26
+% Last Modified by GUIDE v2.5 02-Feb-2013 12:09:40
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
+gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @STORMfinder_OpeningFcn, ...
-                   'gui_OutputFcn',  @STORMfinder_OutputFcn, ...
+                   'gui_OpeningFcn', @STORMfinderBeta_OpeningFcn, ...
+                   'gui_OutputFcn',  @STORMfinderBeta_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -50,15 +50,15 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before STORMfinder is made visible.
-function STORMfinder_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before STORMfinderBeta is made visible.
+function STORMfinderBeta_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to STORMfinder (see VARARGIN)
+% varargin   command line arguments to STORMfinderBeta (see VARARGIN)
 
-% Choose default command line output for STORMfinder
+% Choose default command line output for STORMfinderBeta
 handles.output = hObject;
 
 % Update handles structure
@@ -74,15 +74,17 @@ global defaultDataPath  defaultInsightPath
 try
 LoadFile_Callback(hObject, eventdata, handles)
 catch er
-    disp(er.message);
+    % disp(er.message);
     disp('please load a dax file');
 end
-% UIWAIT makes STORMfinder wait for user response (see UIRESUME)
+handles.axes1; 
+axis off; 
+% UIWAIT makes STORMfinderBeta wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = STORMfinder_OutputFcn(hObject, eventdata, handles) 
+function varargout = STORMfinderBeta_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -99,7 +101,7 @@ function FindDots_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global impars daxfile mlist  % shared Globals
 global defaultInsightPath inifile ; % for InsightM 
-global xmlfile defaultMultiFitPath PythonPath DaoSTORMPathSetup % for DaoSTORM
+global defaultDaoSTORM xmlfile  % for DaoSTORM
 global FitPars
 
     FitMethod = get(handles.FitMethod,'Value');
@@ -152,51 +154,35 @@ global FitPars
         if isempty(xmlfile)
             ReadParameterFile(FitMethod) % make default file the 'xmlfile'
         end
-        if isempty(defaultMultiFitPath)
-            error(['defaultMultiFitPath not found.  ',...
-                'Please set the global variable defaultMultiFitPath ',...
+        if isempty(defaultDaoSTORM)
+            error(['defaultDaoSTORM not found.  ',...
+                'Please set the global variable defaultDaoSTORM ',...
                 'to specify the location of mufit_analysis.py in the ',...
-                'DaoSTORM folder on your computer.']);
-        end
-        if isempty(PythonPath)
-            error(['PythonPath not found.  ',...
-                'Please set the global variable PythonPath to the ',...
-                'location of python.exe (Python2.7) on your computer.',...
-                '  DaoStorm requires Python to run.']);
-        end
-        if isempty(DaoSTORMPathSetup)
-            error(['DaoSTORMPathSetup not found.  ',...
-                'Please set the location of the .bat file which sets ',...
-                'the necessary library paths for DaoSTORM as a global ',...
-                'named DaoSTORMPathSetup.   See setpaths.bat in the ',...
-                'templates folder for an example.']); 
+                'DaoSTORM folder on your computer and its dll paths.',...
+                'See startup_example in \Templates folder']);
         end
           
         % update xmlfile to current frame 
             % save a new xmlfile which has 1frame appended onto the default one.
             xmlfile_temp = make_temp_parameters(handles,'1frame');
             parameters = {'<start_frame type="int">',...
-                            '<max_frame type="int">'};
+                            '<max_frame type="int">',...
+                            '<drift_correction type="int">'};
             new_values = {num2str(impars.cframe),...
-                          num2str(impars.cframe+1)};
+                          num2str(impars.cframe+1),...
+                          '0'}; 
             modify_script(xmlfile,xmlfile_temp,parameters,new_values,'<');     
          
         % need to delete any existing bin menufile before we overwrite, or
         % DaoSTORM tries to pick up analysis where it left off.  
-         binfile = regexprep([fpath,'mov_temp.dax'],'\.dax','_mlist.bin');
-         dos(['del ',binfile]);
+         binfile = regexprep([fpath,'mov_temp.dax'],'\.dax','_mlist.bin'); 
+         % system(['del ',binfile]);
+         system(['del ',binfile,' >',fpath,'\jnk.txt']); 
+         % the > jnk.txt hides the output.  
         
         % Call DaoSTORM.     
-            k = strfind(defaultMultiFitPath,filesep);
-            mufit_folder = defaultMultiFitPath(1:k(end));
-            dir_setup = ['! cd ',mufit_folder]; 
-            ccall = [' ',PythonPath,' ',defaultMultiFitPath,' ',...
-                     daxfile,'  ',fpath,'\','mov_temp','_mlist.bin',...
-                     ' ',xmlfile_temp];                     
-            disp(daxfile);
-            disp([fpath,'\','mov_temp','_mlist.bin']);
-            disp(xmlfile_temp)
-            eval([dir_setup, ' && ', DaoSTORMPathSetup, ' && ', ccall]);  
+        system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',xmlfile_temp]);
+        
             
     elseif FitMethod == 3
         TempPars = FitPars;
@@ -208,9 +194,12 @@ global FitPars
     if FitMethod~=3
         mlist = ReadMasterMoleculeList(binfile,'verbose',false);
     end
-figure(1); clf; imagesc(impars.Im(:,:,1)'); caxis([impars.cmin,impars.cmax]); colormap gray;
-title(daxfile,'interpreter','none'); 
+handles.axes1;  cla; 
+imagesc(impars.Im(:,:,1)'); 
+caxis([impars.cmin,impars.cmax]); colormap gray;
+set(handles.title1,'String',daxfile); % ,'interpreter','none'); 
 hold on;   plot(mlist.x(:),mlist.y(:),'yo','MarkerSize',20);
+axis off;
 % rectangle(mlist.x(:),mlist.y(:),mlist.w(:),mlist.w(:));
 
 
@@ -259,13 +248,13 @@ global daxfile impars
     fend = ftell(fid);
     fclose(fid);
     TFrames = fend/(16/8)/(impars.h*impars.w);  % total number of frames
-    set(handles.FrameSlider,'Min',0)
+    set(handles.FrameSlider,'Min',1)
     set(handles.FrameSlider,'Max',TFrames);
     set(handles.FrameSlider,'Value',impars.cframe); 
     set(handles.FrameSlider,'SliderStep',[1/TFrames,50/TFrames]);
-    UpdateFrame;
+    UpdateFrame(handles);
 
-function UpdateFrame
+function UpdateFrame(handles)
     global daxfile impars
     % shorthand, load 
     cframe = impars.cframe; 
@@ -277,8 +266,10 @@ function UpdateFrame
     Im = fread(fid, h*w*L, '*uint16',0,'b');
     fclose(fid);
     Im = reshape(Im,w,h,L);
-    figure(1); clf; imagesc(Im(:,:,1)'); caxis([impars.cmin,impars.cmax]); colormap gray;
-    title(daxfile,'interpreter','none'); 
+    handles.axes1; cla;
+    imagesc(Im(:,:,1)'); caxis([impars.cmin,impars.cmax]); colormap gray;
+     axis off; 
+    set(handles.title1,'String',daxfile);
     % the transpose here is merely to match insight.  
     impars.Im = Im; 
 
@@ -494,7 +485,7 @@ function FrameSlider_Callback(hObject, eventdata, handles)
 global impars
 impars.cframe = round(get(handles.FrameSlider,'Value'));
 set(handles.currframe,'String',num2str(impars.cframe));
-UpdateFrame;
+UpdateFrame(handles);
 
 
 % --------------------------------------------------------------------
@@ -517,7 +508,7 @@ default_opts = {
 default_opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
 impars.cmin = str2double(default_opts{1});
 impars.cmax = str2double(default_opts{2});
-UpdateFrame;
+UpdateFrame(handles);
 
 % --------------------------------------------------------------------
 function AutoContrast_ClickedCallback(hObject, eventdata, handles)
@@ -527,7 +518,7 @@ function AutoContrast_ClickedCallback(hObject, eventdata, handles)
 global impars
 impars.cmax = max(impars.Im(:));
 impars.cmin = min(impars.Im(:));
-UpdateFrame;
+UpdateFrame(handles);
 
 
 
@@ -537,7 +528,7 @@ function currframe_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global impars;
 impars.cframe = str2double(get(handles.currframe,'String'));
-UpdateFrame;
+UpdateFrame(handles);
 
 
 
@@ -710,3 +701,14 @@ function MenuAnalysis_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuAnalysis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function ComputeZcal_Callback(hObject, eventdata, handles)
+% hObject    handle to ComputeZcal (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+global daxfile inifile
+
+ AutoZcal(daxfile,'inifile',inifile);

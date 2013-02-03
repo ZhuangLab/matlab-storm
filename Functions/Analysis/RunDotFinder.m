@@ -58,7 +58,7 @@ function RunDotFinder(varargin)
 % Global variables 
 %--------------------------------------------------------------------------
 global defaultInsightPath
-global defaultMultiFitPath PythonPath DaoSTORMPathSetup
+global defaultDaoSTORM
 %--------------------------------------------------------------------------
 % Hardcoded Variables
 %--------------------------------------------------------------------------
@@ -149,7 +149,7 @@ switch method
     case 'DaoSTORM'
         datatype = '_mlist.bin';
         parstype = '.xml';
-        processName = 'mufit_analysis.py';
+        processName = 'python.exe';
     case 'GPUmultifit'
         datatype = '_glist.bin';
         parstype = '.mat';
@@ -223,13 +223,8 @@ for s=1:Sections % loop through all dax movies in que
         % Actually launch insightM and poll computer for number of processes
         dos([defaultInsightPath,' ',daxfile,' ',parsfile, ' && exit &']); 
         case 'DaoSTORM'
-            k = strfind(defaultMultiFitPath,filesep);
-            mufit_folder = defaultMultiFitPath(1:k(end));
             binfile = [dpath,filesep,daxroots{s},datatype];
-            dir_setup = ['! cd ',mufit_folder]; 
-            ccall = [' ',PythonPath,' ',defaultMultiFitPath,' ',...
-                     daxfile,' ',binfile,' ',parsfile];                     
-            eval([dir_setup, ' && ', DaoSTORMPathSetup, ' && ', ccall,' && exit &']);          
+            system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' && exit &']);       
         case 'GPUmultifit'
             load(parsfile);
             gpuclock = tic;
