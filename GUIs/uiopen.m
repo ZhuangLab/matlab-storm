@@ -63,8 +63,7 @@ elseif ((~isempty(findstr(type,'.tif'))) && (direct))
     
 else
   % %   Matlab gets confused by finding these function names
-    builtin('uiopen',type,direct)
-
+    builtin('uiopen',type,direct);
 %     %----------DO NOT CHANGE---------------------------
 %     presentPWD = pwd;
 %     cd([matlabroot '/toolbox/matlab/uitools']);
