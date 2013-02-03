@@ -76,7 +76,7 @@ global defaultInsightPath defaultIniFile
 % Define default parameters
 %--------------------------------------------------------------------------
 insight = defaultInsightPath;
-inifile = defaultIniFile;
+parsfile = defaultIniFile;
 max_iterations = 8;
 max_uncert = [.01 .1 .2 .5 .5];
 print2terminal = true;
@@ -106,10 +106,12 @@ if nargin > 1
                 max_iterations  = CheckParameter(parameterValue, 'positive', 'max iterations');
             case 'print2terminal'
                 print2terminal = CheckParameter(parameterValue, 'boolean', 'print2terminal');
-            case 'chns'
-                chns = parameterValue;
-            case 'inifile'
-                inifile = CheckParameter(parameterValue, 'string', 'inifile');
+            case 'method'
+                method =CheckParameter(parameterValue, 'string', 'method');
+            case 'parsfile'
+                parsfile = CheckParameter(parameterValue, 'string', 'parsfile');
+            case 'parsroot'
+                parsroot = CheckParameter(parameterValue, 'string', 'parsroot');
             case 'max uncert'
                 max_uncert = parameterValue;
                 if length(max_uncert) ~= 5; 
@@ -136,15 +138,14 @@ bead_path = daxfile(1:k(end));
     while sum([x_below_bnd,y_below_bnd]) < 10  && iters < max_iterations
         iters = iters + 1;  % cap on max iterations to converge
         disp(['iteration ',num2str(iters)]);
-        if ~print2terminal
-            ccall = ['!',insight,' ',daxfile,' ',inifile,' >' bead_path,'\newlog',num2str(k),'.txt'];
+        if print2terminal
+            RunDotFinder('daxfile',daxfile,'parsfile',parsfile,'method',method,'runinMatlab',true,'printprogress',true);
         else
-            ccall = ['!',insight,' ',daxfile,' ',inifile];
+            RunDotFinder('daxfile',daxfile,'parsfile',parsfile,'method',method,'runinMatlab',true,'printprogress',false);
         end
-        disp(['!',insight]);
         disp(daxfile);
-        disp(inifile); % print command to screen
-        eval(ccall);  % Run insightM to get positions
+        disp(parsfile); % print command to screen
+
 
         % Need to wait until _list.bin file appears before calling fxn_Zcal to compute  
         done = length(dir([daxfile(1:end-4),'_list.bin']));
@@ -159,10 +160,10 @@ bead_path = daxfile(1:k(end));
   % run z-calibration, get updated ini file
  %----------------------------------------------------------------
         
-[ini_nm, fresx2, fresy2] = ComputeZCalibration('daxfile',daxfile,'inifile',inifile,'nooverwrite',nooverwrite);
+[ini_nm, fresx2, fresy2] = ComputeZCalibration('daxfile',daxfile,'parsfile',parsfile,'nooverwrite',nooverwrite);
  % note, this changes the ini being used to the recent one. 
         nooverwrite = true; % this causes the function to save separate versions of the z-calibration output images for each iteration. 
-inifile = ini_nm; % change inifile to current file.  
+parsfile = ini_nm; % change inifile to current file.  
 
 %------------------------------------------------------------------
 % Compute uncertainty bounds. 
