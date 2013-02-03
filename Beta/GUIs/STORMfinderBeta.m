@@ -724,6 +724,39 @@ function ComputeZcal_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global daxfile inifile
+global daxfile inifile xmlfile Zopts Zprompt
+FitMethod = get(handles.FitMethod,'Value');
+if FitMethod == 1
+    parsfile = inifile;
+    method = 'insight';
+elseif FitMethod == 2
+    parsfile = xmlfile;
+    method = 'DaoSTORM';
+elseif FitMethod == 3
+    disp('Z-fitting not available for GPU multifit');
+end
 
- AutoZcal(daxfile,'inifile',inifile);
+
+dlg_title = 'Compute Z-calibration';
+num_lines = 1;
+try
+Zopts = inputdlg(Zprompt,dlg_title,num_lines,Zopts);
+catch er
+    disp('...menu built.  select again to run');
+    Zprompt = {
+        'max iteration';
+        'max uncertainty [w0, zr, g, A, B]'; %  
+        'NewParsRoot'; % 
+        'print to terminal' };
+    Zopts = {
+        '8',...
+        '[.01 .1 .2 .5 .5]',...
+        '_zpars',...
+        'true'}; 
+    Zopts = inputdlg(Zprompt,dlg_title,num_lines,Zopts);
+end
+
+ AutoZcal(daxfile,'parsfile',parsfile,'method',method,...
+       'max iterations',eval(Zopts{1}),'max_uncert',eval(Zopts{2}),...
+       'NewParsRoot',Zopts{3},'print2terminal',eval(Zopts{4}) );
+   

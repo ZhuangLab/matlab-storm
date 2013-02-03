@@ -53,7 +53,7 @@
 %
 % Alistair Boettiger
 % boettiger@fas.harvard.edu
-% February 3, 2012
+% February 3, 2013
 % Copyright Creative Commons CC BY.    
 %
 % Version 2.0
@@ -73,6 +73,7 @@ nooverwrite = false;
 corrtilt = true;  % correct tilt? 
 NewParsRoot = '_zpars';
 MaxError = 60; 
+verbose = true;
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Arguments
@@ -103,6 +104,8 @@ if nargin > 0
                 NewParsRoot  = CheckParameter(parameterValue, 'string', 'NewParsRoot');
             case 'MaxError'
                 MaxError = CheckParameter(parameterValue, 'positive', 'MaxError');
+            case 'verbose'
+                verbose = CheckParameter(parameterValue, 'string', 'verbose');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -149,9 +152,9 @@ pars_nm = [bead_path,'\',froot,NewParsRoot,parstype];
 %% load scan file
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-disp(['loading ',scanfile,'...']);
-% scan = readbinfile(scanfile);  % call's Sang He's version of readbin
+if verbose
+    disp(['loading ',scanfile,'...']);
+end
 scan = ReadMasterMoleculeList(scanfile); 
 
 %in = find(scan.cat==1 & scan.x>=minx & scan.x<=maxx & scan.y>=miny & scan.y<=maxy); % within expected frames
@@ -301,7 +304,9 @@ else
     ver = '';
 end
 saveas(fig_wxy,[bead_path,'\fig_',froot,'wxy',num2str(ver),'.png']);
-disp(['wrote ', bead_path,'\fig_',froot,'wxy',num2str(ver),'.png']);
+if verbose
+    disp(['wrote ', bead_path,'\fig_',froot,'wxy',num2str(ver),'.png']);
+end
 figure(4); clf; plot(zact,swy,'.',zact,swx,'.')
 
 %%
@@ -356,8 +361,9 @@ else
     ver = '';
 end
 saveas(fig_wxfit,[bead_path,'\fig_',froot,'wxfit',num2str(ver),'.png']);
-disp(['wrote ', bead_path,'\fig_',froot,'wxfit',num2str(ver),'.png']);
-
+if verbose
+    disp(['wrote ', bead_path,'\fig_',froot,'wxfit',num2str(ver),'.png']);
+end
 
 %-------------------------------------------------------------------------
 % fit wy
@@ -407,21 +413,25 @@ else
     ver = '';
 end
 saveas(fig_wyfit,[bead_path,'\fig_',froot,'wyfit',num2str(ver),'.png']);
-disp(['wrote ', bead_path,'\fig_',froot,'wyfit',num2str(ver),'.png']);
+if verbose
+    disp(['wrote ', bead_path,'\fig_',froot,'wyfit',num2str(ver),'.png']);
+end
 
 % print to screen
 zexpr = sprintf('wx0=%.2f;zrx=%.2f;gx=%.2f;  Cx=0.00000;Bx=%.4f;Ax=%.4f;  wy0=%.2f;zry=%.2f;gy=%.2f;  Cy=0.0000;By=%.4f;Ay=%.4f;  X=(z-gx)/zrx;  wx=sqrt(wx0*sqrt(Cx*X^5+Bx*X^4+Ax*X^3+X^2+1));  Y=(z-gy)/zry;  wy=sqrt(wy0*sqrt(Cy*Y^5+By*Y^4+Ay*Y^3+Y^2+1))\n',fresx2.w0,fresx2.zr,fresx2.g,fresx2.B,fresx2.A,fresy2.w0,fresy2.zr,fresy2.g,fresy2.B,fresy2.A);
-disp(zexpr);
+if verbose
+    disp(zexpr);
+end
+
 % print for ini file
 ztxt = [bead_path,'\',froot,'_zcal.txt'];
 fid2 = fopen(ztxt,'w+'); 
 fprintf(fid2,'z calibration expression=wx0=%.2f;zrx=%.2f;gx=%.2f;  Cx=0.00000;Bx=%.4f;Ax=%.4f;  wy0=%.2f;zry=%.2f;gy=%.2f;  Cy=0.0000;By=%.4f;Ay=%.4f;  X=(z-gx)/zrx;  wx=sqrt(wx0*sqrt(Cx*X^5+Bx*X^4+Ax*X^3+X^2+1));  Y=(z-gy)/zry;  wy=sqrt(wy0*sqrt(Cy*Y^5+By*Y^4+Ay*Y^3+Y^2+1))\n',fresx2.w0,fresx2.zr,fresx2.g,fresx2.B,fresx2.A,fresy2.w0,fresy2.zr,fresy2.g,fresy2.B,fresy2.A);
 fclose(fid2);
-%%
-% fname_in, fname_out
+%% write new calibration data to ini or xml file 
+
 if strcmp(parstype,'.ini')
 modify_script(parsfile,pars_nm,{'z calibration expression='},{zexpr},'');
-    
 elseif strcmp(parstype,'.xml');
 zpars_names = {
     '<wx_wo type="float">',...  wx0
