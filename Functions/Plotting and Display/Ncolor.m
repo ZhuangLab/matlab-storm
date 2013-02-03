@@ -19,6 +19,7 @@ function Io = Ncolor(I,varargin)
 % cmap                  
 %                       -- a valid matlab colormap. leave blank for default
 %                       hsv (which is RGB for N=3).  Must be Nx3
+%
 %-------------------------------------------------------------------------
 % Outputs
 % Io same class as I.  
