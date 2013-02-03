@@ -7,4 +7,4 @@ Please do not load non-functional code here.
 All code should be loaded in a folder with a README.md text file that explains the basic function of the code and provides some instructions on how to use it.  
 
 # Current Projects
-STORMrender GUI
+STORMrenderBeta GUI
