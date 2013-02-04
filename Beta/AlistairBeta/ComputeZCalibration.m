@@ -105,7 +105,7 @@ if nargin > 0
             case 'MaxError'
                 MaxError = CheckParameter(parameterValue, 'positive', 'MaxError');
             case 'verbose'
-                verbose = CheckParameter(parameterValue, 'string', 'verbose');
+                verbose = CheckParameter(parameterValue, 'boolean', 'verbose');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -434,13 +434,11 @@ if strcmp(parstype,'.ini')
 modify_script(parsfile,pars_nm,{'z calibration expression='},{zexpr},'');
 elseif strcmp(parstype,'.xml');
 zpars_names = {
-    '<wx_wo type="float">',...  wx0
+        '<wx_wo type="float">',...  wx0
         '<wx_c type="float">',...  gx
         '<wx_d type="float">',...  zrx
         '<wxA type="float">',...  Ax
         '<wxB type="float">',... Bx
-        '<wxC type="float">',...  Cx
-        '<wxD type="float">',...  Dx
         '<wy_wo type="float">',...  wy0
         '<wy_c type="float">',...  gy
         '<wy_d type="float">',...  zry
@@ -464,4 +462,8 @@ modify_script(parsfile,pars_nm,zpars_names,zpars_values,'<');
 end
 
 
+
+function f = zcal(z,w0,zr,g,A,B)
+zs = (z-g)/zr;
+f = w0*sqrt( B*zs.^4 + A*zs.^3 + zs.^2 + 1 ) ;
 

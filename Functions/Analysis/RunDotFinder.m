@@ -27,7 +27,7 @@ function RunDotFinder(varargin)
 %               - full name and path of .dax file to analyze
 % path / string / ''
 %               - directory containing .dax files to be analyzed
-% batchsize / integer / 3
+% batchsize / integer / 1
 %               - max number of versions of analysis to run in parallel
 % overwrite / double / 2     
 %               - Skip files for which bin files already exist (0),
@@ -238,6 +238,7 @@ end
 
 %~~~~~~~~~~~~~~~~~ Call analysis commands in batch ~~~~~~~~~~~~~~~~~~~~~~~%
 Sections = length(daxnames);
+hasexited = zeros(Sections,1); 
 for s=1:Sections % loop through all dax movies in que
     daxfile = [dpath,filesep,daxnames{s}];          
     switch method
@@ -245,6 +246,7 @@ for s=1:Sections % loop through all dax movies in que
          % display command split up onto multiple lines  
          % Actually launch insightM and poll computer for number of processes
             if runinMatlab % 
+                processName = []; % Ignore what's running in terminals 
                 if printprogress  % Print fitting progress to command line
                     system([defaultInsightPath,' ',daxfile,' ',parsfile]);  
                 else  % Don't print to command line (save output in text file)
@@ -264,7 +266,17 @@ for s=1:Sections % loop through all dax movies in que
                     system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' >' dpath,'\newlog',num2str(s),'.txt']); 
                 end
             elseif hideterminal  % Launch silently in the background
-               SystemSilent([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile, ' && exit &']); 
+              proc = SystemSilent([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile, ' && exit &']); 
+              Nrunning = inf; 
+               while Nrunning >= batchsize
+                   %disp(['s=',num2str(s),' batchsize=',num2str(batchsize)]);
+                   hasexited(s) = double(proc.HasExited);
+                   Nrunning = s-sum(hasexited);
+                   disp(proc.HasExited);
+                   % disp(['Nrunning=',num2str(Nrunning)]);
+                   pause(1); 
+               end
+              processName = [];
             else % Launch an external terminal where processs can run
                 system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' && exit &']);  
             end          

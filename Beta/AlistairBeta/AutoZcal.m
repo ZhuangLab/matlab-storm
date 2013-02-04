@@ -3,8 +3,8 @@ function [xerr,yerr] = AutoZcal(daxfile,varargin)
 % [xerr,yerr] = AutoZcal(daxfile)
 % 
 % [xerr,yerr] =  AutoZcal(daxfile,'parsfile',value,...
-%        'max iterations',value,'method',value,...
-%        'max_uncert',value,'print2terminal',value,'verbose',value,...
+%        'MaxIterations',value,'method',value,...
+%        'MaxUncert',value,'print2terminal',value,'verbose',value,...
 %        'NewParsRoot',value);
 % uses predfined parameters to compute a 3D astigmatism warping function
 % for the daxfile provided.  Creates new xml or ini file in the daxfile
@@ -25,10 +25,10 @@ function [xerr,yerr] = AutoZcal(daxfile,varargin)
 % 
 %--------------------------------------------------------------------------
 % Optional Inputs
-% 'max iterations' / integer / 8
+% 'MaxIterations' / integer / 8
 %               -- maximum number of iterations to try to make confidence
 %                 intervals in fit obtain desired bound
-% 'max uncert' / vector / [.01 .1 .2 .5 .5]
+% 'MaxUncert' / vector / [.01 .1 .2 .5 .5]
 %               -- maximum uncertainty tolerated in fit parameters 
 %               [w0, zr, g, A, B]
 % 'print2terminal' / logical / false
@@ -92,7 +92,7 @@ if nargin > 1
         parameterName = varargin{parameterIndex*2 - 1};
         parameterValue = varargin{parameterIndex*2};
         switch parameterName   
-            case 'max iterations'
+            case 'MaxIterations'
                 max_iterations  = CheckParameter(parameterValue, 'positive', 'max iterations');
             case 'print2terminal'
                 print2terminal = CheckParameter(parameterValue, 'boolean', 'print2terminal');
@@ -100,7 +100,7 @@ if nargin > 1
                 method = CheckParameter(parameterValue, 'string', 'method');
             case 'parsfile'
                 parsfile = CheckParameter(parameterValue, 'string', 'parsfile');
-            case 'max uncert'
+            case 'MaxUncert'
                 max_uncert = parameterValue;
                 if length(max_uncert) ~= 5; 
                      error(['Not a valid option for ' parameterName]);
@@ -118,12 +118,35 @@ end
 %%
 
 if isempty(parsfile)
-    if strcmp('method','insight')
+    if strcmp(method,'insight')
         parsfile = defaultIniFile;
-    elseif strcmp('method','DaoSTORM')
+    elseif strcmp(method,'DaoSTORM')
         parsfile = defaultXmlFile;
     end
 end
+
+%----------------------------------------------------------------
+% Check to make sure parameter file is good for z-calibration
+% (Linking molecules must be turned off).  
+%----------------------------------------------------------------
+if strcmp(method,'insight')
+    parsflag = '';
+    linkmolecules ={'max displacement='};
+    new_values = {'0'};
+elseif strcmp(method,'DaoSTORM');
+    parsflag = '<';
+    linkmolecules = {'<radius type="float">',...
+        '<drift_correction type="int">'};
+    new_values = {'0';'0'};
+end
+k = strfind(parsfile,'.');
+parstemp = [parsfile(1:k-1),'_ztemp',parsfile(k:end)];
+curr_values = read_parameterfile(parsfile,linkmolecules,parsflag);
+modify_script(parsfile,parstemp,linkmolecules,new_values,parsflag);
+
+
+
+
 % arrays to record final uncertainty   
 x_below_bnd = [0,0,0,0,0];
 y_below_bnd = [0,0,0,0,0];
@@ -134,9 +157,9 @@ while sum([x_below_bnd,y_below_bnd]) < 10  && iters < max_iterations
     iters = iters + 1;  % cap on max iterations to converge
     disp(['iteration ',num2str(iters)]);
     if print2terminal
-        RunDotFinder('daxfile',daxfile,'parsfile',parsfile,'method',method,'runinMatlab',true,'printprogress',true,'verbose',verbose);
+        RunDotFinder('daxfile',daxfile,'parsfile',parstemp,'method',method,'hideterminal',true,'overwrite',true,'printprogress',true,'verbose',verbose);
     else
-        RunDotFinder('daxfile',daxfile,'parsfile',parsfile,'method',method,'runinMatlab',true,'printprogress',false,'verbose',verbose);
+        RunDotFinder('daxfile',daxfile,'parsfile',parstemp,'method',method,'runinMatlab',true,'overwrite',true,'printprogress',false,'verbose',verbose);
     end
     % Make sure DotFinding is complete before we try to read the bin file
     % in ComputeZCalibration. Should happen for free when we 'runinMatlab'
@@ -144,10 +167,10 @@ while sum([x_below_bnd,y_below_bnd]) < 10  && iters < max_iterations
     %----------------------------------------------------------------
     % run z-calibration, get updated parameter file
     %----------------------------------------------------------------
-    [pars_nm, fresx2, fresy2] = ComputeZCalibration('daxfile',daxfile,'parsfile',parsfile,'nooverwrite',nooverwrite,'NewParsRoot',NewParsRoot,'verbose',verbose);
+    [pars_nm, fresx2, fresy2] = ComputeZCalibration('daxfile',daxfile,'parsfile',parstemp,'nooverwrite',nooverwrite,'NewParsRoot',NewParsRoot,'verbose',verbose);
     % note, this changes the parameter file being used to the recent one. 
         nooverwrite = true; % this causes the function to save separate versions of the z-calibration output images for each iteration. 
-        parsfile = pars_nm; % change parsfile to current file.  
+        parstemp = pars_nm; % change parsfile to current file.  
 
     %------------------------------------------------------------------
     % Compute uncertainty bounds. 
@@ -180,4 +203,10 @@ end
 
 xerr = x_uncert;
 yerr = y_uncert;
-disp('Z-calibration finished'); 
+
+% convert back to previous molecule linkage.  
+modify_script(parstemp,parstemp,linkmolecules,curr_values,parsflag);
+
+if verbose
+    disp('Z-calibration finished'); 
+end
