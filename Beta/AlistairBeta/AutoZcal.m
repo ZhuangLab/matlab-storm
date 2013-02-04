@@ -93,7 +93,7 @@ if nargin > 1
         parameterValue = varargin{parameterIndex*2};
         switch parameterName   
             case 'MaxIterations'
-                max_iterations  = CheckParameter(parameterValue, 'positive', 'max iterations');
+                max_iterations  = CheckParameter(parameterValue, 'positive', 'MaxIterations');
             case 'print2terminal'
                 print2terminal = CheckParameter(parameterValue, 'boolean', 'print2terminal');
             case 'method'

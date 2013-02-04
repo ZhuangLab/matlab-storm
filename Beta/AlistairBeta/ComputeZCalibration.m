@@ -143,8 +143,13 @@ end
 
 k = strfind(parsfile,'.');
 parstype = parsfile(k:end); 
+if strcmp(parstype,'.ini')
+    bintype = '_list.bin';
+elseif strcmp(parstype,'.xml');
+    bintype = '_mlist.bin';
+end
 
-scanfile = [bead_path,'\',froot,'_list.bin'];
+scanfile = [bead_path,'\',froot,bintype];
 scanzfile = [bead_path,'\',froot,'.off'];
 pars_nm = [bead_path,'\',froot,NewParsRoot,parstype];
 
@@ -333,9 +338,14 @@ for n=indx'
     end
 end
 indx2(indx2==0) = []; % ADDED
-z = zact(indx2);
-w = wx(indx2);
-
+if sum(indx2) > 10
+    z = zact(indx2);
+    w = wx(indx2);
+else
+    disp('warning: points not near fitted curve');
+    z = zact;
+    w = wx; 
+end
 
 %~~~~~~~~~~~~~~~~Now compute fit on just the 'good' beads ~~~~~~~~~~~~~%
 ftype = fittype('w0*sqrt( ((z-g)/zr)^2 + 1 ) ','coeff', {'w0','zr','g'},'ind','z');

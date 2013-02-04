@@ -91,6 +91,7 @@ verbose = true;
 hideterminal = false; 
 runinMatlab = false;
 printprogress = false;
+batchwait = false;
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Arguments
@@ -164,15 +165,12 @@ switch method
     case 'insight'
         datatype = '_list.bin'; 
         parstype = '.ini';
-        processName = 'InsightM.exe';
     case 'DaoSTORM'
         datatype = '_mlist.bin';
         parstype = '.xml';
-        processName = 'python.exe';
     case 'GPUmultifit'
         datatype = '_glist.bin';
         parstype = '.mat';
-        processName = ''; % GPU scripts can't be launched in batch
         if batchsize > 1
             disp('Batch task execution not available for GPU');
         end
@@ -238,7 +236,7 @@ end
 
 %~~~~~~~~~~~~~~~~~ Call analysis commands in batch ~~~~~~~~~~~~~~~~~~~~~~~%
 Sections = length(daxnames);
-hasexited = zeros(Sections,1); 
+prc = cell(Sections,1); % cell array to store system process structures for each process launched
 for s=1:Sections % loop through all dax movies in que
     daxfile = [dpath,filesep,daxnames{s}];          
     switch method
@@ -246,16 +244,15 @@ for s=1:Sections % loop through all dax movies in que
          % display command split up onto multiple lines  
          % Actually launch insightM and poll computer for number of processes
             if runinMatlab % 
-                processName = []; % Ignore what's running in terminals 
                 if printprogress  % Print fitting progress to command line
                     system([defaultInsightPath,' ',daxfile,' ',parsfile]);  
                 else  % Don't print to command line (save output in text file)
                     system([defaultInsightPath,' ',daxfile,' ',parsfile,' >' dpath,'\newlog',num2str(s),'.txt']); 
                 end
-            elseif hideterminal  % Launch silently in the background
-               SystemSilent([defaultInsightPath,' ',daxfile,' ',parsfile, ' && exit &']); 
-            else % Launch an external terminal where processs can run
-                system([defaultInsightPath,' ',daxfile,' ',parsfile, ' && exit &']); 
+            else
+               system_command = [defaultInsightPath,' ',daxfile,' ',parsfile, ' && exit &']; 
+               prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
+               batchwait = true;
             end
         case 'DaoSTORM'
             binfile = [dpath,filesep,daxroots{s},datatype];
@@ -265,20 +262,10 @@ for s=1:Sections % loop through all dax movies in que
                 else  % Don't print to command line (save output in text file)
                     system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' >' dpath,'\newlog',num2str(s),'.txt']); 
                 end
-            elseif hideterminal  % Launch silently in the background
-              proc = SystemSilent([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile, ' && exit &']); 
-              Nrunning = inf; 
-               while Nrunning >= batchsize
-                   %disp(['s=',num2str(s),' batchsize=',num2str(batchsize)]);
-                   hasexited(s) = double(proc.HasExited);
-                   Nrunning = s-sum(hasexited);
-                   disp(proc.HasExited);
-                   % disp(['Nrunning=',num2str(Nrunning)]);
-                   pause(1); 
-               end
-              processName = [];
-            else % Launch an external terminal where processs can run
-                system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' && exit &']);  
+            else  % Launch silently in the background
+                system_command = [defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile, ' && exit &']; 
+                prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
+                batchwait = true;
             end          
         case 'GPUmultifit'
             load(parsfile);
@@ -294,31 +281,16 @@ for s=1:Sections % loop through all dax movies in que
         disp(['running ',method,' on:']);
         disp(daxfile); 
         disp(parsfile); 
-    end    
-
-%~~~~~  Regulate number of instances of analysis running in parallel. ~~~~~~~~ 
-    if ~isempty(processName)
-         [~, result] = dos(['wmic process where (name="',...
-             processName,'") list brief']); 
-         running = strfind(result,processName);
-
-           % Don't launch more than 'batchsize' number of scripts at once:
-           waitT = 0; 
-           batchwait = tic;
-                while length(running) >= batchsize
-                    pause(1); 
-                     waitT = waitT + 1; % Process time-out counter
-                    % Watch for appearance of completed bin file 
-                    [~, result] = dos(['wmic process where (name="',...
-                        processName,'") list brief']); 
-                    running = strfind(result,processName);  
-                end      
-           batchwait = toc(batchwait);
-           if verbose
-            disp(['time elapsed = ',num2str(batchwait/60),' min']); 
-           end
+    end 
+  
+    if batchwait
+    Nrunning = inf; 
+       while Nrunning >= batchsize
+           hasexited = cellfun(@(x) x.HasExited,prc);
+           Nrunning = s-sum(hasexited);
+           pause(1); 
+       end 
     end
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 end
 
 time_run = toc(time_run);
