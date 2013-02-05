@@ -119,7 +119,7 @@ if nargin > 1
             case 'minsize'
                 minsize = CheckParameter(parameterValue, 'positive', 'minsize');
             case 'overwrite'
-                overwrite = CheckParameter(parameterValue, 'positive', 'overwrite');
+                overwrite = CheckParameter(parameterValue, 'nonnegative', 'overwrite');
             case 'parsfile'
                 parsfile = CheckParameter(parameterValue, 'string', 'parsfile');
             case 'daxfile'
@@ -209,7 +209,7 @@ if sum(hasbin) ~= 0
         daxnames(logical(hasbin))];
         disp(char(txtout));
         disp('these files will be overwritten.  ');
-        overwritefiles = input('type 1 to skip, 2 to overwrite, 0 to cancel:  ');
+        overwritefiles = input('type 2 to skip, 1 to overwrite, 0 to cancel:  ');
     elseif overwrite == 1
         overwritefiles = 1;
     elseif overwrite == 0
