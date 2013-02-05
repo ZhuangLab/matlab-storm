@@ -196,27 +196,23 @@ figure(2)
 plot(zst); xlabel('frame'); ylabel('z');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Use molecular lists when the stage did not
+% Use molecular lists when the stage did not move
 % to calculate how well the stage is leveled
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-in0 = find(frame<fststart-1 & cat==1);
+in0 = frame<fststart-1 & cat==1;
 x0 = x(in0);
 y0 = y(in0);
 z0 = z(in0);
 
-% ps = (y,z,1);
-% zy1 = polyval(ps,1:130);
 p = polyfitn([x0,y0],z0,2);
 ps = p.Coefficients;
 ti = 5:5:250;
 [xi,yi] = meshgrid(ti,ti);
-% zi = xi*ps(1) + yi*ps(2) + ps(3);
 zi = xi.^2*ps(1) + xi.*yi*ps(2) + xi*ps(3) + yi.^2*ps(4) + yi*ps(5) + ps(6);
 
 % filter out beads that are too far away from the fitted plane
-% zf = x0*ps(1) + y0*ps(2) + ps(3);
 zf = x0.^2*ps(1) + x0.*y0*ps(2) + x0*ps(3) + y0.^2*ps(4) + y0*ps(5) + ps(6);
-ino = find(abs(z0-zf)>=zwin);
+ino = abs(z0-zf)>=zwin;
 xout = x0(ino);
 yout = y0(ino);
 zout = z0(ino);
@@ -269,6 +265,7 @@ end
 % correct stage tilt
 %--------------------------------------------------------------------------
 if (corrtilt)
+    
     zc = x(in1).^2*ps(1) + x(in1).*y(in1)*ps(2) + x(in1)*ps(3) + y(in1).^2*ps(4) + y(in1)*ps(5) + ps(6);
     zact0 = - zst(frame(in1)) + zc ;
     [zact,in11] = sort(zact0);
@@ -402,7 +399,7 @@ w = wy(indy2);
 
 
 ftype = fittype('w0*sqrt( ((z-g)/zr)^2 + 1 ) ','coeff', {'w0','zr','g'},'ind','z');
-fresy1 = fit(z,w,ftype,'start',[ 300  450  -240 ]); % ADDED fopt to end   % Original default start
+fresy1 = fit(z,w,ftype,'start',[ 300  450  240 ]); % ADDED fopt to end   % Original default start gy should be positive. 
 ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
 fresy2 = fit(z,w,ftype,'start',[ fresy1.w0  fresy1.zr  fresy1.g  0 0]); % 
 fcur2 = zcal(zact,fresy2.w0,fresy2.zr,fresy2.g,fresy2.A,fresy2.B);
@@ -471,9 +468,26 @@ zpars_values = cellfun(@num2str, zpars_values,'UniformOutput',false);
 modify_script(parsfile,pars_nm,zpars_names,zpars_values,'<');
 end
 
+%% subfunctions 
 
 
 function f = zcal(z,w0,zr,g,A,B)
-zs = (z-g)/zr;
-f = w0*sqrt( B*zs.^4 + A*zs.^3 + zs.^2 + 1 ) ;
+    zs = (z-g)/zr;
+    f = w0*sqrt( B*zs.^4 + A*zs.^3 + zs.^2 + 1 ) ;
+
+
+function zf = leveldata(allx,ally,allz)
+% z_leveled = z - level_data(x,y,z);
+    try
+    p = polyfitn([allx',ally'],allz',2);
+    catch
+        p = polyfitn([allx,ally],allz,2);
+    end
+    ps = p.Coefficients;
+    ti = 5:5:120;
+    [xi,yi] = meshgrid(ti,ti);
+    % The fitted plane
+    zi = xi.^2*ps(1) + xi.*yi*ps(2) + xi*ps(3) + yi.^2*ps(4) + yi*ps(5) + ps(6);
+    % the correction factor 
+    zf = allx.^2*ps(1) + allx.*ally*ps(2) + allx*ps(3) + ally.^2*ps(4) + ally*ps(5) + ps(6);
 
