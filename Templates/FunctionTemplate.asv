@@ -15,14 +15,19 @@ function params = ReadXMLParameters(fileName, vargin)
 % Variable Inputs (Flag/ data type /(default)):
 % 
 % 'verbose'/boolean/(false): Determines if parameter reporting 
-%
-% 'tagName'/string(''): Can be the name of any xml tag. If it exists in the
-%   parameter file, it will be added to the parameter structure
+% Example
+% 'generalFlag'/string(''
+
+
 %--------------------------------------------------------------------------
-% Jeffrey Moffitt
-% February 4, 2013
+% Author Name
+% Author email
+% Current Date
 %
-% Version 1.0
+% Version Number
+%--------------------------------------------------------------------------
+% Version update information
+% V1.1: I made these changes...s
 %--------------------------------------------------------------------------
 % Creative Commons License CC BY
 %--------------------------------------------------------------------------
@@ -36,7 +41,7 @@ quiet = 0;
 %--------------------------------------------------------------------------
 % Global Variables
 %--------------------------------------------------------------------------
-global defaultParameterPath;
+global myGlobalVariable;
 
 %--------------------------------------------------------------------------
 % Default Variables: Define variable input variables here
