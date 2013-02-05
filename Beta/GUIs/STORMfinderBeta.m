@@ -28,7 +28,7 @@ function varargout = STORMfinderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMfinderBeta
 
-% Last Modified by GUIDE v2.5 02-Feb-2013 12:09:40
+% Last Modified by GUIDE v2.5 05-Feb-2013 16:11:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -124,7 +124,7 @@ global FitPars
         
         % if no inifile has been loaded, use default values 
         if isempty(inifile)
-            ReadParameterFile(FitMethod) % make default file the inifile
+            ReadParameterFile(FitMethod,handles) % make default file the inifile
         end
         
        % write temp daxfile
@@ -152,7 +152,7 @@ global FitPars
 	elseif FitMethod == 2    
         % load parameter files if missing
         if isempty(xmlfile)
-            ReadParameterFile(FitMethod) % make default file the 'xmlfile'
+            ReadParameterFile(FitMethod,handles) % make default file the 'xmlfile'
         end
         if isempty(defaultDaoSTORM)
             error(['defaultDaoSTORM not found.  ',...
@@ -283,7 +283,7 @@ function UpdateFrame(handles)
 
  
 
-function [FitPars,parameters] = ReadParameterFile(FitMethod)
+function [FitPars,parameters] = ReadParameterFile(FitMethod,handles)
 % loads contents of inifile or xmlfile into data structure FitPars
 % depending on whether fit method is insightM or DaoSTORM respectively.  
 % if no inifile or xmlfile has been loaded yet, load default files.  
@@ -333,6 +333,7 @@ if FitMethod == 1
                 'xymols','zmols','minframes','maxframes','xygridxy','xygridz',...
                 'movAxy','movAz','Fit3D','zcaltxt','zop','zstart','zend','zstep'};
             FitPars = cell2struct(target_values,Pfields,2);
+            parsfile = inifile;
             
 elseif FitMethod == 2
     if isempty(xmlfile)
@@ -383,6 +384,7 @@ elseif FitMethod == 2
           'dframes','dscale','Fit3D','zcutoff','zstart','zend','wx0','gx',...
           'zrx','Ax','Bx','Cx','Dx','wy0','gy','zry','Ay','By','Cy','Dy'};
       FitPars = cell2struct(target_values,Pfields,2);  
+      parsfile = xmlfile;
       
 elseif FitMethod == 3  
     if isempty(gpufile)
@@ -390,10 +392,11 @@ elseif FitMethod == 3
         gpufile = defaultGPUmFile;
     end
     load(gpufile);
+    parsfile = gpufile;
     FitPars = GPUmultiPars;
     parameters = ''; 
 end      
-
+    set(handles.CurrentPars,'String',parsfile);
 % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test3.mat');
 
 
@@ -441,7 +444,7 @@ global FitPars inifile xmlfile gpufile
 % disp('loading inifile');
 % disp(inifile);
  FitMethod = get(handles.FitMethod,'Value');
- [FitPars,parameters] = ReadParameterFile(FitMethod); 
+ [FitPars,parameters] = ReadParameterFile(FitMethod,handles); 
  parfile = make_temp_parameters(handles,'temp'); % if _temp.ini / .xml parameter files have not been made, make them.
 %  disp('parfile = ');
 %  disp(parfile)
@@ -465,7 +468,8 @@ global FitPars inifile xmlfile gpufile
     GPUmultiPars = FitPars;
     gpufile = parfile; 
     save(gpufile,'GPUmultiPars');
-end
+ end
+    set(handles.CurrentPars,'String',parfile);
 % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test2.mat');
 % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test2.mat');
 
@@ -479,7 +483,7 @@ function FitMethod_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global FitPars xmlfile inifile
  FitMethod = get(handles.FitMethod,'Value');
- FitPars = ReadParameterFile(FitMethod);
+ FitPars = ReadParameterFile(FitMethod,handles);
 % Important that FitPars matches the current Fitting method.  
 
 
@@ -555,8 +559,9 @@ function MenuSavePars_Callback(hObject, eventdata, handles)
   
 global inifile xmlfile
     FitMethod = get(handles.FitMethod,'Value');
-    [FitPars,parameters] = ReadParameterFile(FitMethod);  % load current parameters in FitPars
-    [savename, savepath] = uiputfile; % get file path and save name
+    [FitPars,parameters] = ReadParameterFile(FitMethod,handles);  % load current parameters in FitPars
+    [savename, savepath] = uiputfile({'*.ini;*.xml;*.mat','Parameter Files (*.ini, *.xml, *.mat)'},...
+        'Save Parameter File'); % get file path and save name
     k = strfind(savename,'.');
     if ~isempty(k);
         savename = savename(1:k-1);
@@ -574,6 +579,32 @@ modify_script(xmlfile,[savepath,savename],parameters,struct2cell(FitPars),'<');
         save([savepath,savename],'GPUmultiPars');
     end
 
+    % --------------------------------------------------------------------
+function MenuLoadPars_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuLoadPars (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    global inifile xmlfile gpufile
+    FitMethod = get(handles.FitMethod,'Value');
+    [filename, filepath] = uigetfile({'*.ini;*.xml;*.mat','Parameter Files (*.ini, *.xml, *.mat)'},...
+        'Select Parameter File'); % get file path and save name
+    k = strfind(savename,'.');
+    if strcmp(filename(k:end),'.ini');
+        inifile = [filepath,filename];
+        parsfile = inifile;
+    elseif strcmp(filename(k:end),'.xml');
+        xmlfile = [filepath,filename];
+        parsfile = xmlfile;
+    elseif strcmp(filename(k:end),'.mat');
+        gpufile = [filepath,filename];
+        parsfile = gpufile;
+    else
+        disp([filename,' is not a recognized parameter file']); 
+    end
+    set(handles.CurrentPars,'String',parsfile);
+    
+    
+    
 
 
 % --------------------------------------------------------------------
@@ -744,19 +775,36 @@ Zopts = inputdlg(Zprompt,dlg_title,num_lines,Zopts);
 catch er
     disp('...menu built.  select again to run');
     Zprompt = {
-        'max iteration';
-        'max uncertainty [w0, zr, g, A, B]'; %  
         'NewParsRoot'; % 
-        'print to terminal' };
+        'Run in Matlab?';
+        'Run Silently?';
+        'overwrite? (1=y,0=n,2=ask me)';
+        'Show plots?';
+        'Annealing fractional shift (0-1)';
+        'Annealing total round';
+        'Annealing shifts per round';
+        'Show simmulated annealing process?'};
     Zopts = {
-        '8',...
-        '[.01 .1 .2 .5 .5]',...
         '_zpars',...
+        'true',...
+        'false',...
+        '2',...
+        'true',...
+        '.1',...
+        '80',...
+        '250',...
         'false'}; 
     Zopts = inputdlg(Zprompt,dlg_title,num_lines,Zopts);
 end
 
+% Fit dots
+
  AutoZcal(daxfile,'parsfile',parsfile,'method',method,...
-       'MaxIterations',eval(Zopts{1}),'MaxUncert',eval(Zopts{2}),...
-       'NewParsRoot',Zopts{3},'print2terminal',eval(Zopts{4}) );
+       'NewParsRoot',Zopts{1},'runinMatlab',eval(Zopts{2}),...
+       'printprogress',eval(Zopts{3}),'overwrite',eval(Zopts{4}),...
+    'PlotsOn',eval(Zopts{5}),'SAstart',eval(Zopts{6}),'SArounds',...
+    eval(Zopts{7}),'SAshifts',eval(Zopts{8}),'ShowSA',eval(Zopts{9}));
    
+
+
+
