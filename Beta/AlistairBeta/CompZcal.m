@@ -63,7 +63,7 @@ function [pars_nm,wx_fit,wy_fit] = CompZcal(daxfile,parsfile,varargin)
 %--------------------------------------------------------------------------
 %% Default paramaters
 %------------------------------------------------------------------------
-% global daxfile inifile xmlfile; parsfile = xmlfile;
+% global daxfile inifile xmlfile; parsfile = inifile;
 zwindow = 100; % (in nm) max deviation of bead from plane to be used in refitting the z-plane
 NewParsRoot = '_zfit';
 PlotsOn = true; 
@@ -75,7 +75,7 @@ SAshifts = 300;
 SAstart = .3;
 ShowSA = false; 
 
-flipDaoZ = false; 
+flipDaoZ = true; 
 %--------------------------------------------------------------------------
 %% Parse mustHave variables
 %--------------------------------------------------------------------------
@@ -141,7 +141,7 @@ end
 
 binfile = [bead_path,'\',froot,bintype];
 mlist = ReadMasterMoleculeList(binfile);
-pars_nm = [bead_path,'\',froot,NewParsRoot,parstype];
+
 
 % toss any 'bad fits' and switch to shorthand
 c = mlist.c(mlist.c==1);
@@ -317,161 +317,71 @@ if PlotsOn
         disp(['wrote: ',bead_path,'\fig_',froot,'_','before_fit','.png']);
     end
 end
-%--------------------------------------
 
-%% Interpolate curves (prep for simulated annealing
 
-% All the curves are 'right' -- but have some offset.  We just need to
-% shift them around so that the all align -- we're using the common
-% characteristic shape of the astigmatism curve at any given point in
-% z-space to compute the appropriate offset.   
+%% align all curves so wx and wy cross at z=0
 
-% First we just interpolate the curves to get everyone on a common z-axis.
-Pts = 1000;
-zz = linspace(zmin,zmax,Pts);
 Wx = ZData(:,:,1);  % keeping code transparent
 Wy = ZData(:,:,2);  % keeping code transparent
 Z =  ZData(:,:,3);
-Wx_interp = zeros(Nmolecules,Pts);
-Wy_interp = zeros(Nmolecules,Pts);
 for n=1:Nmolecules
-    hasdata = logical(1-isnan(Wx(n,1:end)));
-    % z-data needs to be monotonoic.  because of stage jiggle it is not 
-    [Zn,zi] = sort(Z(n,hasdata));  
-    Wxn = Wx(n,hasdata);  Wxn = Wxn(zi);
-    Wyn = Wy(n,hasdata);  Wyn = Wyn(zi); 
-    [Zn,zi] = unique(Zn); % still fast relative to sim. annealing
-    Wx_interp(n,:)  =interp1(Zn,Wxn(zi),zz,'linear',NaN);
-    Wy_interp(n,:)  =interp1(Zn,Wyn(zi),zz,'linear',NaN);
-%     Wx_interp(n,:)  =interp1(Z(n,hasdata),Wx(n,hasdata),zz,'linear',NaN);
-%     Wy_interp(n,:)  =interp1(Z(n,hasdata),Wy(n,hasdata),zz,'linear',NaN);
-% figure(2); plot(Zn,'.')
+     Zn = Z(n,:);
+    Wxn = Wx(n,:); 
+    Wyn = Wy(n,:);
+    [~,i] = min(abs( Wxn - Wyn));
+    Z(n,:) = Zn -Zn(i); 
+%     [Zn,zi] = sort(Z(n,:));
+%     Wxn = Wx(n,zi); 
+%     Wyn = Wy(n,zi);
+%     [~,i] = min(abs( Wxn - Wyn));
+%     Zn = Zn -Zn(i); 
+
+    % figure(1); plot(Zn, Wx(n,:),'g',Zn,Wy(n,:),'b');  hold on;
 end
-
-if PlotsOn
-preannealed = figure; clf;
-ZZ = meshgrid(zz,1:Nmolecules);
-plot(ZZ',Wx_interp'); hold on;
-plot(ZZ',Wy_interp'); 
-xlim([zmin,zmax]); ylim([0,1000]);
-   saveas(preannealed,[bead_path,'\fig_',froot,'_','preannealed','.png']);
-    if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',froot,'_','preannealed','.png']);
-    end
-end
-
-%%  align by simulated annealing
-
-if verbose
-    disp('aligning bead curves by simulated annealing...');
-end
-
-Wx_int = Wx_interp; 
-Wx_int(Wx_int>1000) = NaN; Wx_int(Wx_int<50) = NaN;
-[~,zi] = size(Wx_int);
-InitShift = zi*SAstart;
-Wx_aligned = align_by_simulated_annealing(Wx_int,'Cooling','inv',...
-    'Rounds',SArounds,'Shifts',SAshifts,'PlotProgress',ShowSA,...
-    'InitShift',InitShift); 
-
-
-Wy_int = Wy_interp; 
-Wy_int(Wy_int>1000) = NaN; Wy_int(Wy_int<50) = NaN;
-[~,zi] = size(Wy_int);
-InitShift = zi*SAstart;
-Wy_aligned = align_by_simulated_annealing(Wy_int,'Cooling','inv',...
-    'Rounds',SArounds,'Shifts',SAshifts,'PlotProgress',ShowSA,...
-    'InitShift',InitShift);  
-
-
-zrange = (zz(Pts)-zmin);
-[~,xPts] = size(Wx_aligned);
-zax = linspace(zmin-zrange/2,zz(Pts)+zrange/2,xPts);
-Zax = meshgrid(zax,1:Nmolecules);
-[~,yPts] = size(Wy_aligned);
-zay = linspace(zmin-zrange/2,zz(Pts)+zrange/2,yPts);
-Zay = meshgrid(zay,1:Nmolecules);
-
-if PlotsOn
-annealed = figure; clf;
-plot(Zax',Wx_aligned','.','MarkerSize',1); hold on;
-plot(Zay',Wy_aligned','.','MarkerSize',1);
- ylim([0,1000]);
-set(gcf,'color','w'); set(gca,'FontSize',14);
-xlabel('z-position (nm)','FontSize',14);
-ylabel('width (nm)','FontSize',14);
-     saveas(annealed,[bead_path,'\fig_',froot,'_','annealed','.png']);
-    if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',froot,'_','annealed','.png']);
-    end
-end
-
 
 %% Compute curve fits
 
-zx = Zax(:); % convert to vector 
-wxf = Wx_aligned(:);
-notNaNx = logical(1-isnan(wxf));
-wxf = wxf(notNaNx);
-zx = zx(notNaNx);
 
-zy = Zay(:);
-wyf = Wy_aligned(:);
-notNaNy = logical(1-isnan(wyf));
-zy = zy(notNaNy);
-wyf = wyf(notNaNy);
+hasdata =  logical(1-isnan(Wx(:)));
+wxf =  Wx(hasdata);
+wyf = Wy(hasdata);
+zz = Z(hasdata);
+[zz,zi] = sort(zz);
+wxf = wxf(zi);
+wyf = wyf(zi);
 
-% ----recenter towards zero to help the fit work out
-px = polyfit(zx,wxf,2);
-py = polyfit(zy,wyf,2);
-swx = polyval(px,zz);
-swy = polyval(py,zz);
-[~,zi] = min(abs(swx-swy));
-z_offset = zz(zi);
-zx = zx - z_offset; 
-zy = zy - z_offset; 
 
 figure(3); clf; 
-plot(zx,wxf,'g.',zy,wyf,'b.','MarkerSize',1);
-%hold on; plot(zz-z_offset,swx,'k--',zz-z_offset,swy,'k--');
+plot(zz,wxf,'g.',zz,wyf,'b.','MarkerSize',1);
 
 ftype = fittype('w0*sqrt( ((z-g)/zr)^2 + 1 ) ','coeff', {'w0','zr','g'},'ind','z'); 
-wx_fit0 = fit(zx,wxf,ftype,'StartPoint',[ 300  450  -240 ],'Lower',[150 -1000 -1000],'Upper',[450,1000,1000]); % Expect curve to be near w0=300, zr=400 gx=-240;
+wx_fit0 = fit(zz,wxf,ftype,'StartPoint',[ 300  450  -240 ],'Lower',[150 -1000 -1000],'Upper',[450,1000,1000]); % Expect curve to be near w0=300, zr=400 gx=-240;
 try
     ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
-    wx_fit = fit(zx,wxf,ftype,'StartPoint',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0],'Lower',[150 -1000 -1000 -20 -20],'Upper',[450,1000,1000,20,20]); % ADDED use options
+    wx_fit = fit(zz,wxf,ftype,'StartPoint',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0],'Lower',[150 -1000 -1000 -20 -20],'Upper',[450,1000,1000,20,20]); % ADDED use options
 catch er
     disp(er.message); 
     disp('wx_fit tightening bounds on A and B and exlcuding data edges...');
-    wx_fit = fit(zx(end/10:end-end/10),wxf(end/10:end-end/10),ftype,'StartPoint',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0],'Lower',[150 -1000 -1000 -1 -1],'Upper',[450,1000,1000,1,1]); % ADDED use options
+    wx_fit = fit(zz(end/10:end-end/10),wxf(end/10:end-end/10),ftype,'StartPoint',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0],'Lower',[150 -1000 -1000 -1 -1],'Upper',[450,1000,1000,1,1]); % ADDED use options
 end
 
 ftype = fittype('w0*sqrt( ((z-g)/zr)^2 + 1 ) ','coeff', {'w0','zr','g'},'ind','z');
-wy_fit0 = fit(zy,wyf,ftype,'StartPoint',[ 250  450  240 ],'Lower',[150 -1000 -1000],'Upper',[450,1000,1000]); % Expect curve to be near w0=300, zr=400 gy=240;
+wy_fit0 = fit(zz,wyf,ftype,'StartPoint',[ 250  450  240 ],'Lower',[150 -1000 -1000],'Upper',[450,1000,1000]); % Expect curve to be near w0=300, zr=400 gy=240;
 try
 ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
-wy_fit = fit(zy,wyf,ftype,'start',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0]); % ADDED use options
+wy_fit = fit(zz,wyf,ftype,'start',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0]); % ADDED use options
 catch er
     disp(er.message);
       disp('wy_fit tightening bounds on A and B and exlcuding data edges...');
-  wy_fit = fit(zy(end/10:end-end/10),wyf(end/10:end-end/10),ftype,'StartPoint',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0],'Lower',[150 -1000 -1000 -.5 -.5],'Upper',[450,1000,1000,1,1]); % ADDED use options); % ADDED use options
+  wy_fit = fit(zz(end/10:end-end/10),wyf(end/10:end-end/10),ftype,'StartPoint',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0],'Lower',[150 -1000 -1000 -.5 -.5],'Upper',[450,1000,1000,1,1]); % ADDED use options); % ADDED use options
 end
 
-swx = feval(wx_fit,zz);
-swy = feval(wy_fit,zz);
-
-% Zero z-axis at Focal plane (where the curves cross)
-% i.e. z-position for which wx = wy.
-[~,zi] = min(abs(swx-swy));
-z_offset = zz(zi);
-wx_fit = fit(zx(end/10:end-end/10)-z_offset,wxf(end/10:end-end/10),ftype,'StartPoint',[ wx_fit.w0  wx_fit.zr  wx_fit.g  wx_fit.A wx_fit.B],'Lower',[ wx_fit.w0-1E-6  wx_fit.zr-1E-6  wx_fit.g-.0001*abs(wx_fit.g)  wx_fit.A-1E-6 wx_fit.B-1E-6],'Upper',[ wx_fit.w0+1E-10  wx_fit.zr+1E-6 wx_fit.g+.0001*abs(wx_fit.g) wx_fit.A+1E-6 wx_fit.B+1E-6]); % ADDED use options
-wy_fit = fit(zy-z_offset,wyf,ftype,'StartPoint',[ wy_fit.w0  wy_fit.zr  wy_fit.g  wy_fit.A wy_fit.B]);% ,'Lower',[ wy_fit.w0-1E-60  wy_fit.zr-1E-60  -1000  wy_fit.A-1E-6 wy_fit.B-1E-6],'Upper',[ wy_fit.w0+1E-6  wy_fit.zr+1E-60 1000 wy_fit.A+1E-60 wy_fit.B+1E-60]); % ADDED use options
 swx = feval(wx_fit,zz);
 swy = feval(wy_fit,zz);
 
 if PlotsOn || ShowFit
     zcal_curves = figure; clf;
-    plot((zx),wxf,'b.',(zy),wyf,'g+','MarkerSize',1);
+    plot(zz,wxf,'b.',zz,wyf,'g+','MarkerSize',1);
     hold on; 
     plot(zz,swx,'c-',zz,swy,'k-');
     axis([-600 600 0 1100])
@@ -496,6 +406,8 @@ zexpr = sprintf('wx0=%.2f;zrx=%.2f;gx=%.2f;  Cx=0.00000;Bx=%.4f;Ax=%.4f;  wy0=%.
 if verbose
     disp(zexpr);
 end
+
+pars_nm = [bead_path,'\',froot,NewParsRoot,parstype];
 
 if strcmp(parstype,'.ini')
 modify_script(parsfile,pars_nm,{'z calibration expression='},{zexpr},'');
@@ -535,7 +447,8 @@ end
 
 
 
-%%
+%%  
+% flipDaoZ =1
 if ConfirmFit 
     % confirm z_offset is zero.  
     [~,zi] = min(abs(swx-swy));
@@ -559,7 +472,7 @@ if ConfirmFit
     z = mlist.z(c==1);
 
     % Compute new z positions
-    N = length(wx);
+    N = length(x);
     new_z = zeros(N,1);
     for n=1:N
      [~,i] = min( (wx(n).^.5 - swx.^.5).^2 + (wy(n).^.5 - swy.^.5).^2 );
