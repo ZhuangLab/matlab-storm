@@ -63,6 +63,7 @@ function [pars_nm,wx_fit,wy_fit] = CompZcal(daxfile,parsfile,varargin)
 %--------------------------------------------------------------------------
 %% Default paramaters
 %------------------------------------------------------------------------
+% global daxfile inifile xmlfile; parsfile = xmlfile;
 zwindow = 100; % (in nm) max deviation of bead from plane to be used in refitting the z-plane
 NewParsRoot = '_zfit';
 PlotsOn = true; 
@@ -73,6 +74,8 @@ SArounds = 80;
 SAshifts = 300; 
 SAstart = .3;
 ShowSA = false; 
+
+flipDaoZ = false; 
 %--------------------------------------------------------------------------
 %% Parse mustHave variables
 %--------------------------------------------------------------------------
@@ -245,8 +248,12 @@ wy = wy(moving_dots);
 stagepos = zst(frame(moving_dots));   
 frame = frame(moving_dots);  
 z_tilt_corr = x.^2*ps(1) + x.*y*ps(2) + x*ps(3) + y.^2*ps(4) + y*ps(5) + ps(6);
+ if strcmp(parstype,'.ini')  && flipDaoZ
 zc =  z_tilt_corr - stagepos;  % corrected position of all beads
-
+ else
+     zc =  -(z_tilt_corr - stagepos);  % corrected position of all beads
+ end
+    
 Nframes = max(frame) - min(frame) + 1;
 ZData = zeros(Nmolecules,Nframes,3);
 
@@ -340,15 +347,25 @@ for n=1:Nmolecules
 %     Wy_interp(n,:)  =interp1(Z(n,hasdata),Wy(n,hasdata),zz,'linear',NaN);
 % figure(2); plot(Zn,'.')
 end
-    
-% figure(5); clf;
-% ZZ = meshgrid(zz,1:Nmolecules);
-% plot(ZZ',Wx_interp'); hold on;
-% plot(ZZ',Wy_interp'); 
-% xlim([zmin,zmax]); ylim([0,1000]);
 
+if PlotsOn
+preannealed = figure; clf;
+ZZ = meshgrid(zz,1:Nmolecules);
+plot(ZZ',Wx_interp'); hold on;
+plot(ZZ',Wy_interp'); 
+xlim([zmin,zmax]); ylim([0,1000]);
+   saveas(preannealed,[bead_path,'\fig_',froot,'_','preannealed','.png']);
+    if verbose; 
+        disp(['wrote: ',bead_path,'\fig_',froot,'_','preannealed','.png']);
+    end
+end
 
 %%  align by simulated annealing
+
+if verbose
+    disp('aligning bead curves by simulated annealing...');
+end
+
 Wx_int = Wx_interp; 
 Wx_int(Wx_int>1000) = NaN; Wx_int(Wx_int<50) = NaN;
 [~,zi] = size(Wx_int);
@@ -375,14 +392,19 @@ Zax = meshgrid(zax,1:Nmolecules);
 zay = linspace(zmin-zrange/2,zz(Pts)+zrange/2,yPts);
 Zay = meshgrid(zay,1:Nmolecules);
 
-% figure(5); clf;
-% plot(Zax',Wx_aligned','.','MarkerSize',1); hold on;
-% plot(Zay',Wy_aligned','.','MarkerSize',1);
-%  ylim([0,1000]);
-% set(gcf,'color','w'); set(gca,'FontSize',14);
-% xlabel('z-position (nm)','FontSize',14);
-% ylabel('width (nm)','FontSize',14);
-
+if PlotsOn
+annealed = figure; clf;
+plot(Zax',Wx_aligned','.','MarkerSize',1); hold on;
+plot(Zay',Wy_aligned','.','MarkerSize',1);
+ ylim([0,1000]);
+set(gcf,'color','w'); set(gca,'FontSize',14);
+xlabel('z-position (nm)','FontSize',14);
+ylabel('width (nm)','FontSize',14);
+     saveas(annealed,[bead_path,'\fig_',froot,'_','annealed','.png']);
+    if verbose; 
+        disp(['wrote: ',bead_path,'\fig_',froot,'_','annealed','.png']);
+    end
+end
 
 
 %% Compute curve fits
@@ -390,18 +412,50 @@ Zay = meshgrid(zay,1:Nmolecules);
 zx = Zax(:); % convert to vector 
 wxf = Wx_aligned(:);
 notNaNx = logical(1-isnan(wxf));
-ftype = fittype('w0*sqrt( ((z-g)/zr)^2 + 1 ) ','coeff', {'w0','zr','g'},'ind','z');
-wx_fit0 = fit(zx(notNaNx),wxf(notNaNx),ftype,'StartPoint',[ 300  450  -240 ]); % Expect curve to be near w0=300, zr=400 gx=-240;
-ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
-wx_fit = fit(zx(notNaNx),wxf(notNaNx),ftype,'start',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0]); % ADDED use options
+wxf = wxf(notNaNx);
+zx = zx(notNaNx);
 
 zy = Zay(:);
 wyf = Wy_aligned(:);
 notNaNy = logical(1-isnan(wyf));
+zy = zy(notNaNy);
+wyf = wyf(notNaNy);
+
+% ----recenter towards zero to help the fit work out
+px = polyfit(zx,wxf,2);
+py = polyfit(zy,wyf,2);
+swx = polyval(px,zz);
+swy = polyval(py,zz);
+[~,zi] = min(abs(swx-swy));
+z_offset = zz(zi);
+zx = zx - z_offset; 
+zy = zy - z_offset; 
+
+figure(3); clf; 
+plot(zx,wxf,'g.',zy,wyf,'b.','MarkerSize',1);
+%hold on; plot(zz-z_offset,swx,'k--',zz-z_offset,swy,'k--');
+
+ftype = fittype('w0*sqrt( ((z-g)/zr)^2 + 1 ) ','coeff', {'w0','zr','g'},'ind','z'); 
+wx_fit0 = fit(zx,wxf,ftype,'StartPoint',[ 300  450  -240 ],'Lower',[150 -1000 -1000],'Upper',[450,1000,1000]); % Expect curve to be near w0=300, zr=400 gx=-240;
+try
+    ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
+    wx_fit = fit(zx,wxf,ftype,'StartPoint',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0],'Lower',[150 -1000 -1000 -20 -20],'Upper',[450,1000,1000,20,20]); % ADDED use options
+catch er
+    disp(er.message); 
+    disp('wx_fit tightening bounds on A and B and exlcuding data edges...');
+    wx_fit = fit(zx(end/10:end-end/10),wxf(end/10:end-end/10),ftype,'StartPoint',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0],'Lower',[150 -1000 -1000 -1 -1],'Upper',[450,1000,1000,1,1]); % ADDED use options
+end
+
 ftype = fittype('w0*sqrt( ((z-g)/zr)^2 + 1 ) ','coeff', {'w0','zr','g'},'ind','z');
-wy_fit0 = fit(zy(notNaNy),wyf(notNaNy),ftype,'StartPoint',[ 300  450  240 ]); % Expect curve to be near w0=300, zr=400 gy=240;
+wy_fit0 = fit(zy,wyf,ftype,'StartPoint',[ 250  450  240 ],'Lower',[150 -1000 -1000],'Upper',[450,1000,1000]); % Expect curve to be near w0=300, zr=400 gy=240;
+try
 ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
-wy_fit = fit(zy(notNaNy),wyf(notNaNy),ftype,'start',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0]); % ADDED use options
+wy_fit = fit(zy,wyf,ftype,'start',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0]); % ADDED use options
+catch er
+    disp(er.message);
+      disp('wy_fit tightening bounds on A and B and exlcuding data edges...');
+  wy_fit = fit(zy(end/10:end-end/10),wyf(end/10:end-end/10),ftype,'StartPoint',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0],'Lower',[150 -1000 -1000 -.5 -.5],'Upper',[450,1000,1000,1,1]); % ADDED use options); % ADDED use options
+end
 
 swx = feval(wx_fit,zz);
 swy = feval(wy_fit,zz);
@@ -410,15 +464,14 @@ swy = feval(wy_fit,zz);
 % i.e. z-position for which wx = wy.
 [~,zi] = min(abs(swx-swy));
 z_offset = zz(zi);
-
-wx_fit = fit(zx(notNaNx)-z_offset,wxf(notNaNx),ftype,'start',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0]); % ADDED use options
-wy_fit = fit(zy(notNaNy)-z_offset,wyf(notNaNy),ftype,'start',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0]); % ADDED use options
+wx_fit = fit(zx(end/10:end-end/10)-z_offset,wxf(end/10:end-end/10),ftype,'StartPoint',[ wx_fit.w0  wx_fit.zr  wx_fit.g  wx_fit.A wx_fit.B],'Lower',[ wx_fit.w0-1E-6  wx_fit.zr-1E-6  wx_fit.g-.0001*abs(wx_fit.g)  wx_fit.A-1E-6 wx_fit.B-1E-6],'Upper',[ wx_fit.w0+1E-10  wx_fit.zr+1E-6 wx_fit.g+.0001*abs(wx_fit.g) wx_fit.A+1E-6 wx_fit.B+1E-6]); % ADDED use options
+wy_fit = fit(zy-z_offset,wyf,ftype,'StartPoint',[ wy_fit.w0  wy_fit.zr  wy_fit.g  wy_fit.A wy_fit.B]);% ,'Lower',[ wy_fit.w0-1E-60  wy_fit.zr-1E-60  -1000  wy_fit.A-1E-6 wy_fit.B-1E-6],'Upper',[ wy_fit.w0+1E-6  wy_fit.zr+1E-60 1000 wy_fit.A+1E-60 wy_fit.B+1E-60]); % ADDED use options
 swx = feval(wx_fit,zz);
 swy = feval(wy_fit,zz);
 
 if PlotsOn || ShowFit
     zcal_curves = figure; clf;
-    plot((zx-z_offset),wxf,'b.',(zy-z_offset),wyf,'g+','MarkerSize',1);
+    plot((zx),wxf,'b.',(zy),wyf,'g+','MarkerSize',1);
     hold on; 
     plot(zz,swx,'c-',zz,swy,'k-');
     axis([-600 600 0 1100])
@@ -495,6 +548,9 @@ if ConfirmFit
     % Iterate
     % toss any 'bad fits' and switch to shorthand
     c = mlist.c(mlist.c==1);
+    if length(c) < .5*length(mlist.c)
+        c = true(length(mlist.c),1);
+    end
     x = mlist.x(c==1);
     y = mlist.y(c==1);
     frame = mlist.frame(c==1);
@@ -524,7 +580,7 @@ if ConfirmFit
     z=new_z;
 
 
-    %%  compute z-position of all dots based on stage position + stage tilt
+    %  compute z-position of all dots based on stage position + stage tilt
     %----------------------------------------------------------------------
     % Fit a plane through the data to correct stage tilt.  
     x0 = x(frame<fstart-5);
@@ -559,7 +615,7 @@ if ConfirmFit
       end
 
 
-    %% Link molecules across frames
+    % Link molecules across frames
 
     % Now we only want to work with the moving dots
     moving_dots = frame > fstart & frame < fend;  % logical index of molecules recorded during stage movement
@@ -570,7 +626,11 @@ if ConfirmFit
     stagepos = zst(frame(moving_dots));   
     frame = frame(moving_dots);  
     z_tilt_corr = x.^2*ps(1) + x.*y*ps(2) + x*ps(3) + y.^2*ps(4) + y*ps(5) + ps(6);
-    zc =  z_tilt_corr - stagepos;  % corrected position of all beads
+ if strcmp(parstype,'.ini') && flipDaoZ
+zc =  z_tilt_corr - stagepos;  % corrected position of all beads
+ else
+     zc =  -(z_tilt_corr - stagepos);  % corrected position of all beads
+ end
 
     Nframes = max(frame) - min(frame) + 1;
     ZData = zeros(Nmolecules,Nframes,3);

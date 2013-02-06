@@ -588,7 +588,7 @@ function MenuLoadPars_Callback(hObject, eventdata, handles)
     FitMethod = get(handles.FitMethod,'Value');
     [filename, filepath] = uigetfile({'*.ini;*.xml;*.mat','Parameter Files (*.ini, *.xml, *.mat)'},...
         'Select Parameter File'); % get file path and save name
-    k = strfind(savename,'.');
+    k = strfind(filename,'.');
     if strcmp(filename(k:end),'.ini');
         inifile = [filepath,filename];
         parsfile = inifile;

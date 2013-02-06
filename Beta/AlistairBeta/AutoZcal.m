@@ -157,8 +157,8 @@ elseif strcmp(method,'DaoSTORM');
     parsflag = '<';
     linkmolecules = {
         '<radius type="float">',...
-        '<drift_correction type="int">'};  % not needed, slows stuff down
-    new_values = {'0';'0'};
+        '<drift_correction type="int">'};  % not needed?, slows stuff down
+    new_values = {'0';'1'};
 end
 k = strfind(parsfile,'.');
 parstemp = [parsfile(1:k-1),'_ztemp',parsfile(k:end)];
