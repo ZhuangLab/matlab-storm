@@ -83,7 +83,7 @@ overwrite = 2; % ask user
 minsize = 1E6;
 daxroot = '';
 parsroot = '';
-method = 'insight';
+method = 'DaoSTORM';
 daxfile = '';
 parsfile = '';
 dpath = ''; 
@@ -160,7 +160,7 @@ else  % parse out file path and daxfile name
     daxroots = {regexprep(daxfile(k(end)+1:end),'.dax','')};
 end
 
-% ~~~~~~~~~~~~~~~ Set method specific flags ~~~~~~~~~~~~~~~~~~~~~~~
+%% ~~~~~~~~~~~~~~~ Set method specific flags ~~~~~~~~~~~~~~~~~~~~~~~
 switch method
     case 'insight'
         datatype = '_list.bin'; 
@@ -192,7 +192,7 @@ if isempty(parsfile)
 end     
 
 
-%~~~~ Decide if existing data files should be skipped or overwritten ~~~~~%    
+%% ~~~~ Decide if existing data files should be skipped or overwritten ~~~~~%    
 % structure containing names of all bin files in folder 
     all_prev_bin = dir([dpath,'\','*',daxroot,'*',datatype]);
     binnames = {all_prev_bin(:).name};
@@ -201,17 +201,21 @@ end
 % index of all dax files which have bin files associated 
     hasbin = sum(cell2mat(cellfun(@(x) strcmp(x,daxroots),...
         binroots,'UniformOutput',false)'));
+    txtout = ['warning: found existing ',datatype,' data files for ',...
+        daxnames(logical(hasbin))];
     
 % don't analyze movies which have _list.bin files
 if sum(hasbin) ~= 0 
-    if overwrite == 2
-        txtout = ['warning: found existing ',datatype,' data files for ',...
-        daxnames(logical(hasbin))];
+    if overwrite == 2   
         disp(char(txtout));
         disp('these files will be overwritten.  ');
         overwritefiles = input('type 2 to skip, 1 to overwrite, 0 to cancel:  ');
     elseif overwrite == 1
         overwritefiles = 1;
+        if verbose
+        disp(char(txtout));
+        disp('these files will be overwritten.  ');
+        end
     elseif overwrite == 0
         overwritefiles = 0; 
     else
@@ -224,7 +228,11 @@ if sum(hasbin) ~= 0
         if strcmp('method','daoSTORM')
             allextra = daxroots(logical(hasbin));
             for a = 1:length(allextra)
-                delete([allextra(a),datatype]);
+                delete(strcat(allextra{a},datatype));
+                alist = dir(strcat(allextra{a},'_alist.bin'));
+                if length(alist)>1
+                    delete(strcat(allextra{a},'_alist.bin'));
+                end
             end
         end
     else
@@ -234,7 +242,7 @@ if sum(hasbin) ~= 0
 end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-%~~~~~~~~~~~~~~~~~ Call analysis commands in batch ~~~~~~~~~~~~~~~~~~~~~~~%
+%% ~~~~~~~~~~~~~~~~~ Call analysis commands in batch ~~~~~~~~~~~~~~~~~~~~~~~%
 Sections = length(daxnames);
 prc = cell(Sections,1); % cell array to store system process structures for each process launched
 for s=1:Sections % loop through all dax movies in que
@@ -286,7 +294,8 @@ for s=1:Sections % loop through all dax movies in que
     if batchwait
     Nrunning = inf; 
        while Nrunning >= batchsize
-           hasexited = cellfun(@(x) x.HasExited,prc);
+           prcActive = prc(logical(1-cellfun(@isempty, prc)));
+           hasexited = cellfun(@(x) x.HasExited,prcActive);
            Nrunning = s-sum(hasexited);
            pause(1); 
        end 
