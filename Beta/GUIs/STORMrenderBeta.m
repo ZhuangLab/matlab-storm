@@ -60,16 +60,16 @@ set(handles.Yslider,'Value',0);
 set(handles.Yslider,'Min',-256);
 set(handles.Yslider,'Max',256);
 
-addpath(genpath('C:\Users\Alistair\Documents\Projects\General_STORM\Matlab_STORM'));
 
 % build dropdown menu
 molfields = {'custom';'region';'z';'h';'a';'i';'w'};
 set(handles.choosefilt,'String',molfields);
 
 global DisplayOps binfile
-DisplayOps.ColorZ = false;
-DisplayOps.Zsteps = 3;
+DisplayOps.ColorZ = false; 
+DisplayOps.Zsteps = 5;
 DisplayOps.DotScale = 4;
+DisplayOps.HidePoor = false;
 
 if ~isempty(binfile)
     QuickLoad_Callback(hObject, eventdata, handles);
@@ -184,7 +184,6 @@ global loadops mlist fnames froots
     disp(['searching for bin files in ', pathin,'...'])
 
 
-
   % Automatically group all bin files of same section in different colors
   %   based on image number. 
 
@@ -233,11 +232,12 @@ global loadops mlist fnames froots
 
 % Apply global drift correction, then return loaded mlist file.
 % Then apply chromewarp.  
-mlist = MultiChnDriftCorrect(allbins);
-for c=1:length(mlist)
-    mlist{c} = chromewarp(chns(c),mlist{c},Bead_folder,'warpD',loadops{5});
+    mlist = MultiChnDriftCorrect(allbins);
+if loadops{4}
+    for c=1:length(mlist)
+        mlist{c} = chromewarp(chns(c),mlist{c},Bead_folder,'warpD',loadops{5});
+    end
 end
-
     % Cleanup settings from any previous data and render image:
     imsetup(hObject,eventdata, handles);
     ClearFilters_Callback(hObject, eventdata, handles); 
@@ -690,15 +690,21 @@ global default_Dopts Dprompt DisplayOps
 
 dlg_title = 'More Display Options';
 num_lines = 1;
-try
-default_Dopts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
-catch er
-    disp(er.message)
-    Dprompt = {
+Dprompt = {
     'Display Z as color',...
     'Number of Z-steps',...
     'Dot scale',...
     'hide poor z-fits'};
+default_Dopts{1} = num2str(DisplayOps.ColorZ);
+default_Dopts{2} = num2str(DisplayOps.Zsteps);
+default_Dopts{3} = num2str(DisplayOps.DotScale);
+default_Dopts{4} = num2str(DisplayOps.HidePoor);
+
+% if the menu is screwed up, reset 
+try
+default_Dopts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
+catch er
+    disp(er.message)
     default_Dopts = {
     'false',...
     '3',...
@@ -709,11 +715,6 @@ DisplayOps.ColorZ = eval(default_Dopts{1});
 DisplayOps.Zsteps = eval(default_Dopts{2});
 DisplayOps.DotScale = eval(default_Dopts{3});
 DisplayOps.HidePoor = eval(default_Dopts{4});
-
-
-
-
-
 
 
 

@@ -116,54 +116,16 @@ for c = 1:length(binnames);
      end
      
      %   Apply drift correction in x-and-y.
+     
+     drift_xT = 0;
+     drift_yT = 0;
+     
      if correctDrift == 1;
-        fname = regexprep(binnames{c},'_list.bin',''); % remove list.bin
-        fname = regexprep(fname,'_mlist.bin',''); % in case data is from DaoSTORM 
-        driftfile = [fname,'_drift.txt'];
-        if verbose
-            disp(['reading file ',driftfile]);
-        end
-        fid = fopen(driftfile);
-        dr = fscanf(fid, '%g %g %g %g', [4 inf]);
-        fclose(fid);
-        mdrift{c} = zeros(4,length(dr));
-        if c==1 % first channel just record drift
-            mdrift{c}(1,:) = dr(1,:);
-            mdrift{c}(2,:) = dr(2,:);
-            mdrift{c}(3,:) = dr(3,:);
-            mdrift{c}(4,:) = dr(4,:); 
-        else % other channels add final drift point of previous channel to start point of this channel,
-            % this makes all measurements relative to the initial position of the whole section.     
-                % try
-                % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-                 % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-                mdrift{c}(1,:) = dr(1,:);
-                mdrift{c}(2,:) = dr(2,:)+ mdrift{c-1}(2,end);
-                mdrift{c}(3,:) = dr(3,:)+ mdrift{c-1}(3,end);
-                mdrift{c}(4,:) = dr(4,:)+ mdrift{c-1}(4,end);
-                
-                if saveGlobalDrift
-                    % write global drift correction to disk
-                    fid = fopen([fname,'_GlobalDrift.txt'],'w+'); % make text document for writing. overwrite if existing
-                    fprintf(fid, '%g %g %g %g\r\n', mdrift{c});
-                    fclose(fid);
-                end
-        end   
-        clear dr; 
-        
-        if  c~=1 % don't change for the first channel
-            % use conncatinated drift correction
-            
-            % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-            % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-            
-            xdrift = mdrift{c}(2,:);
-            ydrift = mdrift{c}(3,:);
-            mlist{c}.xc = mlist{c}.x - xdrift(mlist{c}.frame)';
-            mlist{c}.yc = mlist{c}.y - ydrift(mlist{c}.frame)';       
-            
-        end
+            drift_xT = mlist{c}.xc(end) - mlist{c}.x(end) + drift_xT;
+            drift_yT = mlist{c}.yc(end) - mlist{c}.y(end) + drift_yT; 
+            mlist{c}.xc = mlist{c}.xc - drift_xT;
+            mlist{c}.yc = mlist{c}.yc - drift_yT;
      end
-        clear xdrift ydrift  % save memory;
+        
  end % end loop over channels
         
