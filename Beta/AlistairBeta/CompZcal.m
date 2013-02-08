@@ -39,19 +39,6 @@ function [pars_nm,wx_fit,wy_fit] = CompZcal(daxfile,parsfile,varargin)
 % 'ConfirmFit' / logical / false
 %                       -- refit Z and replot initial fits.  Automatically
 %                       sets PlotsOn to true. (otherwise no output)
-% 'SArounds' / integer / 80
-%                   -- Total rounds of simulated annealing.  Increase for
-%                   possibly better fit, decrease for speed.  
-% 'SAshifts' / integer / 300
-%                   -- number of shifts left and right to fit curves before
-%                   temperature is dropped.  Increase this for large N. 
-%                   Decrease for small N. (N= # beads in frame);
-% 'SAstart' / integer [0,1] / .33
-%                   -- fraction of z-range over which to shift curves at
-%                   onset of simulating annealing.  If fit is really close,
-%                   decrease this towards 0; 
-% 'ShowSA' / logical / false
-%                   -- show simulated annealing (good for troubleshooting)
 %--------------------------------------------------------------------------
 %
 % Alistair Boettiger
@@ -70,11 +57,6 @@ PlotsOn = true;
 ConfirmFit = true;
 verbose = true;
 ShowFit = true; 
-SArounds = 80;
-SAshifts = 300; 
-SAstart = .3;
-ShowSA = false; 
-
 flipDaoZ = true; 
 %--------------------------------------------------------------------------
 %% Parse mustHave variables
@@ -491,7 +473,7 @@ if ConfirmFit
     end
 
     z=new_z;
-
+    zwindow = .5*zwindow; % we should be doing substantially better by now.
 
     %  compute z-position of all dots based on stage position + stage tilt
     %----------------------------------------------------------------------

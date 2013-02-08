@@ -28,7 +28,7 @@ function varargout = STORMfinderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMfinderBeta
 
-% Last Modified by GUIDE v2.5 05-Feb-2013 16:11:04
+% Last Modified by GUIDE v2.5 08-Feb-2013 12:33:16
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -77,6 +77,9 @@ catch er
     % disp(er.message);
     disp('please load a dax file');
 end
+
+set(handles.FitMethod,'Value',2); % set default method to DaoSTORM
+% 1 = InsightM, 3 = GPUmultifit
 handles.axes1; 
 axis off; 
 % UIWAIT makes STORMfinderBeta wait for user response (see UIRESUME)
@@ -750,8 +753,8 @@ function MenuAnalysis_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function ComputeZcal_Callback(hObject, eventdata, handles)
-% hObject    handle to ComputeZcal (see GCBO)
+function MenuComputeZcal_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuComputeZcal (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -780,20 +783,14 @@ catch er
         'Run Silently?';
         'overwrite? (1=y,0=n,2=ask me)';
         'Show plots?';
-        'Annealing fractional shift (0-1)';
-        'Annealing total round';
-        'Annealing shifts per round';
-        'Show simmulated annealing process?'};
+        'Z window to estimate stage tilt'};
     Zopts = {
         '_zpars',...
         'true',...
         'false',...
         '2',...
         'true',...
-        '.1',...
-        '80',...
-        '250',...
-        'false'}; 
+        '100'}; 
     Zopts = inputdlg(Zprompt,dlg_title,num_lines,Zopts);
 end
 
@@ -802,9 +799,12 @@ end
  AutoZcal(daxfile,'parsfile',parsfile,'method',method,...
        'NewParsRoot',Zopts{1},'runinMatlab',eval(Zopts{2}),...
        'printprogress',eval(Zopts{3}),'overwrite',eval(Zopts{4}),...
-    'PlotsOn',eval(Zopts{5}),'SAstart',eval(Zopts{6}),'SArounds',...
-    eval(Zopts{7}),'SAshifts',eval(Zopts{8}),'ShowSA',eval(Zopts{9}));
+    'PlotsOn',eval(Zopts{5}),'zwindow',eval(Zopts{6}));
    
 
 
-
+% --------------------------------------------------------------------
+function MenuChromeWarp_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuChromeWarp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
