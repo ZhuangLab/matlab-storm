@@ -181,14 +181,19 @@ end
 
 % ~~~~~~~~~~~~ check for parameter files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if isempty(parsfile)
-    parsfile = dir([dpath,'*',parsroot, '*',parstype]);
-    if length(parsfile) > 1
-        error(['Too many ',parstype,...
+    parsname = dir([dpath,'*',parsroot, '*',parstype]);
+    if length(parsname) > 1 || isempty(parsname)
+        disp(['Too many or no ',parstype,...
             ' files in directory.  Please specify specific file.']);
-    elseif isempty(parsfile)
-        error(['No ',parstype,' file in directory.']);
+       getfileprompt = {['*',parstype],[method,' pars (*',parstype,')']};
+       [filename, filepath] = uigetfile(getfileprompt,'Select Parameter File');
+       parsfile = [filepath,filename];
+    else
+        parsfile = [dpath, parsname.name];
+        disp('No parameters specified: RunDotFinder found parameters ');
+        disp(parsfile);
+        disp('using these parameters ...'); 
     end
-    parsfile = [dpath, parsfile.name];
 end     
 
 
