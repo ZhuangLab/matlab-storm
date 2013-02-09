@@ -259,7 +259,7 @@ global daxfile impars
     fend = ftell(fid);
     fclose(fid);
     TFrames = fend/(16/8)/(impars.h*impars.w);  % total number of frames
-    set(handles.FrameSlider,'Min',1)
+    set(handles.FrameSlider,'Min',1);
     set(handles.FrameSlider,'Max',TFrames);
     set(handles.FrameSlider,'Value',impars.cframe); 
     set(handles.FrameSlider,'SliderStep',[1/TFrames,50/TFrames]);
@@ -560,11 +560,28 @@ function MenuSavePars_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
   
-global inifile xmlfile
+global inifile xmlfile gpufile
     FitMethod = get(handles.FitMethod,'Value');
+ % setup starting folder for uigetfile
+    try
+    if FitMethod == 1
+        k = strfind(inifile,filesep);
+        startfolder = inifile(1:k(end));
+    elseif FitMethod == 2 
+        k = strfind(xmlfile,filesep);
+        startfolder = xmlfile(1:k(end));
+    elseif FitMethod == 3
+        k = strfind(gpufile,filesep);
+        startfolder = gpufile(1:k(end));
+    end
+    catch
+        startfolder = pwd;
+    end
+    
+    
     [FitPars,parameters] = ReadParameterFile(FitMethod,handles);  % load current parameters in FitPars
     [savename, savepath] = uiputfile({'*.ini;*.xml;*.mat','Parameter Files (*.ini, *.xml, *.mat)'},...
-        'Save Parameter File'); % get file path and save name
+        'Save Parameter File',startfolder); % get file path and save name
     k = strfind(savename,'.');
     if ~isempty(k);
         savename = savename(1:k-1);
@@ -589,8 +606,25 @@ function MenuLoadPars_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     global inifile xmlfile gpufile
     FitMethod = get(handles.FitMethod,'Value');
+    
+    % setup starting folder for uigetfile
+    try
+    if FitMethod == 1
+        k = strfind(inifile,filesep);
+        startfolder = inifile(1:k(end));
+    elseif FitMethod == 2 
+        k = strfind(xmlfile,filesep);
+        startfolder = xmlfile(1:k(end));
+    elseif FitMethod == 3
+        k = strfind(gpufile,filesep);
+        startfolder = gpufile(1:k(end));
+    end
+    catch
+        startfolder = pwd;
+    end
+    
     [filename, filepath] = uigetfile({'*.ini;*.xml;*.mat','Parameter Files (*.ini, *.xml, *.mat)'},...
-        'Select Parameter File'); % get file path and save name
+        'Select Parameter File',startfolder); % get file path and save name
     k = strfind(filename,'.');
     if strcmp(filename(k:end),'.ini');
         inifile = [filepath,filename];
@@ -808,3 +842,13 @@ function MenuChromeWarp_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuChromeWarp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+global daxfile
+pathin = extractpath(daxfile);
+CalcChromeWarp(pathin)
+
+
+
+function dpath = extractpath(fullfilename)
+k = strfind(fullfilename,filesep);
+dpath = fullfilename(1:k(end));
+
