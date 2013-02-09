@@ -184,9 +184,11 @@ if isempty(parsfile)
     parsname = dir([dpath,'*',parsroot, '*',parstype]);
     if length(parsname) > 1 || isempty(parsname)
         disp(['Too many or no ',parstype,...
-            ' files in directory.  Please specify specific file.']);
+            ' files in directory.  Please chose a parameters file for']);
+        disp(daxnames(1));
        getfileprompt = {['*',parstype],[method,' pars (*',parstype,')']};
-       [filename, filepath] = uigetfile(getfileprompt,'Select Parameter File');
+       [filename, filepath] = uigetfile(getfileprompt,...
+           'Select Parameter File',dpath);
        parsfile = [filepath,filename];
     else
         parsfile = [dpath, parsname.name];
@@ -195,7 +197,9 @@ if isempty(parsfile)
         disp('using these parameters ...'); 
     end
 end     
-
+if isempty(strfind(parsfile,parstype))
+    error([parsfile, ' is not a valid ', parstype, ' parameter file for ',method]);
+end
 
 %% ~~~~ Decide if existing data files should be skipped or overwritten ~~~~~%    
 % structure containing names of all bin files in folder 
