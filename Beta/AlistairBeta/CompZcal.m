@@ -88,14 +88,6 @@ if nargin > 2
                 NewParsRoot = CheckParameter(parameterValue, 'string', 'NewParsRoot');
             case 'verbose'
                 verbose  = CheckParameter(parameterValue, 'boolean', 'verbose');
-            case 'SArounds'
-                SArounds = CheckParameter(parameterValue, 'positive', 'SArounds');
-            case 'SAshifts'
-                SAshifts = CheckParameter(parameterValue, 'positive', 'SAshifts');
-            case 'SAstart'
-                SAstart  = CheckParameter(parameterValue, 'positive', 'SAstart');
-            case 'ShowSA'
-                ShowSA  = CheckParameter(parameterValue, 'boolean', 'ShowSA');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.' '  See help ' mfilename]);
         end
@@ -118,7 +110,7 @@ parstype = parsfile(k:end);
 if strcmp(parstype,'.ini')
     bintype = '_list.bin';
 elseif strcmp(parstype,'.xml');
-    bintype = '_mlist.bin';
+    bintype = '_alist.bin';
 end
 
 binfile = [bead_path,'\',froot,bintype];
@@ -164,8 +156,8 @@ if PlotsOn
         disp(['wrote: ',bead_path,'\fig_',froot,'_stage','.png']);
     end
 end
-[zmin,fstart] = min(zst);
-[zmax,fend] = max(zst);
+[~,fstart] = min(zst);
+[~,fend] = max(zst);
 
 % Only use the molecules which we can still track at zmin.  
 Molecule_Positions = [x(frame==1),y(frame==1)];
@@ -333,9 +325,10 @@ wxf = wxf(zi);
 wyf = wyf(zi);
 
 
-figure(3); clf; 
-plot(zz,wxf,'g.',zz,wyf,'b.','MarkerSize',1);
+% figure(3); clf; 
+% plot(zz,wxf,'g.',zz,wyf,'b.','MarkerSize',1);
 
+% Coarse fit, no higher order correction terms 
 ftype = fittype('w0*sqrt( ((z-g)/zr)^2 + 1 ) ','coeff', {'w0','zr','g'},'ind','z'); 
 wx_fit0 = fit(zz,wxf,ftype,'StartPoint',[ 300  450  -240 ],'Lower',[150 -1000 -1000],'Upper',[450,1000,1000]); % Expect curve to be near w0=300, zr=400 gx=-240;
 try
@@ -347,6 +340,7 @@ catch er
     wx_fit = fit(zz(end/10:end-end/10),wxf(end/10:end-end/10),ftype,'StartPoint',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0],'Lower',[150 -1000 -1000 -1 -1],'Upper',[450,1000,1000,1,1]); % ADDED use options
 end
 
+% Full model fit, seeded off of course fit; 
 ftype = fittype('w0*sqrt( ((z-g)/zr)^2 + 1 ) ','coeff', {'w0','zr','g'},'ind','z');
 wy_fit0 = fit(zz,wyf,ftype,'StartPoint',[ 250  450  240 ],'Lower',[150 -1000 -1000],'Upper',[450,1000,1000]); % Expect curve to be near w0=300, zr=400 gy=240;
 try
@@ -357,9 +351,21 @@ catch er
       disp('wy_fit tightening bounds on A and B and exlcuding data edges...');
   wy_fit = fit(zz(end/10:end-end/10),wyf(end/10:end-end/10),ftype,'StartPoint',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0],'Lower',[150 -1000 -1000 -.5 -.5],'Upper',[450,1000,1000,1,1]); % ADDED use options); % ADDED use options
 end
-
 swx = feval(wx_fit,zz);
 swy = feval(wy_fit,zz);
+
+% Refit, using only data near the curve
+gooddots = logical(1- (abs(wyf - swy)>zwindow | abs(wxf - swx)>zwindow) );
+zz = zz(gooddots);
+wyf = wyf(gooddots);
+wxf =wxf(gooddots);
+ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
+wx_fit = fit(zz,wxf,ftype,'StartPoint',[ wx_fit.w0  wx_fit.zr  wx_fit.g wx_fit.A wx_fit.B],'Lower',[150 -1000 -1000 -20 -20],'Upper',[450,1000,1000,20,20]); % ADDED use options
+ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
+wy_fit = fit(zz,wyf,ftype,'start',[ wy_fit.w0  wy_fit.zr  wy_fit.g  wy_fit.A wy_fit.B]); % ADDED use options
+swx = feval(wx_fit,zz);
+swy = feval(wy_fit,zz);
+
 
 if PlotsOn || ShowFit
     zcal_curves = figure; clf;
