@@ -31,8 +31,8 @@ function fig_handle = PresentationPlot(varargin)
 % Default Values
 %--------------------------------------------------------------------------
 fontSize = 16;
-lineWidth = 3;
 axisWidth = [];
+lineWidth = 2;
 markerWidth = 12;
 figHandle = gcf;
 bkd = 'w'; 
