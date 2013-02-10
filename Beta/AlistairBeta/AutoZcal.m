@@ -70,8 +70,8 @@ zwindow = 100;
 runinMatlab = true;
 overwrite = 2; 
 printprogress = true;
-ShowSA = false;
 NewParsRoot = '_zfit';
+
 %--------------------------------------------------------------------------
 % Parse mustHave variables
 %--------------------------------------------------------------------------
@@ -125,6 +125,7 @@ if isempty(parsfile)
         parsfile = defaultXmlFile;
     end
 end
+disp(['Analyzing with method: ',method]);
 
 %----------------------------------------------------------------
 % Check to make sure parameter file is good for z-calibration

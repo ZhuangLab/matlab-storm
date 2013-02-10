@@ -54,10 +54,11 @@ function [pars_nm,wx_fit,wy_fit] = CompZcal(daxfile,parsfile,varargin)
 zwindow = 100; % (in nm) max deviation of bead from plane to be used in refitting the z-plane
 NewParsRoot = '_zfit';
 PlotsOn = true; 
-ConfirmFit = true;
+ConfirmFit = false;
 verbose = true;
 ShowFit = true; 
 flipDaoZ = true; 
+closeoncomplete = true;
 %--------------------------------------------------------------------------
 %% Parse mustHave variables
 %--------------------------------------------------------------------------
@@ -143,6 +144,7 @@ fclose(fid);
 
 % compute conversion factor
 Offset2nm = nanmedian((stage{4}-stage{4}(1))./(stage{2}-stage{2}(1)));
+% Offset2nm = nanmedian((stage{4})./(stage{2}-stage{2}(1)));
 zst = stage{2}*Offset2nm*1000;
 zst = zst -zst(1);
 if PlotsOn
@@ -337,7 +339,8 @@ try
 catch er
     disp(er.message); 
     disp('wx_fit tightening bounds on A and B and exlcuding data edges...');
-    wx_fit = fit(zz(end/10:end-end/10),wxf(end/10:end-end/10),ftype,'StartPoint',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0],'Lower',[150 -1000 -1000 -1 -1],'Upper',[450,1000,1000,1,1]); % ADDED use options
+     wx_fit = fit(zz,wxf,ftype,'StartPoint',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0],'Lower',[150 -1000 -1000 -.25 -.25],'Upper',[450,1000,1000,.25,.25]); % ADDED use options
+    % wx_fit = fit(zz(end/10:end-end/10),wxf(end/10:end-end/10),ftype,'StartPoint',[ wx_fit0.w0  wx_fit0.zr  wx_fit0.g  0 0],'Lower',[150 -1000 -1000 -.25 -.25],'Upper',[450,1000,1000,.25,.25]); % ADDED use options
 end
 
 % Full model fit, seeded off of course fit; 
@@ -348,30 +351,32 @@ ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )',
 wy_fit = fit(zz,wyf,ftype,'start',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0]); % ADDED use options
 catch er
     disp(er.message);
-      disp('wy_fit tightening bounds on A and B and exlcuding data edges...');
-  wy_fit = fit(zz(end/10:end-end/10),wyf(end/10:end-end/10),ftype,'StartPoint',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0],'Lower',[150 -1000 -1000 -.5 -.5],'Upper',[450,1000,1000,1,1]); % ADDED use options); % ADDED use options
+  disp('wy_fit tightening bounds on A and B and exlcuding data edges...');
+  wy_fit = fit(zz,wyf,ftype,'StartPoint',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0],'Lower',[150 -1000 -1000 -.25 -.25],'Upper',[450,1000,1000,.5,.5]); % ADDED use options); % ADDED use options
+  % wy_fit = fit(zz(end/10:end-end/10),wyf(end/10:end-end/10),ftype,'StartPoint',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0],'Lower',[150 -1000 -1000 -.25 -.25],'Upper',[450,1000,1000,.5,.5]); % ADDED use options); % ADDED use options
 end
 swx = feval(wx_fit,zz);
 swy = feval(wy_fit,zz);
 
 % Refit, using only data near the curve
-gooddots = logical(1- (abs(wyf - swy)>zwindow | abs(wxf - swx)>zwindow) );
-zz = zz(gooddots);
-wyf = wyf(gooddots);
-wxf =wxf(gooddots);
+gooddots = logical(1- (abs(wyf - swy)>zwindow*.3 | abs(wxf - swx)>zwindow*.3) );
+zzg = zz(gooddots);
+wyfg = wyf(gooddots);
+wxfg =wxf(gooddots);
 ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
-wx_fit = fit(zz,wxf,ftype,'StartPoint',[ wx_fit.w0  wx_fit.zr  wx_fit.g wx_fit.A wx_fit.B],'Lower',[150 -1000 -1000 -20 -20],'Upper',[450,1000,1000,20,20]); % ADDED use options
+wx_fit = fit(zzg,wxfg,ftype,'StartPoint',[ wx_fit.w0  wx_fit.zr  wx_fit.g wx_fit.A wx_fit.B],'Lower',[150 -1000 -1000 -20 -20],'Upper',[450,1000,1000,20,20]); % ADDED use options
 ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
-wy_fit = fit(zz,wyf,ftype,'start',[ wy_fit.w0  wy_fit.zr  wy_fit.g  wy_fit.A wy_fit.B]); % ADDED use options
-swx = feval(wx_fit,zz);
-swy = feval(wy_fit,zz);
+wy_fit = fit(zzg,wyfg,ftype,'start',[ wy_fit.w0  wy_fit.zr  wy_fit.g  wy_fit.A wy_fit.B]); % ADDED use options
+swx = feval(wx_fit,zzg);
+swy = feval(wy_fit,zzg);
 
 
 if PlotsOn || ShowFit
     zcal_curves = figure; clf;
-    plot(zz,wxf,'b.',zz,wyf,'g+','MarkerSize',1);
-    hold on; 
-    plot(zz,swx,'c-',zz,swy,'k-');
+    plot(zz,wxf,'b.',zz,wyf,'g.','MarkerSize',1);
+     hold on; 
+    plot(zzg,wxfg,'b.',zzg,wyfg,'g.','MarkerSize',5);
+    plot(zzg,swx,'c-',zzg,swy,'k-');
     axis([-600 600 0 1100])
     xlabel('z (nm)');
     ylabel('width (nm)');
@@ -504,14 +509,14 @@ if ConfirmFit
         xout = x0(logical(1-goodDots)); 
         yout = y0(logical(1-goodDots)); 
         zout = z0(logical(1-goodDots)); 
-        stagelevel_fit = figure; clf;
+        stagelevel_afterfit = figure; clf;
         plot3(x0,y0,z0,'b.',xout,yout,zout,'r.');
         hold on; surf(xi,yi,double(zi)); 
         shading flat; colormap jet;
         xlabel('x');ylabel('y');
-        saveas(stagelevel_fit,[bead_path,'\fig_',froot,'_','stagelevel_fit','.png']);
+        saveas(stagelevel_afterfit,[bead_path,'\fig_',froot,'_','stagelevel_afterfit','.png']);
         if verbose; 
-            disp(['wrote: ',bead_path,'\fig_',froot,'_','stagelevel_fit','.png']);
+            disp(['wrote: ',bead_path,'\fig_',froot,'_','stagelevel_afterfit','.png']);
         end
       end
 
@@ -599,3 +604,15 @@ ZData(bad_mols,:,:) = [];
     end
     %--------------------------------------
 end
+
+
+% cleanup
+if PlotsOn
+    if closeoncomplete
+       close(before_fit, stagelevel_fit, mol_stacks, stagelevel, stageplot);
+        if ConfirmFit
+            close(stagelevel_afterfit,after_fit,ZvZ);
+        end
+    end
+end
+
