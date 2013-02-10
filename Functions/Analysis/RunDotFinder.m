@@ -181,7 +181,7 @@ end
 
 % ~~~~~~~~~~~~ check for parameter files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if isempty(parsfile)
-    parsname = dir([dpath,'*',parsroot, '*',parstype]);
+    parsname = dir([dpath,filesep,'*',parsroot, '*',parstype]);
     if length(parsname) > 1 || isempty(parsname)
         disp(['Too many or no ',parstype,...
             ' files in directory.  Please chose a parameters file for']);
