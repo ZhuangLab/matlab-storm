@@ -80,7 +80,7 @@ infoFile = [];
 verbose = true;
 orientation = 'normal';
 subregion = zeros(4,1); 
-
+Quadviewregion = false;
 %--------------------------------------------------------------------------
 % Parse Required Input
 %--------------------------------------------------------------------------
@@ -124,6 +124,8 @@ for parameterIndex = 1:parameterCount,
             orientation = CheckList(parameterValue, orientationValues, 'orientation');
         case 'path'
             dataPath = CheckParameter(parameterValue, 'string', 'path');
+        case 'Quadviewregion'
+            Quadviewregion = checkParameter(parameterValue,'boolean','Quadviewregion');
         otherwise
             error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
     end
@@ -192,6 +194,8 @@ if verbose
     display(['Loading ' infoFile.localPath fileName ]);
 end
 
+
+if ~Quadviewsplit
 % parse subregion 
 %--------------------------------------------------------------------
     xi = uint32(subregion(1));
@@ -217,43 +221,47 @@ end
     fi = uint32(1);
     fe = uint32(numFrames);
 
+    %------------------ arbitrary region ------------------------
+    memoryMap = memmapfile([infoFile.localPath fileName], ...
+            'Format', 'int16', ...
+            'Writable', false, ...
+            'Offset', (startFrame-1)*frameSize, ...
+            'Repeat', numFrames*frameSize);
 
-%------------------ arbitrary region ------------------------
-memoryMap = memmapfile([infoFile.localPath fileName], ...
-        'Format', 'int16', ...
-        'Writable', false, ...
-        'Offset', (startFrame-1)*frameSize, ...
-        'Repeat', numFrames*frameSize);
-    
-    % Let's hope these steps remain fast;  
-[ri,ci,zi] = meshgrid(xi:xe,yi:ye,fi:fe);
-ind = sub2ind([frameDim(1),frameDim(2),TFrames],ri(:),ci(:),zi(:));
-ind = sort(ind); 
-movie = memoryMap.Data(ind);  clear ind; %keeping memory small
-movie = swapbytes(movie);
-movie = reshape(movie,[xs,ys,numFrames]);
-if strcmp(orientation,'normal')
- movie = permute(reshape(movie, [xs,ys,numFrames]), [2 1 3]);
-end
-  % figure(9); clf; imagesc(movie(:,:,1)); colorbar;
+        % Let's hope these steps remain fast;  
+    [ri,ci,zi] = meshgrid(xi:xe,yi:ye,fi:fe);
+    ind = sub2ind([frameDim(1),frameDim(2),TFrames],ri(:),ci(:),zi(:));
+    ind = sort(ind); 
+    movie = memoryMap.Data(ind);  clear ind; %keeping memory small
+    movie = swapbytes(movie);
+    movie = reshape(movie,[xs,ys,numFrames]);
+    if strcmp(orientation,'normal')
+     movie = permute(reshape(movie, [xs,ys,numFrames]), [2 1 3]);
+    end
+      % figure(9); clf; imagesc(movie(:,:,1)); colorbar;
 
-%--------------------------------------------------
+    %--------------------------------------------------
 
 
 
 %------------------ QuadViewRegion ------------------------
-memoryMap = memmapfile([infoFile.localPath fileName], ...
-        'Format', 'int16', ...
-        'Writable', false, ...
-        'Offset', (startFrame-1)*frameSize, ...
-        'Repeat', numFrames*frameSize);
-      
-upperleft = multiparse([1,frameDim(1)/2,1,frameDim(2)/2],memoryMap,orientation);
-upperright =  multiparse([frameDim(1)/2+1,frameDim(1),1,frameDim(2)/2],memoryMap,orientation);
-lowerleft = multiparse([1,frameDim(1)/2,frameDim(2)/2+1,frameDim(2)],memoryMap,orientation); % lowerleft
-lowerright = multiparse([frameDim(1)/2+1,frameDim(1),frameDim(2)/2+1,frameDim(2)],memoryMap,orientation); % lowerright
-movie = {upperleft,upperright,lowerleft,lowerright};
-%--------------------------------------------------
+else
+    memoryMap = memmapfile([infoFile.localPath fileName], ...
+            'Format', 'int16', ...
+            'Writable', false, ...
+            'Offset', (startFrame-1)*frameSize, ...
+            'Repeat', numFrames*frameSize);
+    upperleft = multiparse([1,frameDim(1)/2,1,frameDim(2)/2],...
+        memoryMap,orientation);
+    upperright =  multiparse([frameDim(1)/2+1,frameDim(1),...
+        1,frameDim(2)/2],memoryMap,orientation);
+    lowerleft = multiparse([1,frameDim(1)/2,frameDim(2)/2+1,...
+        frameDim(2)],memoryMap,orientation); % lowerleft
+    lowerright = multiparse([frameDim(1)/2+1,frameDim(1),...
+        frameDim(2)/2+1,frameDim(2)],memoryMap,orientation); % lowerright
+    movie = {upperleft,upperright,lowerleft,lowerright};
+    %--------------------------------------------------
+end
 
 if verbose
     display(['Loaded ' infoFile.localPath fileName ]);

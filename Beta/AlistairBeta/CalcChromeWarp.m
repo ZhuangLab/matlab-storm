@@ -1,6 +1,6 @@
 function CalcChromeWarp(pathin,varargin)
 %--------------------------------------------------------------------------
-%% CalcChromeWarp2(pathin)
+%% CalcChromeWarp(pathin)
 % BeadWarp3D(pathin,'insight',value, 'refitZ',value, 'Rerun Insight',value...
 % 'run external',value, 'batch',value, 'ini root',value, 'max frames',value,... 
 % 'saveroot',value, 'match radius', value, 'remove crosstalk', value,...
@@ -104,7 +104,8 @@ overwrite = 1;  % needs to overwrite files to apply different parameters
 %--------------------------------------------------------------------------
 refitZ = [0,0]; % for IR and Vis.  Run insight using 3D beads and compute new positions?  
 max_frames = 36*7; % 36*3; %  36*3; % 
-ini_root = 'Bead';
+IRparsroot = 'Bead';
+Visparsroot = 'Bead';
 saveroot = ''; 
 remove_crosstalk = 1;
 match_radius =  6; %6.5  7 4
@@ -119,7 +120,7 @@ batchsize = 10;
 class1only = false;
 
 verbose = true;
-% pathin = 'I:\2013-02-02_BXCemb\Beads'
+  %  pathin = 'I:\2013-02-02_BXCemb\Beads';  IRroot = 'IRbeads'; max_frames = 1000;
 
 %--------------------------------------------------------------------------
 
@@ -177,6 +178,10 @@ end
 %% Main code
 %--------------------------------------------------------------------------
  
+
+
+
+
 if strcmp(method,'insight')
     parstype = '.ini';
    datatype = '_list.bin';
@@ -197,8 +202,9 @@ end
 %%  Need to re-run bead data with each of the z-parameters.  
 if refitZ(1) == 1 
 
+
   % Run insight on IR beads with 3D fitting
-alldax = dir([pathin,filesep,IRroot,'*.dax']);
+    alldax = dir([pathin,filesep,IRroot,'*.dax']);
 
      if isempty(alldax)
          warning('MATLAB:DirNotFound',['no ', 'IRbeads*.dax files found in ',pathin]);
@@ -208,6 +214,44 @@ alldax = dir([pathin,filesep,IRroot,'*.dax']);
     Nframes = length(alldax);
     disp(['found ',num2str(Nframes)]);
     Nframes = min(max_frames,Nframes); 
+    
+ %----------------------------------------------------------------------   
+ % Get a parameter file for each IR channel 
+ % If a match to the input IRparsroot is succesful, use that
+ % otherwise, prompt the reader to chose a file from the load GUI
+ parsfile = cell(length(chns),1);    
+ for c=1:length(chns)
+        parsroot = [chns{c},'*',IRparsroot];
+    if isempty(parsfile{c})
+        parsname = dir([pathin,filesep,'*',parsroot, '*',parstype]);
+        if length(parsname) > 1 || isempty(parsname)
+            disp(['Too many or no ',parstype,...
+                ' files in directory.  Please chose a parameters file for']);
+           getfileprompt = {['*',parstype],[method,' pars (*',parstype,')']};
+           [filename, filepath] = uigetfile(getfileprompt,...
+               'Select Parameter File',pathin);
+           parsfile{c} = [filepath, filename];
+        else
+            parsfile{c} = [pathin, filesep, parsname.name];
+        end
+    end     
+    if isempty(strfind(parsfile,parstype))
+        error([parsfile{c}, ' is not a valid ', parstype, ' parameter file for ',method]);
+    end
+ end
+    
+     
+    for n=1:Nframes
+        [movies,info] = ReadDaxBeta(daxfile,'subregion',subregion);
+        for c=1:length(chns)
+        binname{c,n} = WriteDax(movies{c},info,chns{c},method,parsfile{c},hideterminal,overwrite);
+        end
+    end
+    
+  
+        
+        
+        
 
     IR647(Nframes).x = [];  % needs different name than vis chn 647 beads
     IR647(Nframes).y = [];
@@ -884,7 +928,6 @@ function [set1,set2] = matchmols(ref,sample,tform, match_radius1,verbose,sname,k
     % Returns vector zf of length(z) such that 
     % z_leveled = z - level_data(x,y,z);
     % will remove any systematic tilt in the dataset z.  
-
     try
     p = polyfitn([x',y'],z',2);
     catch
@@ -892,9 +935,20 @@ function [set1,set2] = matchmols(ref,sample,tform, match_radius1,verbose,sname,k
     end
     ps = p.Coefficients;
     zf = x.^2*ps(1) + x.*y*ps(2) + x*ps(3) + y.^2*ps(4) + y*ps(5) + ps(6);
-
-
     % % For plotting only
     % ti = 5:5:120;
     % [xi,yi] = meshgrid(ti,ti);
     % zi = xi.^2*ps(1) + xi.*yi*ps(2) + xi*ps(3) + yi.^2*ps(4) + yi*ps(5) + ps(6);
+    
+    
+  function binname = WriteDax(movie,info,tag,method,parsfile,hideterminal,overwrite)
+    info.hend = subregion(2)-subregion(1)+1;
+    info.vend = subregion(4)-subregion(3)+1;
+    info.frame_dimensions = [info.hend,info.vend];
+    info.localName = [tag,'_',info.localName];
+    WriteDAXFiles(movie647,info);   
+    newdaxfile = [pathin,filesep,info.localName(1:end-4),'.dax'];
+    RunDotFinder('method',method,'parsfile',parsfile,...
+           'daxfile',newdaxfile,'hideterminal',hideterminal,...
+           'overwrite',overwrite,'verbose',verbose); 
+
