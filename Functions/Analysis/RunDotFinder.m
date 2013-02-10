@@ -287,8 +287,15 @@ for s=1:Sections % loop through all dax movies in que
     daxfile = [dpath,filesep,daxnames{s}];  
     
     if ~isempty(maxCPU)
-        waitforfreecpu('MaxLoad',maxCPU,'RefeshTime',10,'verbose',verbose);
+        waitforfreecpu('MaxLoad',maxCPU,'RefreshTime',10,'verbose',verbose);
     end
+    
+   if verbose
+        disp(['running ',method,' on:']);
+        disp(daxfile); 
+        disp(parsfile); 
+        disp('...');
+    end 
     
     switch method
         case 'insight'
@@ -328,12 +335,7 @@ for s=1:Sections % loop through all dax movies in que
             disp(['in ',num2str(gputime),' minutes']); 
     end    
 
-    if verbose
-        disp(['running ',method,' on:']);
-        disp(daxfile); 
-        disp(parsfile); 
-    end 
-  
+ 
     if batchwait
     Nrunning = inf; 
        while Nrunning >= batchsize
