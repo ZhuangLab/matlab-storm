@@ -54,14 +54,40 @@ function RunDotFinder(varargin)
 %               - run in a "hidden" external terminal (good for rapidly
 %               launching 100s of processes to keep them from all popping
 %               up on your screen).  
+% maxCPU / double / 95
+%               - if more than this percent of CPU is already in use,
+%               RunDotFinder will pause and wait for it to drop below
+%               before adding lanuching new tasks.  
+%--------------------------------------------------------------------------
+% Examples
+% RunDotFinder('method','insight','daxfile','D:\movie.dax',...
+%       'parsfile','D:\pars.ini')
+%     -- runs insight on daxfile 'D:\movie.dax' using parameter file 
+%           'D:\pars.ini'.  If using default method, 'method' can be
+%           omitted.
+% RunDotFinder('path','D:\data')
+%     -- runs default dotfinding program on all dax files found in
+%           'D:\data' using the parameter file in that folder that matches
+%           the default dotfinding program.  If no parameter files exist or
+%           multiple parameter files exist, it will bring up a GUI to
+%           prompt you to chose which file you want to use.
+% RunDotFinder(... 'hideterminal',true)
+%     - run "silently" in a "hidden" external terminal (good for rapidly
+%           launching 100s of processes to keep them from all popping
+%           up on your screen).  Or if you are doing a lot of Ctrl+C
+%           copying while RunDotFinder is launching stuff it won't
+%           cancel by accident.  
+% RunDotFinder(... 'maxCPU',80)
+%     - Function will pause and wait for free CPU if more than 80% of CPU
+%           is currently in use.  
 %--------------------------------------------------------------------------
 %
 % Alistair Boettiger
 % boettiger@fas.harvard.edu
-% January 20, 2013
+% February 9, 2013
 % Copyright Creative Commons 3.0 CC BY.    
 %
-% Version 1.2
+% Version 1.4
 %--------------------------------------------------------------------------
 
 %--------------------------------------------------------------------------
@@ -92,6 +118,7 @@ hideterminal = false;
 runinMatlab = false;
 printprogress = false;
 batchwait = false;
+maxCPU = 95;
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Arguments
@@ -132,6 +159,8 @@ if nargin > 1
                 runinMatlab = CheckParameter(parameterValue, 'boolean', 'runinMatlab');
             case 'printprogress'
                 printprogress = CheckParameter(parameterValue, 'boolean', 'printprogress');
+            case 'maxCPU'
+                maxCPU = CheckParameter(parameterValue, 'boolean', 'maxCPU');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -255,7 +284,12 @@ end
 Sections = length(daxnames);
 prc = cell(Sections,1); % cell array to store system process structures for each process launched
 for s=1:Sections % loop through all dax movies in que
-    daxfile = [dpath,filesep,daxnames{s}];          
+    daxfile = [dpath,filesep,daxnames{s}];  
+    
+    if ~isempty(maxCPU)
+        waitforfreecpu('MaxLoad',maxCPU,'RefeshTime',10,'verbose',verbose);
+    end
+    
     switch method
         case 'insight'
          % display command split up onto multiple lines  
