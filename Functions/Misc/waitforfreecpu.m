@@ -61,17 +61,21 @@ end
 % Parse Variable Input Arguments
 %--------------------------------------------------------------------------
 if ispc
+    gotpaused = false;
     [~,load] = dos('wmic cpu get loadpercentage');
     load = str2double(regexp(load,'[0-9]+','match'));
     while load> MaxLoad
         if verbose
             disp('waiting for free cpu...')
         end
+        gotpaused = true;
         pause(RefreshTime);
         [~,load] = dos('wmic cpu get loadpercentage');
         load = str2double(regexp(load,'[0-9]+','match'));
     end
-    disp('done');
+    if verbose && gotpaused;
+        disp('now running..');
+    end
 else
     warning('waitforfreecpu only works for windows.')
 end
