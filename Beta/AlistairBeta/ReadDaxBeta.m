@@ -15,7 +15,7 @@ function [movie, infoFile] = ReadDaxBeta(varargin)
 %   infoFile structure specifying the dax file to load
 %
 %--------------------------------------------------------------------------
-% Variable Inputs:
+% Optional Inputs:
 %
 % 'file'/string ([]): A path to the associated .inf file
 %
@@ -36,6 +36,9 @@ function [movie, infoFile] = ReadDaxBeta(varargin)
 %
 % 'orientation'/string ('normal'): Control the relative rotation of the data
 %   structure
+%
+% 'Quadviewsplit'/boolean (true): return 4 movies from each quadrant of the
+% specified dax file.  
 %--------------------------------------------------------------------------
 % Alistair Boettiger & Jeffrey Moffitt
 % boettiger.alistair@gmail.com   jeffmoffitt@gmail.com
@@ -80,7 +83,7 @@ infoFile = [];
 verbose = true;
 orientation = 'normal';
 subregion = zeros(4,1); 
-Quadviewregion = false;
+Quadviewsplit = false;
 %--------------------------------------------------------------------------
 % Parse Required Input
 %--------------------------------------------------------------------------
@@ -124,8 +127,8 @@ for parameterIndex = 1:parameterCount,
             orientation = CheckList(parameterValue, orientationValues, 'orientation');
         case 'path'
             dataPath = CheckParameter(parameterValue, 'string', 'path');
-        case 'Quadviewregion'
-            Quadviewregion = checkParameter(parameterValue,'boolean','Quadviewregion');
+        case 'Quadviewsplit'
+            Quadviewsplit = CheckParameter(parameterValue,'boolean','Quadviewsplit');
         otherwise
             error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
     end
@@ -189,6 +192,11 @@ if endFrame > TFrames;
 end
 numFrames = endFrame - startFrame + 1;
 
+region.frame1 = uint32(1);
+region.nframes = uint32(numFrames);
+region.frameDim = frameDim;
+region.TFrames = TFrames;
+
 fileName = [infoFile.localName(1:(end-4)) '.dax'];
 if verbose
     display(['Loading ' infoFile.localPath fileName ]);
@@ -216,28 +224,27 @@ if ~Quadviewsplit
         ye = uint32(frameDim(2));
     end
     
-    xs = xe-xi+uint32(1);
-    ys = ye-yi+uint32(1);
-    fi = uint32(1);
-    fe = uint32(numFrames);
 
     %------------------ arbitrary region ------------------------
     memoryMap = memmapfile([infoFile.localPath fileName], ...
-            'Format', 'int16', ...
+            'Format', 'uint16', ...
             'Writable', false, ...
             'Offset', (startFrame-1)*frameSize, ...
-            'Repeat', numFrames*frameSize);
-
-        % Let's hope these steps remain fast;  
-    [ri,ci,zi] = meshgrid(xi:xe,yi:ye,fi:fe);
-    ind = sub2ind([frameDim(1),frameDim(2),TFrames],ri(:),ci(:),zi(:));
-    ind = sort(ind); 
-    movie = memoryMap.Data(ind);  clear ind; %keeping memory small
-    movie = swapbytes(movie);
-    movie = reshape(movie,[xs,ys,numFrames]);
-    if strcmp(orientation,'normal')
-     movie = permute(reshape(movie, [xs,ys,numFrames]), [2 1 3]);
-    end
+            'Repeat', numFrames*frameSize);  
+       region.sr = [xi,xe,yi,ye];
+       movie = multiparse(memoryMap,orientation,region);
+       
+%     [ri,ci,zi] = meshgrid(xi:xe,yi:ye,region.frame1:region.nframes);
+%     ind = sub2ind([frameDim(1),frameDim(2),TFrames],ri(:),ci(:),zi(:));
+%     ind = sort(ind); 
+%     movie = memoryMap.Data(ind);  clear ind; %keeping memory small
+%     movie = swapbytes(movie);
+%     xs = xe-xi+uint32(1);
+%     ys = ye-yi+uint32(1);
+%     movie = reshape(movie,[xs,ys,numFrames]);
+%     if strcmp(orientation,'normal')
+%      movie = permute(reshape(movie, [xs,ys,numFrames]), [2 1 3]);
+%     end
       % figure(9); clf; imagesc(movie(:,:,1)); colorbar;
 
     %--------------------------------------------------
@@ -246,19 +253,20 @@ if ~Quadviewsplit
 
 %------------------ QuadViewRegion ------------------------
 else
+   
     memoryMap = memmapfile([infoFile.localPath fileName], ...
-            'Format', 'int16', ...
+            'Format', 'uint16', ...
             'Writable', false, ...
             'Offset', (startFrame-1)*frameSize, ...
             'Repeat', numFrames*frameSize);
-    upperleft = multiparse([1,frameDim(1)/2,1,frameDim(2)/2],...
-        memoryMap,orientation);
-    upperright =  multiparse([frameDim(1)/2+1,frameDim(1),...
-        1,frameDim(2)/2],memoryMap,orientation);
-    lowerleft = multiparse([1,frameDim(1)/2,frameDim(2)/2+1,...
-        frameDim(2)],memoryMap,orientation); % lowerleft
-    lowerright = multiparse([frameDim(1)/2+1,frameDim(1),...
-        frameDim(2)/2+1,frameDim(2)],memoryMap,orientation); % lowerright
+    region.sr = uint32([1,frameDim(1)/2,1,frameDim(2)/2]);
+    upperleft = multiparse(memoryMap,orientation,region);
+    region.sr = uint32([frameDim(1)/2+1,frameDim(1),1,frameDim(2)/2]);
+    upperright =  multiparse(memoryMap,orientation,region);
+    region.sr = uint32([1,frameDim(1)/2,frameDim(2)/2+1,frameDim(2)]);
+    lowerleft = multiparse(memoryMap,orientation,region); % lowerleft
+    region.sr = uint32([frameDim(1)/2+1,frameDim(1),frameDim(2)/2+1,frameDim(2)]);
+    lowerright = multiparse(memoryMap,orientation,region); % lowerright
     movie = {upperleft,upperright,lowerleft,lowerright};
     %--------------------------------------------------
 end
@@ -270,15 +278,17 @@ if verbose
 end
 
 
-function movie = multiparse(sr,memoryMap,orientation)
-[ri,ci,zi] = meshgrid(sr(1):sr(2),sr(3):sr(4),fi:fe);
-inds = sub2ind([frameDim(1),frameDim(2),TFrames],ri(:),ci(:),zi(:));
-movie = memoryMap.Data(sort(inds)); 
-movie = swapbytes(movie);
-movie = reshape(movie,[xs,ys,numFrames]);
-if strcmp(orientation,'normal')
- movie = permute(reshape(movie, [xs,ys,numFrames]), [2 1 3]);
-end
+function movie = multiparse(memoryMap,orientation,region)
+    [ri,ci,zi] = meshgrid(region.sr(1):region.sr(2),region.sr(3):region.sr(4),region.frame1:region.nframes);
+    inds = sub2ind([region.frameDim(1),region.frameDim(2),region.TFrames],ri(:),ci(:),zi(:));
+    movie = memoryMap.Data(sort(inds)); 
+    movie = swapbytes(movie);
+    xs = region.sr(2)-region.sr(1)+uint32(1);
+    ys = region.sr(4)-region.sr(3)+uint32(1);
+    movie = reshape(movie,[xs,ys,region.nframes]);
+    if strcmp(orientation,'normal')
+     movie = permute(reshape(movie, [xs,ys,region.nframes]), [2 1 3]);
+    end
 
 
 %  % Old memory maps (to delete in later update) 
