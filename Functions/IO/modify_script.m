@@ -1,7 +1,7 @@
 
 function modify_script(fname_in,fname_out,target_phrases,new_values,varargin)
 %--------------------------------------------------------------------------
-% modify_ini_file(fname_in,fname_out,target_phrase,new_value)
+% modify_file(fname_in,fname_out,target_phrase,new_value,endmarker)
 %
 % Script scans the file 'fname_in' for the occurance of the text string 
 % specified by 'target_phrase'.  Prints to screen the current value of the
