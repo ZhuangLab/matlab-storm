@@ -131,7 +131,7 @@ max_frames = 36*7; % 36*3; %  36*3; %
 saveroot = ''; 
 remove_crosstalk = 1;
 match_radius =  6; %6.5  7 4
-fpZ = 36; % frames per z
+fpZ = 5; % frames per z
 
 overwrite = 0;  % needs to overwrite files to apply different parameters
 method ='insight'; %  'DaoSTORM';
@@ -209,6 +209,7 @@ end
 
 %%  Run beadfitting
 % match each region of the movie to the appropriate bead parameters 
+
 
 for m=1:Nmovies
 
@@ -303,7 +304,7 @@ for m=1:Nmovies
             else
             daxfile = [newpath,filesep,alldax(n).name];
             end
-            beadmovie(m).binname{c,n} = [daxfile(1:end-4),parstype]; 
+            beadmovie(m).binname{c,n} = [daxfile(1:end-4),datatype]; 
             RunDotFinder('method',method,'parsfile',beadmovie(m).parsfile{c},...
                'daxfile',daxfile,'hideterminal',hideterminal,...
                'overwrite',overwrite); 
@@ -325,26 +326,31 @@ for m=1:Nmovies
     end
 end
 
-% Nfields could be different between movies, we should deal with this.  
+
+
+
+% load([ScratchPath,'test.mat']);
 
 Nbeadsets = length([beadmovie.chns]);
-data = cell(Nbeadsets,Nfields); 
+data(Nbeadsets,Nfields).x = []; 
+data(Nbeadsets,Nfields).y = [];
+data(Nbeadsets,Nfields).z = [];
+
 
 beadset = 0;
 for m=1:Nmovies
-    beadset = beadset + 1; 
-    for c=1:length(beadmovie(m).chns)        
-          for k = 1:Nfields; 
-                bin_nm = [beadmovie(m).binname{c,n},datatype];
+    for c=1:length(beadmovie(m).chns)    
+         beadset = beadset + 1; 
+          for n = 1:Nfields; 
                 try % keep going even if a movie is missing
-                    mol_list = ReadMasterMoleculeList( bin_nm,'verbose',verbose); 
+                    mol_list = ReadMasterMoleculeList( beadmovie(m).binname{c,n},'verbose',verbose); 
                 catch er
                     disp(er.message); 
-                    warning(['failed to load ',pathin,filesep,bin_nm]);
+                    warning(['failed to load ',pathin,filesep, beadmovie(m).binname{c,n}]);
                 end 
                 % only keep beads that are detected in all frames
                 frames_per_field = max(mol_list.length);
-                mols_on_allframes = mol_list.length == frames_per_field;
+                mols_on_allframes = mol_list.length >= .75*frames_per_field;
                 if sum(mols_on_allframes) < .3*length(mol_list.x)
                     disp('warning: many molecules not well linked between frames');
                     disp('proceeding with unlinked beads.  reduced quality of fit may result');
@@ -355,15 +361,12 @@ for m=1:Nmovies
                 else
                     goodmol = mols_on_allframes;
                 end
-                data(beadset,k).x = cast(mol_list.xc(goodmol==1),'double');
-                data(beadset,k).y = cast(mol_list.yc(goodmol==1),'double');
-                data(beadset,k).z = cast(mol_list.zc(goodmol==1),'double');
+                data(beadset,n).x = cast(mol_list.xc(goodmol==1),'double');
+                data(beadset,n).y = cast(mol_list.yc(goodmol==1),'double');
+                data(beadset,n).z = cast(mol_list.z(goodmol==1),'double');
           end  
     end
 end
-
-
-
 
 
 %% match molecules in each section
@@ -372,37 +375,48 @@ end
 k = 1; 
 cx_radius = 4;
 verbose = true;
-       
-% % plots for troubleshooting
-% figure(1); clf;  
-% plot(pos488(k).x,pos488(k).y,'g.',pos561(k).x,pos561(k).y,'r.',...
-%    pos647(k).x,pos647(k).y,'b.'); 
-% hold on;
-% plot(IR647(k).x,IR647(k).y,'b+',IR750(k).x,IR750(k).y,'m+');
+
+IR750 = data(1,:);
+IR647 = data(2,:);
+pos647 = data(3,:);
+pos561 = data(4,:);
+pos488 = data(5,:);
+
+
+% plots for troubleshooting
+figure(1); clf;  
+plot(pos488(k).x,pos488(k).y,'g.',pos561(k).x,pos561(k).y,'r.',...
+   pos647(k).x,pos647(k).y,'b.'); 
+hold on;
+plot(IR647(k).x,IR647(k).y,'b+',IR750(k).x,IR750(k).y,'m+');
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
+set1_750 =[]; set2_750 =[];
+set1_561 =[]; set2_561 =[];
+set1_488 =[]; set2_488 =[];
+
 for k = 1:Nfields   
     % Match each channel to 647, split out x,y,z
-    [set1_750,set2_750] = matchmols(data(2,k),data(1,k),tform_start, match_radius1,verbose,'750',k);
-    [set1_561,set2_561] = matchmols(data(3,k),data(4,k),tform_start, match_radius1,verbose,'561',k);
-    [set1_488,set2_488] = matchmols(data(3,k),data(5,k),tform_start, match_radius1,verbose,'488',k);      
+    [set1_750,set2_750] = matchmols(data(2,k),data(1,k),tform_start, match_radius1,verbose,'750',k,set1_750,set2_750,Nfields);
+    [set1_561,set2_561] = matchmols(data(3,k),data(4,k),tform_start, match_radius1,verbose,'561',k,set1_561,set2_561,Nfields);
+    [set1_488,set2_488] = matchmols(data(3,k),data(5,k),tform_start, match_radius1,verbose,'488',k,set1_488,set2_488,Nfields);      
 end      
  
     % combine into large sets
-    all750x = cell2mat(set2_750.x');
-    all750x_ref = cell2mat(set1_750.x');
-    all750y = cell2mat(set2_750.y');
-    all750y_ref = cell2mat(set1_750.y');
+    all750x = cell2mat(set2_750.x);
+    all750x_ref = cell2mat(set1_750.x);
+    all750y = cell2mat(set2_750.y);
+    all750y_ref = cell2mat(set1_750.y);
    
-    all561x = cell2mat(set2_561.x');
-    all561x_ref = cell2mat(set1_561.x');
-    all561y = cell2mat(set2_561.y');
-    all561y_ref = cell2mat(set1_561.y');
+    all561x = cell2mat(set2_561.x);
+    all561x_ref = cell2mat(set1_561.x);
+    all561y = cell2mat(set2_561.y);
+    all561y_ref = cell2mat(set1_561.y);
 
-    all488x = cell2mat(set2_488.x');
-    all488x_ref = cell2mat(set1_488.x');
-    all488y = cell2mat(set2_488.y');
-    all488y_ref = cell2mat(set1_488.y');
+    all488x = cell2mat(set2_488.x);
+    all488x_ref = cell2mat(set1_488.x);
+    all488y = cell2mat(set2_488.y);
+    all488y_ref = cell2mat(set1_488.y);
 
 % % For troubleshooting:    
 %         % save original merged files for later comparison.  
@@ -458,7 +472,8 @@ pos488 = data(5,:);
 
 pos488b = pos488;
 pos561b = pos561;
-IR750b = IR647;
+IR750b = IR750;
+
 for k=1:Nfields
     [xt,yt] = tforminv(tform488_1, pos488(k).x,pos488(k).y);
     pos488b(k).x = xt; 
@@ -485,13 +500,19 @@ pos561 = pos561b;
 IR750 = IR750b;
 
 
+
+
 %% match molecules in each section
 % (much less ambiguious than matching superimposed selection list). 
 
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
+set1_750 =[]; set2_750 =[];
+set1_561 =[]; set2_561 =[];
+set1_488 =[]; set2_488 =[];
+
 for k = 1:Nfields
-  
+    
      if remove_crosstalk  % Remove 750 crosstalk
        % Remove cross-talk values: Match 750 to vis647, subtract these from 647 lists.
        pos647(k) = remove_bleadthrough(pos647(k),IR750(k),tform_start, cx_radius,verbose,'Vis647',k);
@@ -500,32 +521,32 @@ for k = 1:Nfields
     end
     
      % Match each channel to 647, split out x,y,z
-    [set1_750,set2_750] = matchmols(IR647(k),IR750(k),tform_start, match_radius,verbose,'750',k);
-    [set1_561,set2_561] = matchmols(pos647(k), pos561(k),tform_start, match_radius,verbose,'561',k);
-    [set1_488,set2_488] = matchmols(pos647(k), pos488(k),tform_start, match_radius,verbose,'488',k);         
+    [set1_750,set2_750] = matchmols(IR647(k),IR750(k),tform_start, match_radius,verbose,'750',k,set1_750,set2_750,Nfields);
+    [set1_561,set2_561] = matchmols(pos647(k), pos561(k),tform_start, match_radius,verbose,'561',k,set1_561,set2_561,Nfields);
+    [set1_488,set2_488] = matchmols(pos647(k), pos488(k),tform_start, match_radius,verbose,'488',k,set1_488,set2_488,Nfields);                
 end      
  
     % combine into large sets
-    all750x = cell2mat(set2_750.x');
-    all750x_ref = cell2mat(set1_750.x');
-    all750y = cell2mat(set2_750.y');
-    all750y_ref = cell2mat(set1_750.y');
-    all750z = cell2mat(set2_750.z');
-    all750z_ref = cell2mat(set1_750.z');
+    all750x = cell2mat(set2_750.x);
+    all750x_ref = cell2mat(set1_750.x);
+    all750y = cell2mat(set2_750.y);
+    all750y_ref = cell2mat(set1_750.y);
+    all750z = cell2mat(set2_750.z);
+    all750z_ref = cell2mat(set1_750.z);
    
-    all561x = cell2mat(set2_561.x');
-    all561x_ref = cell2mat(set1_561.x');
-    all561y = cell2mat(set2_561.y');
-    all561y_ref = cell2mat(set1_561.y');
-    all561z = cell2mat(set2_561.z');
-    all561z_ref = cell2mat(set1_561.z');
+    all561x = cell2mat(set2_561.x);
+    all561x_ref = cell2mat(set1_561.x);
+    all561y = cell2mat(set2_561.y);
+    all561y_ref = cell2mat(set1_561.y);
+    all561z = cell2mat(set2_561.z);
+    all561z_ref = cell2mat(set1_561.z);
  
-    all488x = cell2mat(set2_488.x');
-    all488x_ref = cell2mat(set1_488.x');
-    all488y = cell2mat(set2_488.y');
-    all488y_ref = cell2mat(set1_488.y');
-    all488z = cell2mat(set2_488.z');
-    all488z_ref = cell2mat(set1_488.z');
+    all488x = cell2mat(set2_488.x);
+    all488x_ref = cell2mat(set1_488.x);
+    all488y = cell2mat(set2_488.y);
+    all488y_ref = cell2mat(set1_488.y);
+    all488z = cell2mat(set2_488.z);
+    all488z_ref = cell2mat(set1_488.z);
     
     % test plot
       fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
@@ -538,8 +559,10 @@ end
 % %-------------------------------------------------------------------
 %% Compute and apply warp 
 
-poly_order = 3;
-poly_order2 = 3;
+% 
+
+poly_order = 2;
+poly_order2 = 2;
 
 try % may not have 750 beads
     base = [ all750x_ref all750y_ref all750z_ref]; % reference / target chn 
@@ -711,6 +734,8 @@ fig_xzerr = figure(2); clf;
 % title('warped');
 
 
+% load([ScratchPath,'test4.mat']);
+
 %% XY average warp error
   fig_xyerr =  figure(4); clf; subplot(1,2,1);
     plot(all750x,all750y,'mo',all750x_ref,all750y_ref,'m+',...
@@ -783,9 +808,9 @@ d2o750 =  nm_per_pix*sqrt( (all750x - all750x_ref).^2 + (all750y - all750y_ref).
 d2o561 =  nm_per_pix*sqrt( (all561x - all561x_ref).^2 + (all561y - all561y_ref).^2 );
 d2o488 =  nm_per_pix*sqrt( (all488x - all488x_ref).^2 + (all488y - all488y_ref).^2  );
 
-d2_750 =  nm_per_pix*sqrt( (tx750' - all750x_ref).^2 + (ty750' - all750y_ref).^2  );
-d2_561 =  nm_per_pix*sqrt( (tx561' - all561x_ref).^2 + (ty561' - all561y_ref).^2  );
-d2_488 =  nm_per_pix*sqrt( (tx488' - all488x_ref).^2 + (ty488' - all488y_ref).^2 );
+d2_750 =  nm_per_pix*sqrt( (tx750 - all750x_ref).^2 + (ty750 - all750y_ref).^2  );
+d2_561 =  nm_per_pix*sqrt( (tx561 - all561x_ref).^2 + (ty561 - all561y_ref).^2  );
+d2_488 =  nm_per_pix*sqrt( (tx488 - all488x_ref).^2 + (ty488 - all488y_ref).^2 );
 
 [cdf2_750.y, cdf2_750.x] = ecdf(d2_750);
 [cdf2_561.y, cdf2_561.x] = ecdf(d2_561);
@@ -875,7 +900,13 @@ function signalchn = remove_bleadthrough(signalchn,bkdchn,tform_start,cx_radius,
      end        
 
        
-function [set1,set2] = matchmols(ref,sample,tform, match_radius1,verbose,sname,k)
+function [set1,set2] = matchmols(ref,sample,tform, match_radius1,verbose,sname,k,set1,set2,Nfields)
+    
+if isempty(set1); % initialize on the first time through; 
+    set1.x = cell(Nfields,1); set1.y = cell(Nfields,1); set1.z = cell(Nfields,1);
+    set2.x = cell(Nfields,1); set2.y = cell(Nfields,1); set2.z = cell(Nfields,1);
+end
+    
        [matched, unmatched] = corr_mols(ref, sample,tform, match_radius1);                   
          set1.x{k} = ref.x( matched.set1_inds ); % points in ref channel
          set1.y{k} = ref.y( matched.set1_inds );
@@ -886,7 +917,7 @@ function [set1,set2] = matchmols(ref,sample,tform, match_radius1,verbose,sname,k
          if verbose
          disp(['frame ',num2str(k),':  ', num2str(length(matched.set2_inds)), '/'...
            num2str( length(matched.set2_inds) + length(unmatched.set2_inds) ),...
-           sname ,' molecules matched'])   
+           ' ', sname ,' molecules matched'])   
          end
 
          
