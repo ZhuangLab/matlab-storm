@@ -98,7 +98,7 @@ global ScratchPath
 %-------------------------------------------------------------------------- 
  chns = {'750','647','561','488'};
 match_radius1 = 8;
-
+testing = true;
 
 % These can all become user inputs later: 
 QVorder = {'647','561','750','488'}; % topleft, topright,bottomleft, bottomright.
@@ -210,6 +210,7 @@ end
 %%  Run beadfitting
 % match each region of the movie to the appropriate bead parameters 
 
+if ~testing
 
 for m=1:Nmovies
 
@@ -328,22 +329,42 @@ end
 
 
 
-
-% load([ScratchPath,'test.mat']);
-
-Nbeadsets = length([beadmovie.chns]);
-data(Nbeadsets,Nfields).x = []; 
-data(Nbeadsets,Nfields).y = [];
-data(Nbeadsets,Nfields).z = [];
+ end  % DUMMY END 
+  load([ScratchPath,'test.mat']);
 
 
-beadset = 0;
+% split data into reference channels and samples 
+
+% Nsamples is number of channels minus 1 reference channel for every movie 
+Nsamples = length([beadmovie.chns]) - Nmovies; 
+
+
+
+data(Nsamples).sample(Nframes).x = [];
+data(Nsamples).sample(Nframes).y = [];
+data(Nsamples).sample(Nframes).z = [];
+data(Nsamples).sample(Nframes).chn = [];
+data(Nsamples).refchn(Nframes).x = [];
+data(Nsamples).refchn(Nframes).y = [];
+data(Nsamples).refchn(Nframes).z = [];
+data(Nsamples).refchn(Nframes).chn = [];
+
+
+sampleset = 0;
+refset = 0;
 for m=1:Nmovies
-    for c=1:length(beadmovie(m).chns)    
-         beadset = beadset + 1; 
+    for c=1:length(beadmovie(m).chns)  
+        if c ~= beadmovie(m).refchni
+            sampleset = sampleset + 1; 
+            issample = true;
+        else
+            refset = refset + 1;
+            issample = false;
+        end
+            
           for n = 1:Nfields; 
                 try % keep going even if a movie is missing
-                    mol_list = ReadMasterMoleculeList( beadmovie(m).binname{c,n},'verbose',verbose); 
+                    mol_list = ReadMasterMoleculeList( beadmovie(m).binname{c,n},'verbose',false); 
                 catch er
                     disp(er.message); 
                     warning(['failed to load ',pathin,filesep, beadmovie(m).binname{c,n}]);
@@ -351,9 +372,10 @@ for m=1:Nmovies
                 % only keep beads that are detected in all frames
                 frames_per_field = max(mol_list.length);
                 mols_on_allframes = mol_list.length >= .75*frames_per_field;
-                if sum(mols_on_allframes) < .3*length(mol_list.x)
+                if sum(mols_on_allframes) < .1*length(mol_list.x)
                     disp('warning: many molecules not well linked between frames');
                     disp('proceeding with unlinked beads.  reduced quality of fit may result');
+                    disp('try rerunning with a larger match radius');  
                     mols_on_allframes = true(length(mol_list.x),1); % avoid tossing too many molecules with this filter
                 end
                 if class1only
@@ -361,134 +383,100 @@ for m=1:Nmovies
                 else
                     goodmol = mols_on_allframes;
                 end
-                data(beadset,n).x = cast(mol_list.xc(goodmol==1),'double');
-                data(beadset,n).y = cast(mol_list.yc(goodmol==1),'double');
-                data(beadset,n).z = cast(mol_list.z(goodmol==1),'double');
+                
+                if issample  % store as sample data
+                    data(sampleset).sample(n).x = cast(mol_list.xc(goodmol==1),'double');
+                    data(sampleset).sample(n).y = cast(mol_list.yc(goodmol==1),'double');
+                    data(sampleset).sample(n).z = cast(mol_list.z(goodmol==1),'double');
+                    data(sampleset).sample(n).chn = beadmovie(m).binname{c,n};             
+                else % store as reference data for all matching samples
+                    for k=refset:refset-1+length(beadmovie(m).chns)-1
+                    data(k).refchn(n).x = cast(mol_list.xc(goodmol==1),'double');
+                    data(k).refchn(n).y = cast(mol_list.yc(goodmol==1),'double');
+                    data(k).refchn(n).z = cast(mol_list.z(goodmol==1),'double');  
+                    data(k).refchn(n).chn =beadmovie(m).binname{c,n};   
+                    end
+                end
+
           end  
     end
 end
 
-
+ save([ ScratchPath,'test2.mat']); 
 %% match molecules in each section
 % (much less ambiguious than matching superimposed selection list). 
+
+ %load([ ScratchPath,'test2.mat']); 
+
 
 k = 1; 
 cx_radius = 4;
 verbose = true;
 
-IR750 = data(1,:);
-IR647 = data(2,:);
-pos647 = data(3,:);
-pos561 = data(4,:);
-pos488 = data(5,:);
 
 
+      cmap = hsv(Nsamples);
+      mark = {'o','o','*'};
+      
 % plots for troubleshooting
-figure(1); clf;  
-plot(pos488(k).x,pos488(k).y,'g.',pos561(k).x,pos561(k).y,'r.',...
-   pos647(k).x,pos647(k).y,'b.'); 
-hold on;
-plot(IR647(k).x,IR647(k).y,'b+',IR750(k).x,IR750(k).y,'m+');
+figure(1); clf; 
+for s=1:Nsamples
+    plot(data(s).refchn(k).x,data(s).refchn(k).y,mark{s},'color',cmap(s,:)); hold on;
+      plot(data(s).sample(k).x,data(s).sample(k).y,'+','color',cmap(s,:)); hold on;
+end
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
-set1_750 =[]; set2_750 =[];
-set1_561 =[]; set2_561 =[];
-set1_488 =[]; set2_488 =[];
+set1 = cell(Nsamples,1);
+set2 = cell(Nsamples,1);
 
-for k = 1:Nfields   
-    % Match each channel to 647, split out x,y,z
-    [set1_750,set2_750] = matchmols(data(2,k),data(1,k),tform_start, match_radius1,verbose,'750',k,set1_750,set2_750,Nfields);
-    [set1_561,set2_561] = matchmols(data(3,k),data(4,k),tform_start, match_radius1,verbose,'561',k,set1_561,set2_561,Nfields);
-    [set1_488,set2_488] = matchmols(data(3,k),data(5,k),tform_start, match_radius1,verbose,'488',k,set1_488,set2_488,Nfields);      
-end      
- 
-    % combine into large sets
-    all750x = cell2mat(set2_750.x);
-    all750x_ref = cell2mat(set1_750.x);
-    all750y = cell2mat(set2_750.y);
-    all750y_ref = cell2mat(set1_750.y);
-   
-    all561x = cell2mat(set2_561.x);
-    all561x_ref = cell2mat(set1_561.x);
-    all561y = cell2mat(set2_561.y);
-    all561y_ref = cell2mat(set1_561.y);
+dat(Nsamples).refchn.x = [];
 
-    all488x = cell2mat(set2_488.x);
-    all488x_ref = cell2mat(set1_488.x);
-    all488y = cell2mat(set2_488.y);
-    all488y_ref = cell2mat(set1_488.y);
 
-% % For troubleshooting:    
-%         % save original merged files for later comparison.  
-%     all750xo = cell2mat(set2_750.x);
-%     all750xo_ref = cell2mat(set1_750.x);
-%     all750yo = cell2mat(set2_750.y);
-%     all750yo_ref = cell2mat(set1_750.y);
-%    
-%     all561xo = cell2mat(set2_561.x);
-%     all561xo_ref = cell2mat(set1_561.x);
-%     all561yo = cell2mat(set2_561.y);
-%     all561yo_ref = cell2mat(set1_561.y);
-% 
-%     all488xo = cell2mat(set2_488.x);
-%     all488xo_ref = cell2mat(set1_488.x);
-%     all488yo = cell2mat(set2_488.y);
-%     all488yo_ref = cell2mat(set1_488.y);
+for s=1:Nsamples
+    for k = 1:Nfields   
+    [set1{s},set2{s}] = matchmols(data(s).refchn(k),data(s).sample(k),...
+        tform_start, match_radius1,verbose,data(s).sample(k).chn,k,set1{s},set2{s},Nfields);
+    end   
+    dat(s).refchn.x = cell2mat(set1{s}.x);
+    dat(s).refchn.y = cell2mat(set1{s}.y);
+    dat(s).refchn.z = cell2mat(set1{s}.z);
+    dat(s).sample.x = cell2mat(set2{s}.x);
+    dat(s).sample.y = cell2mat(set2{s}.y);
+    dat(s).sample.z = cell2mat(set2{s}.z);
+end
 
- 
+  save([ ScratchPath,'test3.mat']); 
+% load([ ScratchPath,'test3.mat']); 
+
     % test plot
       fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
-    plot(all750x,all750y,'mo',all750x_ref,all750y_ref,'m+',...
-        all561x,all561y,'r*',all561x_ref,all561y_ref,'b+',...
-        all488x,all488y,'go');
-    title('before warp');
-    legend('750','647IR','561','647vis','488');
+      for s=1:Nsamples
+      plot(dat(s).refchn.x,dat(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
+      plot(dat(s).sample.x,dat(s).sample.y,'+','color',cmap(s,:)); hold on;
+      end
+      
  
 %% Compute and apply warp 
+ tform_1 = cell(1,Nsamples); % cell to contain tform_1 for each chn. 
+ 
+for s=1:Nsamples
+% maybe important for handling missing data:
+    method = 'nonreflective similarity';
+    tform_1{s} = maketform('affine',[1 0 0; 0 1 0; 0 0 1]); % 
+    if  ~isempty(dat(s).refchn.x)
+        tform_1{s} = cp2tform([dat(s).refchn.x dat(s).refchn.y], [dat(s).sample.x dat(s).sample.y ],method); % compute warp
+    end 
+end
 
-tform750_1 = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
-tform561_1 = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
-tform488_1 = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
-
-% method = 'affine';
-method = 'nonreflective similarity';
-if sum(strcmp(chns,'750')) && ~isempty(all750x)
-tform750_1 = cp2tform([all750x_ref all750y_ref], [all750x all750y ],method); % compute warp
-end
-if sum(strcmp(chns,'561')) && ~isempty(all561x)
-tform561_1 = cp2tform([all561x_ref all561y_ref],[ all561x all561y],method);
-end
-if sum(strcmp(chns,'488')) && ~isempty(all488x)
-tform488_1 = cp2tform([all488x_ref all488y_ref] ,[all488x all488y],method);
-end
 %% REMATCH, then Polywarp 3
 
 %------------------------------------
-IR750 = data(1,:);
-IR647 = data(2,:);
-pos647 = data(3,:);
-pos561 = data(4,:);
-pos488 = data(5,:);
-
-pos488b = pos488;
-pos561b = pos561;
-IR750b = IR750;
-
+data2 = data;
 for k=1:Nfields
-    [xt,yt] = tforminv(tform488_1, pos488(k).x,pos488(k).y);
-    pos488b(k).x = xt; 
-    pos488b(k).y = yt;
-    [xt,yt] = tforminv(tform561_1, pos561(k).x,pos561(k).y);
-    pos561b(k).x=xt; 
-    pos561b(k).y=yt;
-    try
-    [xt,yt] = tforminv(tform750_1, IR750(k).x,IR750(k).y);
-    IR750b(k).x=xt; 
-    IR750b(k).y=yt;
-    catch er
-        disp(er.message)
-    end
-end;
+    [xt,yt] = tforminv(tform488_1, data(s).sample(k).x,  data(s).sample(k).y);
+    data(s).sample(k).x = xt; 
+    data(s).sample(k).y = yt;
+end
 
 figure(1); clf; k =1;
 plot(pos488(k).x,pos488(k).y,'go',pos488b(k).x,pos488b(k).y,'g*'); hold on;
