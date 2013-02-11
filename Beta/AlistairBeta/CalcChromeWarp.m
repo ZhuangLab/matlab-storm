@@ -339,14 +339,14 @@ Nsamples = length([beadmovie.chns]) - Nmovies;
 
 
 
-data(Nsamples).sample(Nframes).x = [];
-data(Nsamples).sample(Nframes).y = [];
-data(Nsamples).sample(Nframes).z = [];
-data(Nsamples).sample(Nframes).chn = [];
-data(Nsamples).refchn(Nframes).x = [];
-data(Nsamples).refchn(Nframes).y = [];
-data(Nsamples).refchn(Nframes).z = [];
-data(Nsamples).refchn(Nframes).chn = [];
+data(Nsamples).sample(Nfields).x = [];
+data(Nsamples).sample(Nfields).y = [];
+data(Nsamples).sample(Nfields).z = [];
+data(Nsamples).sample(Nfields).chn = [];
+data(Nsamples).refchn(Nfields).x = [];
+data(Nsamples).refchn(Nfields).y = [];
+data(Nsamples).refchn(Nfields).z = [];
+data(Nsamples).refchn(Nfields).chn = [];
 
 
 sampleset = 0;
