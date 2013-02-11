@@ -87,38 +87,56 @@ function CalcChromeWarp(pathin,varargin)
 %--------------------------------------------------------------------------
 
 
+%--------------------------------------------------------------------------
+% Global Variables
+%--------------------------------------------------------------------------
+global ScratchPath
 
 
 %--------------------------------------------------------------------------
 %% Hardcoded Variables
-%--------------------------------------------------------------------------
-% addpath('C:\Users\Alistair\Documents\Projects\General_STORM\Matlab_STORM\lib\Warp');
-% avoids freeze ups if data file is missing.  
-% keep this as 4 vector or the code will freeze.  
+%-------------------------------------------------------------------------- 
  chns = {'750','647','561','488'};
 match_radius1 = 8;
-overwrite = 1;  % needs to overwrite files to apply different parameters
+
+
+% These can all become user inputs later: 
+QVorder = {'647','561','750','488'}; % topleft, topright,bottomleft, bottomright.
+
+Nmovies = 2;
+beadmovie(1).chns = {'750','647'};
+beadmovie(1).daxroot = 'IRbeads';
+beadmovie(1).parsroot = 'IRBead';
+beadmovie(1).quadview = true;
+beadmovie(1).refchn = '647';
+beadmovie(1).binname = [];
+beadmovie(1).parsfile = [];
+beadmovie(1).refchni = [];
+
+
+
+beadmovie(2).chns = {'647','561','488'};
+beadmovie(2).daxroot = 'Visbeads';
+beadmovie(2).parsroot = 'VisBead';
+beadmovie(2).quadview = true;
+beadmovie(2).refchn = '647';
+beadmovie(2).binname = [];
+beadmovie(2).parsfile = [];
+beadmovie(2).Nfields = [];
 
 %--------------------------------------------------------------------------
 %% Default Parameters
 %--------------------------------------------------------------------------
-refitZ = [0,0]; % for IR and Vis.  Run insight using 3D beads and compute new positions?  
 max_frames = 36*7; % 36*3; %  36*3; % 
-IRparsroot = 'Bead';
-Visparsroot = 'Bead';
 saveroot = ''; 
 remove_crosstalk = 1;
 match_radius =  6; %6.5  7 4
 fpZ = 36; % frames per z
 
-
+overwrite = 0;  % needs to overwrite files to apply different parameters
 method ='insight'; %  'DaoSTORM';
 hideterminal = true;
-IRroot = 'IRbeads';
-Visroot = 'Visbeads';
-batchsize = 10;
 class1only = false;
-
 verbose = true;
   %  pathin = 'I:\2013-02-02_BXCemb\Beads';  IRroot = 'IRbeads'; max_frames = 1000;
 
@@ -178,10 +196,7 @@ end
 %% Main code
 %--------------------------------------------------------------------------
  
-
-
-
-
+% parse method specific parameters 
 if strcmp(method,'insight')
     parstype = '.ini';
    datatype = '_list.bin';
@@ -191,213 +206,160 @@ elseif strcmp(method,'DaoSTORM');
    class1only = false; % DaoSTORM puts everything in class 0.  
 end
 
-ir_already_run = dir([pathin,'/','IRBeadPos3D',saveroot,'.mat']);
-if isempty(ir_already_run)
-    refitZ(1) = true;
-end
-vis_already_run = dir([pathin,'/','VisBeadPos3D',saveroot,'.mat']);
-if isempty(vis_already_run)
-    refitZ(2) = true;
-end
-%%  Need to re-run bead data with each of the z-parameters.  
-if refitZ(1) == 1 
 
+%%  Run beadfitting
+% match each region of the movie to the appropriate bead parameters 
 
-  % Run insight on IR beads with 3D fitting
-    alldax = dir([pathin,filesep,IRroot,'*.dax']);
+for m=1:Nmovies
 
+    % find all dax files (different bead fields) from each movie
+    alldax = dir([pathin,'\', beadmovie(m).daxroot,'*.dax']);
      if isempty(alldax)
-         warning('MATLAB:DirNotFound',['no ', 'IRbeads*.dax files found in ',pathin]);
-         disp(pathin);
+         warning('MATLAB:DirNotFound',['no ', beadmovie(m).daxroot ,'*.dax files found in ',pathin,filesep]);
      end
- 
-    Nframes = length(alldax);
-    disp(['found ',num2str(Nframes)]);
-    Nframes = min(max_frames,Nframes); 
+    Nfields = length(alldax);
+    Nfields = min(max_frames,Nfields); 
+    Nchns = length(beadmovie(m).chns);
+    beadmovie(m).Nfields = Nfields; 
     
- %----------------------------------------------------------------------   
- % Get a parameter file for each IR channel 
- % If a match to the input IRparsroot is succesful, use that
- % otherwise, prompt the reader to chose a file from the load GUI
- parsfile = cell(length(chns),1);    
- for c=1:length(chns)
-        parsroot = [chns{c},'*',IRparsroot];
-    if isempty(parsfile{c})
-        parsname = dir([pathin,filesep,'*',parsroot, '*',parstype]);
-        if length(parsname) > 1 || isempty(parsname)
-            disp(['Too many or no ',parstype,...
-                ' files in directory.  Please chose a parameters file for']);
-           getfileprompt = {['*',parstype],[method,' pars (*',parstype,')']};
-           [filename, filepath] = uigetfile(getfileprompt,...
-               'Select Parameter File',pathin);
-           parsfile{c} = [filepath, filename];
-        else
-            parsfile{c} = [pathin, filesep, parsname.name];
-        end
-    end     
-    if isempty(strfind(parsfile,parstype))
-        error([parsfile{c}, ' is not a valid ', parstype, ' parameter file for ',method]);
+    % convert reference channel to index
+    refchni = find(strcmp(beadmovie(m).chns,beadmovie(m).refchn));
+    if isempty(refchni)
+        disp(['reference channel: ',beadmovie(m).refchn, ' does not exist among movie channels ']);
+        disp(beadmovie(m).chns);  
+        error('Reference channel must be one of the movie channels');
     end
+    beadmovie(m).refchni = refchni;
+    
+    %----------------------------------------------------------------------   
+     % Get a parameter file for each channel 
+     % If a match to the input parsroot is succesful, use that
+     % otherwise, prompt the reader to chose a file from the load GUI
+     beadmovie(m).parsfile = cell(Nchns,1);    
+     for c=1:length(beadmovie(m).chns)
+            parsroot = [beadmovie(m).chns{c},'*',beadmovie(m).parsroot];
+            
+            disp([pathin,filesep,'*',parsroot, '*',parstype]);
+            
+        if isempty(beadmovie(m).parsfile{c})
+            parsname = dir([pathin,filesep,'*',parsroot, '*',parstype]);
+            if length(parsname) > 1 || isempty(parsname)
+                disp(['Too many or no ',parstype,...
+                    ' files in directory.  Please chose a parameters file for']);
+               getfileprompt = {['*',parstype],[method,' pars (*',parstype,')']};
+               [filename, filepath] = uigetfile(getfileprompt,...
+                   ['Select Parameter File for ',beadmovie(m).parsroot,...
+                   ' ',beadmovie(m).chns{c}],pathin);
+               beadmovie(m).parsfile{c} = [filepath, filename];
+            else
+                beadmovie(m).parsfile{c} = [pathin, filesep, parsname.name];
+            end
+        end     
+        if isempty(strfind(beadmovie(m).parsfile{c},parstype))
+            error([beadmovie(m).parsfile{c}, ' is not a valid ', parstype, ' parameter file for ',method]);
+        end
+     end
+    %----------------------------------------------------------------------
+
+    
+ % Read and run 
+ %--------------------------------------------------------------------
+ 
+ % currently written for quadview of singleview
+ % for Dualview just need to add a dualview parser into ReadDaxBeta (or
+ % could call ReadDaxBeta twice with different 'subregion',[xmin,xmax,ymin
+ % ymax]).  
+ % For single channel we have n movies Nchns =1;
+ 
+ % Create new folder to save split-off movies
+ if beadmovie(m).quadview
+    splitdax_folder = 'splitdax';
+    newpath = [pathin,filesep,splitdax_folder,filesep];  
+    if ~isdir(newpath)
+        mkdir(newpath);
+    end
+ else
+     newpath = [pathin,filesep];
  end
     
-     
-    for n=1:Nframes
-        [movies,info] = ReadDaxBeta(daxfile,'subregion',subregion);
-        for c=1:length(chns)
-        binname{c,n} = WriteDax(movies{c},info,chns{c},method,parsfile{c},hideterminal,overwrite);
+    beadmovie(m).binname = cell(Nchns,Nfields);
+ % Loop through all split off movies and run appropriate parameters on them   
+    for n=1:Nfields
+        % Check to see if split dax movies already exist in target folder
+        % if not found for all channels, load original dax and split again.
+        splitdax = dir([newpath,'*',alldax(n).name]); 
+        notsplit = length(splitdax) < Nchns;
+        if   notsplit
+            daxfile = [pathin,filesep,alldax(n).name];
+            [movies,info] = ReadDaxBeta(daxfile,'Quadviewsplit',true);
+        end
+        for c=1:Nchns
+            if notsplit
+                QVframe = strcmp(QVorder,beadmovie(m).chns{c});
+                WriteDax(movies{QVframe},info,beadmovie(m).chns{c},newpath);     
+            end
+            if beadmovie(m).quadview
+            daxfile = [newpath,filesep,beadmovie(m).chns{c},'_',alldax(n).name];
+            else
+            daxfile = [newpath,filesep,alldax(n).name];
+            end
+            beadmovie(m).binname{c,n} = [daxfile(1:end-4),parstype]; 
+            RunDotFinder('method',method,'parsfile',beadmovie(m).parsfile{c},...
+               'daxfile',daxfile,'hideterminal',hideterminal,...
+               'overwrite',overwrite); 
         end
     end
-    
-  
-        
-        
-        
-
-    IR647(Nframes).x = [];  % needs different name than vis chn 647 beads
-    IR647(Nframes).y = [];
-    IR647(Nframes).z = [];
-
-    IR750(Nframes).x = [];
-    IR750(Nframes).y = [];
-    IR750(Nframes).z = [];
-  
-  for c = 1:length(chns)
-      if strcmp(chns{c},'750') || strcmp(chns{c},'647')
-          disp(['fitting ',IRroot,' beads in channel ',chns{c},'...']);
-           RunDotFinder('method',method,'parsroot',[chns{c},'*',ini_root],...
-               'daxroot',IRroot,'path',pathin,'hideterminal',hideterminal,...
-               'batchsize',batchsize,'overwrite',overwrite,'verbose',verbose); 
-      else
-          break % only do '750' and '647' here.  
-      end   
-     
-  % load bin files and save position data for each channel. 
-      for k = 1:Nframes; % k = 14;
-            bin_nm = [alldax(k,1).name(1:end-4),datatype]; % load bin file
-            try
-                mol_list = ReadMasterMoleculeList([pathin,filesep,bin_nm],...
-                    'verbose',verbose); 
-            catch er
-                disp(er.message); 
-                warning(['failed to load ',pathin,filesep,bin_nm]);
-            end
-            frames_per_field = max(mol_list.length);
-            mols_on_allframes = mol_list.length == frames_per_field;
-            if sum(mols_on_allframes) < .3*length(mol_list.x)
-                disp('warning: many molecules not well linked between frames');
-                disp('reduced quality of fit may result');
-                mols_on_allframes = true(length(mol_list.x),1); % avoid tossing too many molecules with this filter
-            end
-            if class1only
-                goodmol = mol_list.c &  mols_on_allframes; % use only molecules with good z-fit score (class 1)
-            else
-                goodmol =  mols_on_allframes;
-            end
-            x = cast(mol_list.x(goodmol==1),'double');
-            y = cast(mol_list.y(goodmol==1),'double');
-            z = cast(mol_list.z(goodmol==1),'double');
-            % split up channels based on their positions in the quadview
-            if strcmp(chns{c},'750')
-                   IR750(k).x = x(x>0 & x<256 & y>258 & y<512);  % throw out a top row of points
-                   IR750(k).y = y(x>0 & x<256 & y>258 & y<512)-256;
-                   IR750(k).z = z(x>0 & x<256 & y>258 & y<512); 
-            elseif strcmp(chns{c},'647')
-                   IR647(k).x = x(x>0 & x<256 & y>0 & y<256);
-                   IR647(k).y = y(x>0 & x<256 & y>0 & y<256);
-                   IR647(k).z = z(x>0 & x<256 & y>0 & y<256);
-            else
-                break
-            end
-      end       
-  end
- 
-save([pathin,'/','IRBeadPos3D',saveroot,'.mat'],'IR750','IR647','Nframes');  
-disp(['wrote ',  pathin,'/','IRBeadPos3D',saveroot,'.mat']);
-else
-    load([pathin,'/','IRBeadPos3D',saveroot,'.mat'],'IR750','IR647','Nframes');  
 end
 
-
-%%  Run insight on Vis beads with 3D fitting
-if refitZ(2) == 1
-alldax = dir([pathin,'\','Visbeads','*.dax']);
-
-     if isempty(alldax)
-         warning('MATLAB:DirNotFound',['no ', 'Visbeads*.dax files found in ',pathin,'\']);
-     end
-
-Nframes = length(alldax);
-Nframes = min(max_frames,Nframes); 
-
-pos647(Nframes).x = [];
-pos647(Nframes).y = [];
-pos647(Nframes).z = [];
- 
-pos561(Nframes).x = [];
-pos561(Nframes).y = [];
-pos561(Nframes).z = [];
- 
-pos488(Nframes).x = [];
-pos488(Nframes).y = [];
-pos488(Nframes).z = [];
- 
-for c=1:length(chns)    
-     if strcmp(chns{c},'647') || strcmp(chns{c},'561') || strcmp(chns{c},'488')
-         disp(['fitting ',Visroot,' beads in channel ',chns{c},'...']);
-           RunDotFinder('method',method,'parsroot',[chns{c},'*',ini_root],...
-               'daxroot',Visroot,'path',pathin,'hideterminal',hideterminal,...
-               'batchsize',batchsize,'overwrite',overwrite,'verbose',verbose); 
-      else
-          break % only do '750' and '647' here.  
-      end  
-     
-      for k = 1:Nframes; % k = 14;
-            bin_nm = [alldax(k,1).name(1:end-4),datatype]; % load bin file
-            try
-                mol_list = ReadMasterMoleculeList([pathin,filesep,bin_nm],...
-                    'verbose',verbose); 
-            catch er
-                disp(er.message); 
-                warning(['failed to load ',pathin,filesep,bin_nm]);
-            end
-            frames_per_field = max(mol_list.length);
-            mols_on_allframes = mol_list.length == frames_per_field;
-            if sum(mols_on_allframes) < .3*length(mol_list.x)
-                disp('warning: many molecules not well linked between frames');
-                disp('reduced quality of fit may result');
-                mols_on_allframes = true(length(mol_list.x),1); % avoid tossing too many molecules with this filter
-            end
-            if class1only
-                goodmol = mol_list.c & mols_on_allframes; % use only molecules with good z-fit score (class 1)
-            else
-                goodmol = mols_on_allframes;
-            end
-            
-            x = cast(mol_list.xc(goodmol==1),'double');
-            y = cast(mol_list.yc(goodmol==1),'double');
-            z = cast(mol_list.zc(goodmol==1),'double');
-            % split up channels based on their positions in the quadview
-            if strcmp(chns{c},'647')
-                pos647(k).x = x(x>0 & x<256 & y>0 & y<256);
-                pos647(k).y = y(x>0 & x<256 & y>0 & y<256);
-                pos647(k).z = z(x>0 & x<256 & y>0 & y<256);
-            elseif strcmp(chns{c},'561')
-                pos561(k).x = x(x>257 & x<512 & y>0 & y<256)-256;
-                pos561(k).y = y(x>257 & x<512 & y>0 & y<256);
-                pos561(k).z = z(x>257 & x<512 & y>0 & y<256);
-            elseif strcmp(chns{c},'488')
-                pos488(k).x = x(x>257 & x<512 & y>257 & y<512)-256;
-                pos488(k).y = y(x>257 & x<512 & y>257 & y<512)-256;
-                pos488(k).z = z(x>257 & x<512 & y>257 & y<512);
-            else
-                break
-            end
-      end  
+% Wait until all movies have finished being analyzed before proceeding
+for m=1:Nmovies
+    max_wait = 100; 
+    waitT = 0;
+    Nbinfiles_complete = length(dir([newpath,'*', beadmovie(m).daxroot,'*',datatype]));
+    Nbinfiles_started = length(beadmovie(m).chns)*beadmovie(m).Nfields;
+    while Nbinfiles_complete < Nbinfiles_started && waitT < max_wait
+       Nbinfiles_complete = length(dir([newpath,'*', beadmovie(m).daxroot,'*',datatype]));
+       Nbinfiles_started = length(beadmovie(m).chns)*beadmovie(m).Nfields; 
+       pause(1);
+       waitT = waitT+1; 
+    end
 end
-% save position data
-save([pathin,'/','VisBeadPos3D',saveroot,'.mat'],'pos647','pos561','pos488','Nframes'); 
-else
-    load([pathin,'/','VisBeadPos3D',saveroot,'.mat'],'pos647','pos561','pos488'); 
+
+% Nfields could be different between movies, we should deal with this.  
+
+Nbeadsets = length([beadmovie.chns]);
+data = cell(Nbeadsets,Nfields); 
+
+beadset = 0;
+for m=1:Nmovies
+    beadset = beadset + 1; 
+    for c=1:length(beadmovie(m).chns)        
+          for k = 1:Nfields; 
+                bin_nm = [beadmovie(m).binname{c,n},datatype];
+                try % keep going even if a movie is missing
+                    mol_list = ReadMasterMoleculeList( bin_nm,'verbose',verbose); 
+                catch er
+                    disp(er.message); 
+                    warning(['failed to load ',pathin,filesep,bin_nm]);
+                end 
+                % only keep beads that are detected in all frames
+                frames_per_field = max(mol_list.length);
+                mols_on_allframes = mol_list.length == frames_per_field;
+                if sum(mols_on_allframes) < .3*length(mol_list.x)
+                    disp('warning: many molecules not well linked between frames');
+                    disp('proceeding with unlinked beads.  reduced quality of fit may result');
+                    mols_on_allframes = true(length(mol_list.x),1); % avoid tossing too many molecules with this filter
+                end
+                if class1only
+                    goodmol = mol_list.c & mols_on_allframes; % use only molecules with good z-fit score (class 1)
+                else
+                    goodmol = mols_on_allframes;
+                end
+                data(beadset,k).x = cast(mol_list.xc(goodmol==1),'double');
+                data(beadset,k).y = cast(mol_list.yc(goodmol==1),'double');
+                data(beadset,k).z = cast(mol_list.zc(goodmol==1),'double');
+          end  
+    end
 end
 
 
@@ -419,11 +381,11 @@ verbose = true;
 % plot(IR647(k).x,IR647(k).y,'b+',IR750(k).x,IR750(k).y,'m+');
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
-for k = 1:Nframes   
+for k = 1:Nfields   
     % Match each channel to 647, split out x,y,z
-    [set1_750,set2_750] = matchmols(IR647(k),IR750(k),tform_start, match_radius1,verbose,'750',k);
-    [set1_561,set2_561] = matchmols(pos647(k), pos561(k),tform_start, match_radius1,verbose,'561',k);
-    [set1_488,set2_488] = matchmols(pos647(k), pos488(k),tform_start, match_radius1,verbose,'488',k);      
+    [set1_750,set2_750] = matchmols(data(2,k),data(1,k),tform_start, match_radius1,verbose,'750',k);
+    [set1_561,set2_561] = matchmols(data(3,k),data(4,k),tform_start, match_radius1,verbose,'561',k);
+    [set1_488,set2_488] = matchmols(data(3,k),data(5,k),tform_start, match_radius1,verbose,'488',k);      
 end      
  
     % combine into large sets
@@ -488,11 +450,16 @@ end
 %% REMATCH, then Polywarp 3
 
 %------------------------------------
+IR750 = data(1,:);
+IR647 = data(2,:);
+pos647 = data(3,:);
+pos561 = data(4,:);
+pos488 = data(5,:);
 
 pos488b = pos488;
 pos561b = pos561;
-IR750b = IR750;
-for k=1:Nframes
+IR750b = IR647;
+for k=1:Nfields
     [xt,yt] = tforminv(tform488_1, pos488(k).x,pos488(k).y);
     pos488b(k).x = xt; 
     pos488b(k).y = yt;
@@ -523,7 +490,7 @@ IR750 = IR750b;
 
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
-for k = 1:Nframes
+for k = 1:Nfields
   
      if remove_crosstalk  % Remove 750 crosstalk
        % Remove cross-talk values: Match 750 to vis647, subtract these from 647 lists.
@@ -941,14 +908,13 @@ function [set1,set2] = matchmols(ref,sample,tform, match_radius1,verbose,sname,k
     % zi = xi.^2*ps(1) + xi.*yi*ps(2) + xi*ps(3) + yi.^2*ps(4) + yi*ps(5) + ps(6);
     
     
-  function binname = WriteDax(movie,info,tag,method,parsfile,hideterminal,overwrite)
-    info.hend = subregion(2)-subregion(1)+1;
-    info.vend = subregion(4)-subregion(3)+1;
+  function  WriteDax(movie,info,tag,newpath)
+    info.hend = info.frame_dimensions(2)/2;
+    info.vend = info.frame_dimensions(1)/2;
     info.frame_dimensions = [info.hend,info.vend];
     info.localName = [tag,'_',info.localName];
-    WriteDAXFiles(movie647,info);   
-    newdaxfile = [pathin,filesep,info.localName(1:end-4),'.dax'];
-    RunDotFinder('method',method,'parsfile',parsfile,...
-           'daxfile',newdaxfile,'hideterminal',hideterminal,...
-           'overwrite',overwrite,'verbose',verbose); 
+    info.localPath = newpath;
+    info.file = [info.localPath,info.localName(1:end-4),'.dax'];
+    WriteDAXFiles(movie,info);
+
 
