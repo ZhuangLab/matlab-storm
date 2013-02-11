@@ -68,7 +68,6 @@ guidata(hObject, handles);
 % addpath(genpath('..')); % adds the whole Matlab_STORM directory to path.
 % alterantively, this can be specified by the matlab startup script.  
  addpath(genpath('.'));
-global defaultDataPath  defaultInsightPath
 
 % If any daxfile has been loaded, open it along with opening the GUI.  
 try
@@ -834,7 +833,6 @@ end
        'NewParsRoot',Zopts{1},'runinMatlab',eval(Zopts{2}),...
        'printprogress',eval(Zopts{3}),'overwrite',eval(Zopts{4}),...
     'PlotsOn',eval(Zopts{5}),'zwindow',eval(Zopts{6}));
-   
 
 
 % --------------------------------------------------------------------
