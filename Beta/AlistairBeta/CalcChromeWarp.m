@@ -96,9 +96,8 @@ global ScratchPath
 %--------------------------------------------------------------------------
 %% Hardcoded Variables
 %-------------------------------------------------------------------------- 
- chns = {'750','647','561','488'};
 match_radius1 = 8;
-testing = true;
+testing = false;
 
 % These can all become user inputs later: 
 QVorder = {'647','561','750','488'}; % topleft, topright,bottomleft, bottomright.
@@ -329,8 +328,8 @@ end
 
 
 
- end  % DUMMY END 
-  load([ScratchPath,'test.mat']);
+end  % DUMMY END 
+ % load([ScratchPath,'test.mat']);
 
 
 % split data into reference channels and samples 
@@ -388,14 +387,14 @@ for m=1:Nmovies
                     data(sampleset).sample(n).x = cast(mol_list.xc(goodmol==1),'double');
                     data(sampleset).sample(n).y = cast(mol_list.yc(goodmol==1),'double');
                     data(sampleset).sample(n).z = cast(mol_list.z(goodmol==1),'double');
-                    data(sampleset).sample(n).chn = chns{c};       
+                    data(sampleset).sample(n).chn = beadmovie(m).chns{c};       
                     data(sampleset).sample(n).bin = beadmovie(m).binname{c,n};             
                 else % store as reference data for all matching samples
                     for k=refset:refset-1+length(beadmovie(m).chns)-1
                     data(k).refchn(n).x = cast(mol_list.xc(goodmol==1),'double');
                     data(k).refchn(n).y = cast(mol_list.yc(goodmol==1),'double');
                     data(k).refchn(n).z = cast(mol_list.z(goodmol==1),'double');  
-                    data(k).refchn(n).chn = chns{c};       
+                    data(k).refchn(n).chn = beadmovie(m).chns{c};       
                     data(k).refchn(n).bin = beadmovie(m).binname{c,n};   
                     end
                 end
@@ -405,9 +404,12 @@ for m=1:Nmovies
 end
 
  save([ ScratchPath,'test2.mat']); 
-%% match molecules in each section
+
+ 
+ %% match molecules in each section
 % (much less ambiguious than matching superimposed selection list). 
 
+ 
  %load([ ScratchPath,'test2.mat']); 
 
 
@@ -429,23 +431,27 @@ end
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
 dat(Nsamples).refchn.x = [];
 
-set1 = cell(Nfields,Nsamples);
-set2 = cell(Nfields,Nsamples);
+set1 = cell(Nsamples,1);
+set2 = cell(Nsamples,1);
+% set1{s}.x{k} provides the set1 matches for sample s in frame k.  
 for s=1:Nsamples
     for k = 1:Nfields   
-    [set1{k,s},set2{k,s}] = matchmols(data(s).refchn(k),data(s).sample(k),...
-        tform_start, match_radius1,verbose,data(s).sample(k).chn,k,set1{k},set2{k},Nfields);
+    [set1{s},set2{s}] = matchmols(data(s).refchn(k),data(s).sample(k),...
+        tform_start, match_radius1,verbose,data(s).sample(k).chn,k,...
+        set1{s},set2{s},Nfields);
     end   
-    dat(s).refchn.x = cell2mat(set1{:,s}.x);
-    dat(s).refchn.y = cell2mat(set1{:,s}.y);
-    dat(s).refchn.z = cell2mat(set1{:,s}.z);
-    dat(s).sample.x = cell2mat(set2{:,s}.x);
-    dat(s).sample.y = cell2mat(set2{:,s}.y);
-    dat(s).sample.z = cell2mat(set2{:,s}.z);
+      save([ ScratchPath,'test3.mat']); 
+    % load([ ScratchPath,'test3.mat']); 
+    dat(s).refchn.x = cell2mat(set1{s}.x);
+    dat(s).refchn.y = cell2mat(set1{s}.y);
+    dat(s).refchn.z = cell2mat(set1{s}.z);
+    dat(s).sample.x = cell2mat(set2{s}.x);
+    dat(s).sample.y = cell2mat(set2{s}.y);
+    dat(s).sample.z = cell2mat(set2{s}.z);
 end
 
-  save([ ScratchPath,'test3.mat']); 
-% load([ ScratchPath,'test3.mat']); 
+
+
 
 % test plot
   fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
@@ -498,8 +504,8 @@ end
 
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
-set1 = cell(Nfields,Nsamples);
-set2 = cell(Nfields,Nsamples);
+set1 = cell(Nsamples,1);
+set2 = cell(Nsamples,1);
 dat2(Nsamples).refchn.x = [];
 for s = 1:Nsamples
     for k = 1:Nfields          
@@ -512,17 +518,18 @@ for s = 1:Nsamples
            data2(3).sample(k) = remove_bleadthrough(data2(3).sample(k),data2(1).sample(k),tform_start, cx_radius,verbose,'Vis488',k);
         end
 
-         % Match each channel to 647, split out x,y,z
-        [set1{s,k},set2{s,k}] = matchmols(data2(s).refchn(k),data2(s).sample(k),...
-            tform_start, match_radius1,verbose,data2(s).sample(k).chn,k,set1{k},set2{k},Nfields);     
+         % Match beads from each sample channel to counterpart in target reference channel 
+         % set1{s}.x{k} provides the set1 matches for sample s in frame k.  
+        [set1{s},set2{s}] = matchmols(data2(s).refchn(k),data2(s).sample(k),...
+            tform_start, match_radius,verbose,data2(s).sample(k).chn,k,set1{s},set2{s},Nfields);     
     end      
  % combine into single vectors
-    dat2(s).refchn.x = cell2mat(set1{:,s}.x);
-    dat2(s).refchn.y = cell2mat(set1{:,s}.y);
-    dat2(s).refchn.z = cell2mat(set1{:,s}.z);
-    dat2(s).sample.x = cell2mat(set2{:,s}.x);
-    dat2(s).sample.y = cell2mat(set2{:,s}.y);
-    dat2(s).sample.z = cell2mat(set2{:,s}.z);
+    dat2(s).refchn.x = cell2mat(set1{s}.x);
+    dat2(s).refchn.y = cell2mat(set1{s}.y);
+    dat2(s).refchn.z = cell2mat(set1{s}.z);
+    dat2(s).sample.x = cell2mat(set2{s}.x);
+    dat2(s).sample.y = cell2mat(set2{s}.y);
+    dat2(s).sample.z = cell2mat(set2{s}.z);
 end
     
 %   % test plot
@@ -565,62 +572,78 @@ end
 
 %% level the data and plot z-distribution
 
-% probably better to compute a level plane from field1, not from all beads
-% % Maybe it is better to level the data before fitting?
 
 zmin = -650; zmax = 650; % for plotting only
-% level unwarped zdata
+% level unwarped zdata based on flatness of field in frame1
+% syntax 
+ % zlevel = z_apply - level_data([x_fit,y_fit,z_fit],[x_apply,y_apply])  (x,y,z to compute tilt)
 for s=1:Nsamples
-    % zlevel = z_apply - level_data([x_fit,y_fit,z_fit],[x_apply,y_apply])  (x,y,z to compute tilt)
-     zc  = level_data([data2(s).refchn(1).x, data2(s).refchn(1).y, data2(s).refchn(1).z],[dat2(s).refchn.x, dat2(s).refchn.y]); % unwarped ref data
-    dat2(s).refchn.zo  = dat2(s).refchn.z - zc;
-    dat2(s).sample.zo  = dat2(s).sample.z - level_data(dat2(s).sample.x, dat2(s).sample.y, dat2(s).sample.z); % unwarped sample data
-    dat2(s).refchn.tzo  = dat2(s).refchn.tz - level_data(dat2(s).refchn.tx, dat2(s).refchn.ty, dat2(s).refchn.tz); % unwarped ref data
-    dat2(s).sample.tzo  = dat2(s).sample.tz - level_data(dat2(s).sample.tx, dat2(s).sample.ty, dat2(s).sample.tz); % unwarped sample data
+   % Level just using tilt from frame 0.  
+     zc_ref  = level_data([data2(s).refchn(1).x, data2(s).refchn(1).y, data2(s).refchn(1).z],[dat2(s).refchn.x, dat2(s).refchn.y]); % unwarped ref data
+     dat2(s).refchn.zo  = dat2(s).refchn.z - zc_ref;
+     zc_sample  = level_data([data2(s).sample(1).x, data2(s).sample(1).y, data2(s).sample(1).z],[dat2(s).sample.x, dat2(s).sample.y]); % unwarped sample data
+    dat2(s).sample.zo = dat2(s).sample.z- zc_sample;
+ 
+% % Level using best global filt of a plane to all data
+%         % zlevel = z_apply - level_data([x_fit,y_fit,z_fit],[x_apply,y_apply])  (x,y,z to compute tilt)
+%      zc_ref  = level_data([dat2(s).refchn.x, dat2(s).refchn.y, dat2(s).refchn.z],[dat2(s).refchn.x, dat2(s).refchn.y]); % unwarped ref data
+%      dat2(s).refchn.zo  = dat2(s).refchn.z - zc_ref;
+%      zc_sample  = level_data([dat2(s).sample.x, dat2(s).sample.y, dat2(s).sample.z],[dat2(s).sample.x, dat2(s).sample.y]); % unwarped sample data
+%     dat2(s).sample.zo = dat2(s).sample.z- zc_sample;  
 end
 
+
+ save([ ScratchPath,'test4.mat']);
+
+ % load([ ScratchPath,'test4.mat']);
+%% 
 % Color coded histograms of the leveled z-distributions of beads in each
-% color.  The bar color indicates the actual cluster.  This assumes 36
-% images at each z positoin! (could easily be generalized).  
- fig_zdist = figure(7); clf;
- passes = Nfields/fpZ ;
- col = hsv(passes+1);
- sample_clust = zeros(Nsamples,passes+1);
-  ref_clust = zeros(Nsamples,passes+1);
-for n=1:Nsamples    
-    for j=1:passes % separate molecules into z clusters
-        k = (1+(j-1)*fpZ:j*fpZ);
-        sample_clust(n,j+1) = sample_clust(n,j) + sum(cellfun(@length,set2{k,n}.z));
-        ref_clust(n,j+1) = ref_clust(n,j) + sum(cellfun(@length,set1{k,n}.z));
+% color.  The bar color indicates the actual cluster. 
+try
+    passes = Nfields/fpZ ;
+    col = hsv(passes+1);
+    sample_clust = zeros(Nsamples,passes+1);
+    ref_clust = zeros(Nsamples,passes+1);
+    for n=1:Nsamples    
+        for j=1:passes % separate molecules into z clusters
+            ks = (1+(j-1)*fpZ:j*fpZ); % subset of frames at specific z-height
+            sample_clust(n,j+1) = sample_clust(n,j) + sum(cellfun(@length,set2{n}.z(ks)));
+            ref_clust(n,j+1) = ref_clust(n,j) + sum(cellfun(@length,set1{n}.z(ks)));
+        end
     end
-end
 
-hx = linspace(zmin,zmax,50);    
     % histogram each z cluster as a different color.  Do for each of the
-    % channels (including reference channels) 
-for n=1:Nsamples    
-    for j=2:passes+1 % j=3;
-    % for sample beads
-    subplot(Nmovies,Nsamples,(2*n)-1); 
-    hist(dat2(s).sample.zo(sample_clust(n,j-1)+1: sample_clust(n,j) ),hx);
-    title(data(s).sample(1).chn); 
-    xlim([zmin,zmax]); hold on;
-    h1  = findobj(gca,'Type','Patch'); 
-    set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7;
-    
-    % For reference beads
-    subplot(Nmovies,Nsamples,(2*n)); 
-    hist(dat2(s).refchn.zo(ref_clust(n,j-1)+1: ref_clust(n,j) ),hx);
-    title(data(s).refchn(1).chn); 
-    xlim([zmin,zmax]); hold on;
-    h1  = findobj(gca,'Type','Patch'); 
-    set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7; 
-    end
-end
- colormap(col(1:passes,:));
- colorbar;
- set(gcf,'color','w');
+        % channels (including reference channels) 
+    fig_zdist = figure(7); clf;
+    hx = linspace(zmin,zmax,50);    
+    for n=1:Nsamples    
+        for j=2:passes+1 % j=3;
+        % for sample beads
+        subplot(Nsamples,Nmovies,(2*n)-1); 
+        hist(dat2(n).sample.zo(sample_clust(n,j-1)+1: sample_clust(n,j) ),hx);
+        title(['plot: ',num2str((2*n)-1),' ', data(n).sample(1).chn]); 
+        xlim([zmin,zmax]); hold on;
+        h1  = findobj(gca,'Type','Patch'); 
+        set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7;
 
+        % For reference beads
+        subplot(Nsamples,Nmovies,(2*n)); 
+        hist(dat2(n).refchn.zo(ref_clust(n,j-1)+1: ref_clust(n,j) ),hx);
+        title(['plot: ',num2str((2*n)),' ', data(n).refchn(1).chn]); 
+        xlim([zmin,zmax]); hold on;
+        h1  = findobj(gca,'Type','Patch'); 
+        set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7; 
+        end
+    end
+     colormap(col(1:passes,:));
+     colorbar; caxis([1,passes]);
+     set(gcf,'color','w');
+catch er
+    disp(er.message)
+    disp(['error in computing histogram of z-positions.  ',...
+        'Perhaps the wrong number of frames per z positions is entered']);
+    disp(['should the frames per z be: ',num2str(fpZ)]);
+end
 %%  XZ error
   fig_xzerr =  figure(2); clf;
   subplot(1,2,1);
@@ -632,8 +655,8 @@ end
 
    subplot(1,2,2);
   for s=1:Nsamples
-  plot(dat2(s).refchn.xt,dat2(s).refchn.zt,mark{s},'color',cmap(s,:)); hold on;
-  plot(dat2(s).sample.xt,dat2(s).sample.zt,'+','color',cmap(s,:)); hold on;
+  plot(dat2(s).refchn.x,dat2(s).refchn.z,mark{s},'color',cmap(s,:)); hold on;
+  plot(dat2(s).sample.tx,dat2(s).sample.tz,'+','color',cmap(s,:)); hold on;
   end
  title('warped xz scatter');     ylim([zmin,zmax]); % xlim([100,110]);    
 
@@ -642,7 +665,7 @@ end
 
 %% XY average warp error
 % xy error
-  fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
+  fig_xyerr_all =  figure; clf; subplot(1,2,1);
   for s=1:Nsamples
   plot(dat(s).refchn.x,dat(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
   plot(dat(s).sample.x,dat(s).sample.y,'+','color',cmap(s,:)); hold on;
@@ -655,6 +678,26 @@ end
   plot(dat2(s).sample.tx,dat2(s).sample.ty,'+','color',cmap(s,:)); hold on;
   end
  title('warped');  
+ 
+ 
+fig_xyerr =  figure; clf; subplot(1,2,1);
+xmin = 100; xmax = 130; ymin = 100; ymax = 130; 
+  for s=1:Nsamples
+  plot(dat(s).refchn.x,dat(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
+  plot(dat(s).sample.x,dat(s).sample.y,'+','color',cmap(s,:)); hold on;
+  end
+ title('unwarped');   
+ xlim([xmin,xmax]); 
+ ylim([ymin,ymax]); 
+
+ subplot(1,2,2);
+  for s=1:Nsamples
+  plot(dat2(s).refchn.x,dat2(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
+  plot(dat2(s).sample.tx,dat2(s).sample.ty,'+','color',cmap(s,:)); hold on;
+  end
+ title('warped');
+ xlim([xmin,xmax]);
+ ylim([ymin,ymax]);  
 
 %% 3D average warp error
 nm_per_pix = 158; 
@@ -675,8 +718,8 @@ cdf(Nsamples).x = [];
 cdf_thresh = zeros(Nsamples,1); 
 for s=1:Nsamples
 postwarperror{s} = sqrt( xys*(dat2(s).sample.tx - dat2(s).refchn.x).^2 +...
-                     xys*(dat(s).sample.ty - dat(s).refchn.y).^2 +...
-                    (dat(s).sample.tz - dat(s).refchn.z).^2 );
+                     xys*(dat2(s).sample.ty - dat2(s).refchn.y).^2 +...
+                    (dat2(s).sample.tz - dat2(s).refchn.z).^2 );
 [cdf(s).y, cdf(s).x] = ecdf(postwarperror{s});
 cdf_thresh(s)  = (cdf(s).x(find(cdf(s).y>thr,1,'first')));
 disp([num2str(100*thr,2),'% of ',data(s).sample(1).chn,...
@@ -685,7 +728,7 @@ end
 
 
 % Histogram warp error
-fig_warperr = figure(1); clf; 
+fig_warperr = figure; clf; 
 k=0;
 for s=1:Nsamples
     k=k+1;
@@ -715,7 +758,7 @@ cdf2D(Nsamples).x = [];
 cdf2D_thresh = zeros(Nsamples,1); 
 for s=1:Nsamples
 postwarperror2D{s} = sqrt( xys*(dat2(s).sample.tx2D - dat2(s).refchn.x).^2 +...
-                     xys*(dat(s).sample.ty2D - dat(s).refchn.y).^2 );
+                     xys*(dat2(s).sample.ty2D - dat2(s).refchn.y).^2 );
 [cdf2D(s).y, cdf2D(s).x] = ecdf(postwarperror2D{s});
 cdf2D_thresh(s)  = (cdf2D(s).x(find(cdf2D(s).y>thr,1,'first')));
 disp([num2str(100*thr,2),'% of ',data(s).sample(1).chn,...
@@ -777,14 +820,14 @@ function signalchn = remove_bleadthrough(signalchn,bkdchn,tform_start,cx_radius,
      end        
 
        
-function [set1,set2] = matchmols(ref,sample,tform, match_radius1,verbose,sname,k,set1,set2,Nfields)
+function [set1,set2] = matchmols(ref,sample,tform, match_radius,verbose,sname,k,set1,set2,Nfields)
     
 if isempty(set1); % initialize on the first time through; 
     set1.x = cell(Nfields,1); set1.y = cell(Nfields,1); set1.z = cell(Nfields,1);
     set2.x = cell(Nfields,1); set2.y = cell(Nfields,1); set2.z = cell(Nfields,1);
 end
     
-       [matched, unmatched] = corr_mols(ref, sample,tform, match_radius1);                   
+       [matched, unmatched] = corr_mols(ref, sample,tform, match_radius);                   
          set1.x{k} = ref.x( matched.set1_inds ); % points in ref channel
          set1.y{k} = ref.y( matched.set1_inds );
          set1.z{k} = ref.z( matched.set1_inds );
