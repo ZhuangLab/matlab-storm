@@ -388,13 +388,15 @@ for m=1:Nmovies
                     data(sampleset).sample(n).x = cast(mol_list.xc(goodmol==1),'double');
                     data(sampleset).sample(n).y = cast(mol_list.yc(goodmol==1),'double');
                     data(sampleset).sample(n).z = cast(mol_list.z(goodmol==1),'double');
-                    data(sampleset).sample(n).chn = beadmovie(m).binname{c,n};             
+                    data(sampleset).sample(n).chn = chns{c};       
+                    data(sampleset).sample(n).bin = beadmovie(m).binname{c,n};             
                 else % store as reference data for all matching samples
                     for k=refset:refset-1+length(beadmovie(m).chns)-1
                     data(k).refchn(n).x = cast(mol_list.xc(goodmol==1),'double');
                     data(k).refchn(n).y = cast(mol_list.yc(goodmol==1),'double');
                     data(k).refchn(n).z = cast(mol_list.z(goodmol==1),'double');  
-                    data(k).refchn(n).chn =beadmovie(m).binname{c,n};   
+                    data(k).refchn(n).chn = chns{c};       
+                    data(k).refchn(n).bin = beadmovie(m).binname{c,n};   
                     end
                 end
 
@@ -409,16 +411,15 @@ end
  %load([ ScratchPath,'test2.mat']); 
 
 
-k = 1; 
+
 cx_radius = 4;
-verbose = true;
 
-
-
-      cmap = hsv(Nsamples);
-      mark = {'o','o','*'};
+% for plotting
+cmap = hsv(Nsamples);
+mark = {'o','o','.'};
       
 % plots for troubleshooting
+k = 1; 
 figure(1); clf; 
 for s=1:Nsamples
     plot(data(s).refchn(k).x,data(s).refchn(k).y,mark{s},'color',cmap(s,:)); hold on;
@@ -426,37 +427,35 @@ for s=1:Nsamples
 end
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
-set1 = cell(Nsamples,1);
-set2 = cell(Nsamples,1);
-
 dat(Nsamples).refchn.x = [];
 
-
+set1 = cell(Nfields,Nsamples);
+set2 = cell(Nfields,Nsamples);
 for s=1:Nsamples
     for k = 1:Nfields   
-    [set1{s},set2{s}] = matchmols(data(s).refchn(k),data(s).sample(k),...
-        tform_start, match_radius1,verbose,data(s).sample(k).chn,k,set1{s},set2{s},Nfields);
+    [set1{k,s},set2{k,s}] = matchmols(data(s).refchn(k),data(s).sample(k),...
+        tform_start, match_radius1,verbose,data(s).sample(k).chn,k,set1{k},set2{k},Nfields);
     end   
-    dat(s).refchn.x = cell2mat(set1{s}.x);
-    dat(s).refchn.y = cell2mat(set1{s}.y);
-    dat(s).refchn.z = cell2mat(set1{s}.z);
-    dat(s).sample.x = cell2mat(set2{s}.x);
-    dat(s).sample.y = cell2mat(set2{s}.y);
-    dat(s).sample.z = cell2mat(set2{s}.z);
+    dat(s).refchn.x = cell2mat(set1{:,s}.x);
+    dat(s).refchn.y = cell2mat(set1{:,s}.y);
+    dat(s).refchn.z = cell2mat(set1{:,s}.z);
+    dat(s).sample.x = cell2mat(set2{:,s}.x);
+    dat(s).sample.y = cell2mat(set2{:,s}.y);
+    dat(s).sample.z = cell2mat(set2{:,s}.z);
 end
 
   save([ ScratchPath,'test3.mat']); 
 % load([ ScratchPath,'test3.mat']); 
 
-    % test plot
-      fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
-      for s=1:Nsamples
-      plot(dat(s).refchn.x,dat(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
-      plot(dat(s).sample.x,dat(s).sample.y,'+','color',cmap(s,:)); hold on;
-      end
+% test plot
+  fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
+  for s=1:Nsamples
+  plot(dat(s).refchn.x,dat(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
+  plot(dat(s).sample.x,dat(s).sample.y,'+','color',cmap(s,:)); hold on;
+  end
       
  
-%% Compute and apply warp 
+%% Compute and apply x-y translation warp (transform 1) 
  tform_1 = cell(1,Nsamples); % cell to contain tform_1 for each chn. 
  
 for s=1:Nsamples
@@ -472,22 +471,26 @@ end
 
 %------------------------------------
 data2 = data;
-for k=1:Nfields
-    [xt,yt] = tforminv(tform488_1, data(s).sample(k).x,  data(s).sample(k).y);
-    data(s).sample(k).x = xt; 
-    data(s).sample(k).y = yt;
+for s=1:Nsamples
+    for k=1:Nfields
+        [xt,yt] = tforminv(tform_1{s}, data(s).sample(k).x,  data(s).sample(k).y);
+        data2(s).sample(k).x = xt; 
+        data2(s).sample(k).y = yt;
+    end
 end
-
-figure(1); clf; k =1;
-plot(pos488(k).x,pos488(k).y,'go',pos488b(k).x,pos488b(k).y,'g*'); hold on;
-plot(pos561(k).x,pos561(k).y,'ro',pos561b(k).x,pos561b(k).y,'r+');
-plot(IR750(k).x,IR750(k).y,'mo',IR750b(k).x,IR750b(k).y,'m+');
-
-pos488 = pos488b;
-pos561 = pos561b;
-IR750 = IR750b;
+% Maybe these points should just go in new field of data?
+% need to watch corr mols, it wants to operate on .x .y not .x1, .y2
+% also there are different numbers of molecules in each list due to
+% different matching, which could get confusing if it's 1 var
 
 
+%  A plot just for troubleshooting
+k = 1; % just beads in this field
+figure(1); clf; 
+for s=1:Nsamples
+    plot(data2(s).refchn(k).x,data2(s).refchn(k).y,mark{s},'color',cmap(s,:)); hold on;
+     plot(data2(s).sample(k).x,data2(s).sample(k).y,'+','color',cmap(s,:)); hold on;
+end
 
 
 %% match molecules in each section
@@ -495,104 +498,60 @@ IR750 = IR750b;
 
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
-set1_750 =[]; set2_750 =[];
-set1_561 =[]; set2_561 =[];
-set1_488 =[]; set2_488 =[];
+set1 = cell(Nfields,Nsamples);
+set2 = cell(Nfields,Nsamples);
+dat2(Nsamples).refchn.x = [];
+for s = 1:Nsamples
+    for k = 1:Nfields          
+        % Hard-coded, remove 750 blead through on Quadview
+        % With good parameter choices should not be necessary.  
+         if remove_crosstalk  && beadmovie(m).quadview % Remove 750 crosstalk 
+           data2(2).refchn(k) = remove_bleadthrough(data2(2).refchn(k),data2(1).sample(k),tform_start, cx_radius,verbose,'Vis647',k);
+           data2(3).refchn(k) = remove_bleadthrough(data2(3).refchn(k),data2(1).sample(k),tform_start, cx_radius,verbose,'Vis647',k);
+           data2(2).sample(k) = remove_bleadthrough(data2(2).sample(k),data2(1).sample(k),tform_start, cx_radius,verbose,'Vis561',k);
+           data2(3).sample(k) = remove_bleadthrough(data2(3).sample(k),data2(1).sample(k),tform_start, cx_radius,verbose,'Vis488',k);
+        end
 
-for k = 1:Nfields
+         % Match each channel to 647, split out x,y,z
+        [set1{s,k},set2{s,k}] = matchmols(data2(s).refchn(k),data2(s).sample(k),...
+            tform_start, match_radius1,verbose,data2(s).sample(k).chn,k,set1{k},set2{k},Nfields);     
+    end      
+ % combine into single vectors
+    dat2(s).refchn.x = cell2mat(set1{:,s}.x);
+    dat2(s).refchn.y = cell2mat(set1{:,s}.y);
+    dat2(s).refchn.z = cell2mat(set1{:,s}.z);
+    dat2(s).sample.x = cell2mat(set2{:,s}.x);
+    dat2(s).sample.y = cell2mat(set2{:,s}.y);
+    dat2(s).sample.z = cell2mat(set2{:,s}.z);
+end
     
-     if remove_crosstalk  % Remove 750 crosstalk
-       % Remove cross-talk values: Match 750 to vis647, subtract these from 647 lists.
-       pos647(k) = remove_bleadthrough(pos647(k),IR750(k),tform_start, cx_radius,verbose,'Vis647',k);
-       pos561(k) = remove_bleadthrough(pos561(k),IR750(k),tform_start, cx_radius,verbose,'Vis561',k);
-       pos488(k) = remove_bleadthrough(pos488(k),IR750(k),tform_start, cx_radius,verbose,'Vis488',k);   
-    end
-    
-     % Match each channel to 647, split out x,y,z
-    [set1_750,set2_750] = matchmols(IR647(k),IR750(k),tform_start, match_radius,verbose,'750',k,set1_750,set2_750,Nfields);
-    [set1_561,set2_561] = matchmols(pos647(k), pos561(k),tform_start, match_radius,verbose,'561',k,set1_561,set2_561,Nfields);
-    [set1_488,set2_488] = matchmols(pos647(k), pos488(k),tform_start, match_radius,verbose,'488',k,set1_488,set2_488,Nfields);                
-end      
- 
-    % combine into large sets
-    all750x = cell2mat(set2_750.x);
-    all750x_ref = cell2mat(set1_750.x);
-    all750y = cell2mat(set2_750.y);
-    all750y_ref = cell2mat(set1_750.y);
-    all750z = cell2mat(set2_750.z);
-    all750z_ref = cell2mat(set1_750.z);
-   
-    all561x = cell2mat(set2_561.x);
-    all561x_ref = cell2mat(set1_561.x);
-    all561y = cell2mat(set2_561.y);
-    all561y_ref = cell2mat(set1_561.y);
-    all561z = cell2mat(set2_561.z);
-    all561z_ref = cell2mat(set1_561.z);
- 
-    all488x = cell2mat(set2_488.x);
-    all488x_ref = cell2mat(set1_488.x);
-    all488y = cell2mat(set2_488.y);
-    all488y_ref = cell2mat(set1_488.y);
-    all488z = cell2mat(set2_488.z);
-    all488z_ref = cell2mat(set1_488.z);
-    
-    % test plot
-      fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
-    plot(all750x,all750y,'mo',all750x_ref,all750y_ref,'m+',...
-        all561x,all561y,'r*',all561x_ref,all561y_ref,'b+',...
-        all488x,all488y,'go');
-    title('before warp');
-    legend('750','647IR','561','647vis','488');
+%   % test plot
+%       fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
+%       for s=1:Nsamples
+%       plot(dat(s).refchn.x,dat(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
+%       plot(dat(s).sample.x,dat(s).sample.y,'+','color',cmap(s,:)); hold on;
+%       end
+%       title('after warp1'); 
 % 
 % %-------------------------------------------------------------------
 %% Compute and apply warp 
 
-% 
-
 poly_order = 2;
 poly_order2 = 2;
+tform = cell(Nsamples,1);
+tform2D = cell(Nsamples,1); 
 
-try % may not have 750 beads
-    base = [ all750x_ref all750y_ref all750z_ref]; % reference / target chn 
-    input = [ all750x all750y all750z ];  % matched data to warp
-    tform750 = cp2tform3D(base,input,'polynomial',poly_order); % compute warp
-    [tx750,ty750,tz750] = tforminv(tform750, all750x, all750y, all750z); % apply warp
+for s=1:Nsamples
+    refchn = [dat2(s).refchn.x dat2(s).refchn.y dat2(s).refchn.z]; 
+    sample = [dat2(s).sample.x dat2(s).sample.y dat2(s).sample.z]; 
+    tform{s} = cp2tform3D(refchn,sample,'polynomial',poly_order); % compute warp
+    [dat2(s).sample.tx,dat2(s).sample.ty,dat2(s).sample.tz] = ...
+        tforminv(tform{s}, dat2(s).sample.x, dat2(s).sample.y, dat2(s).sample.z); % apply warp
     % 2D transform (for troubleshooting)
-    tform750_2D = cp2tform( [ all750x_ref all750y_ref ], [ all750x all750y ],'polynomial',poly_order2); % compute warp
-    [tx750_2d,ty750_2d] = tforminv(tform750_2D, all750x, all750y); % apply warp
-catch er
-    disp(er.message)
-    tx750 =0; ty750=0; tz750=0; tx750_2d=0; ty750_2d=0;
-    tform750 = []; tform750_2D = []; 
-    
-end
-    
-try 
-    base = [ all561x_ref all561y_ref all561z_ref]; % reference / target chn
-    input = [ all561x all561y all561z ];  % matched data to warp
-    tform561 = cp2tform3D(base,input,'polynomial',poly_order);
-    [tx561,ty561,tz561] = tforminv(tform561, all561x, all561y, all561z);
-    % 2D transform (for troubleshooting)
-    tform561_2D = cp2tform([all561x_ref all561y_ref],[ all561x all561y],'polynomial',poly_order2);
-    [tx561_2d,ty561_2d] = tforminv(tform561_2D, all561x, all561y);
-catch er
-    disp(er.message)
-    tx561 =0; ty561=0; tz561=0; tx561_2d=0; ty561_2d=0;
-    tform561 = []; tform561_2D = []; 
-end
-
-try  % may not have 488 beads
-    base = [ all488x_ref all488y_ref all488z_ref]; % reference / target chn 
-    input = [ all488x all488y all488z ];  % matched data to warp
-    tform488 = cp2tform3D(base, input,'polynomial',poly_order);
-    [tx488,ty488,tz488] = tforminv(tform488, all488x, all488y, all488z);
-    % 2D transforms (for troubleshooting)
-    tform488_2D = cp2tform([all488x_ref all488y_ref] ,[all488x all488y],'polynomial',poly_order2);
-    [tx488_2d,ty488_2d] = tforminv(tform488_2D, all488x, all488y);
-catch er
-    disp(er.message);
-    tx488 =0; ty488=0; tz488=0; tx488_2d=0; ty488_2d=0;
-    tform488 = []; tform488_2D = []; 
+    tform2D{s} = cp2tform( [dat2(s).refchn.x dat2(s).refchn.y],...
+        [dat2(s).sample.x dat2(s).sample.y],'polynomial',poly_order2); % compute warp
+    [dat2(s).sample.tx2D,dat2(s).sample.ty2D,] = tforminv(tform2D{s},...
+        dat2(s).sample.x, dat2(s).sample.y); % apply warp
 end
 
 % DONE!
@@ -602,218 +561,181 @@ end
 % folder to better document warp percision. 
 
 
+
+
 %% level the data and plot z-distribution
+
+% probably better to compute a level plane from field1, not from all beads
+% % Maybe it is better to level the data before fitting?
 
 zmin = -650; zmax = 650; % for plotting only
 % level unwarped zdata
-lzo750 = all750z-level_data(all750x,all750y,all750z);
-lzo561 = all561z-level_data(all561x,all561y,all561z);
-lzo488 = all488z-level_data(all488x,all488y,all488z);
-
-% level warped z data
-try
-lz750 = tz750-level_data(tx750,ty750,tz750);
-lz647IR = all750z_ref-level_data(all750x_ref,all750y_ref,all750z_ref);
-catch er
-    disp(er.message);
-    disp('error leveling 750 beads.  Ignore if no 750 beads in data');
-    lz750 = 0;
-    lz647IR = 0;
-end
-    
-
-try
-    lz561 = tz561-level_data(tx561,ty561,tz561);
-catch er
-    disp(er.message);
-    disp('error leveling 561 beads.  Ignore if no 561 beads in data');
-    lz561=0;
-    all561x_ref=0;
-    all561y_ref=0 ;
-    all561z_ref=0;
-end
-
-try % don't always use 488 beads.  This is to avoid an error
-    lz488 = tz488-level_data(tx488,ty488,tz488);
-catch er
-    disp(er.message);
-    disp('error leveling 488 beads.  Ignore if no 488 beads in data');
-    lz488=0;
-    all488x_ref =0;
-    all488y_ref=0 ;
-    all488z_ref=0;
-end
-
-try
-    lz647Vis = all561z_ref-level_data(all561x_ref,all561y_ref,all561z_ref);
-catch er
-    disp(er.message);
-    lz647Vis = 0;
+for s=1:Nsamples
+    % zlevel = z_apply - level_data([x_fit,y_fit,z_fit],[x_apply,y_apply])  (x,y,z to compute tilt)
+     zc  = level_data([data2(s).refchn(1).x, data2(s).refchn(1).y, data2(s).refchn(1).z],[dat2(s).refchn.x, dat2(s).refchn.y]); % unwarped ref data
+    dat2(s).refchn.zo  = dat2(s).refchn.z - zc;
+    dat2(s).sample.zo  = dat2(s).sample.z - level_data(dat2(s).sample.x, dat2(s).sample.y, dat2(s).sample.z); % unwarped sample data
+    dat2(s).refchn.tzo  = dat2(s).refchn.tz - level_data(dat2(s).refchn.tx, dat2(s).refchn.ty, dat2(s).refchn.tz); % unwarped ref data
+    dat2(s).sample.tzo  = dat2(s).sample.tz - level_data(dat2(s).sample.tx, dat2(s).sample.ty, dat2(s).sample.tz); % unwarped sample data
 end
 
 % Color coded histograms of the leveled z-distributions of beads in each
 % color.  The bar color indicates the actual cluster.  This assumes 36
 % images at each z positoin! (could easily be generalized).  
-fig_zdist = figure(7); clf;
-     passes = length(set2_488.z)/fpZ ;
-     col = hsv(passes+1);
-     all488_clust = zeros(1,passes+1); all561_clust = zeros(1,passes+1);  all647vis_clust = zeros(1,passes+1);
-     all647ir_clust = zeros(1,passes+1); all750_clust = zeros(1,passes+1);
+ fig_zdist = figure(7); clf;
+ passes = Nfields/fpZ ;
+ col = hsv(passes+1);
+ sample_clust = zeros(Nsamples,passes+1);
+  ref_clust = zeros(Nsamples,passes+1);
+for n=1:Nsamples    
     for j=1:passes % separate molecules into z clusters
-        all488_clust(j+1) = all488_clust(j) + sum(cellfun(@length,set2_488.z(1+(j-1)*fpZ:j*fpZ)));
-        all561_clust(j+1) = all561_clust(j)+ sum(cellfun(@length,set2_561.z(1+(j-1)*fpZ:j*fpZ)));
-        all647vis_clust(j+1) =  all647vis_clust(j)+ sum(cellfun(@length,set1_561.z(1+(j-1)*fpZ:j*fpZ)));
-        all647ir_clust(j+1) = all647ir_clust(j)+ sum(cellfun(@length,set1_750.z(1+(j-1)*fpZ:j*fpZ)));
-        all750_clust(j+1) =  all750_clust(j) + sum(cellfun(@length,set2_750.z(1+(j-1)*fpZ:j*fpZ)));
+        k = (1+(j-1)*fpZ:j*fpZ);
+        sample_clust(n,j+1) = sample_clust(n,j) + sum(cellfun(@length,set2{k,n}.z));
+        ref_clust(n,j+1) = ref_clust(n,j) + sum(cellfun(@length,set1{k,n}.z));
     end
-    hx = linspace(zmin,zmax,50);  
+end
+
+hx = linspace(zmin,zmax,50);    
     % histogram each z cluster as a different color.  Do for each of the
     % channels (including reference channels) 
+for n=1:Nsamples    
     for j=2:passes+1 % j=3;
-    subplot(3,2,1); hist(lz750( all750_clust(j-1)+1: all750_clust(j) ),hx); title('750'); xlim([zmin,zmax]); hold on;
-      h1  = findobj(gca,'Type','Patch'); set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7;
-    subplot(3,2,2); hist(lz647IR( all647ir_clust(j-1)+1: all647ir_clust(j) ),hx); title('IR 647');   xlim([zmin,zmax]); hold on;
-      h1  = findobj(gca,'Type','Patch'); set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7;
-    subplot(3,2,3); hist(lz561( all561_clust(j-1)+1: all561_clust(j) ),hx); title('561');   xlim([zmin,zmax]); hold on;
-      h1  = findobj(gca,'Type','Patch'); set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7;
-    subplot(3,2,4); hist(lz488( all488_clust(j-1)+1: all488_clust(j) ),hx); title('488');   xlim([zmin,zmax]); hold on;
-      h1  = findobj(gca,'Type','Patch'); set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7;
-    subplot(3,2,5); hist(lz647Vis( all647vis_clust(j-1)+1: all647vis_clust(j) ),hx); title('Vis 647');  xlim([zmin,zmax]); hold on;
-      h1  = findobj(gca,'Type','Patch'); set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7;
-    end
-    subplot(3,2,6); colormap(col(1:passes,:)); colorbar;
-    set(gcf,'color','w');
-
-
-
-fig_xzerr = figure(2); clf; 
-  subplot(1,2,1);
-    scatter(all561x_ref,lz647Vis,'bo'); hold on; 
-    scatter(all488x,lzo488,'g.'); 
-    scatter(all561x,lzo561,'r.');
-    scatter(all750x,lzo750,'m.');
-    scatter(all750x_ref,lz647IR,'co'); 
-    title('unwarped');
-    ylim([zmin,zmax]); xlim([100,110]);
-  subplot(1,2,2);
-    scatter(all561x_ref,lz647Vis,'bo'); hold on;
-    scatter(tx488,lz488,'g.'); 
-    scatter(tx561,lz561,'r.');
-    scatter(tx750,lz750,'m.');
-    scatter(all750x_ref,lz647IR,'co'); 
-    title('warped');
-    ylim([zmin,zmax]); xlim([100,110]);
+    % for sample beads
+    subplot(Nmovies,Nsamples,(2*n)-1); 
+    hist(dat2(s).sample.zo(sample_clust(n,j-1)+1: sample_clust(n,j) ),hx);
+    title(data(s).sample(1).chn); 
+    xlim([zmin,zmax]); hold on;
+    h1  = findobj(gca,'Type','Patch'); 
+    set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7;
     
-% figure(2); clf;
-% scatter3(all488x_ref,all488y_ref,all488z_ref,'b.'); hold on; 
-% scatter3(all488x,all488y,all488z,'g.'); 
-% scatter3(all561x,all561y,all561z,'r.');
-% scatter3(all750x,all750y,all750z,'m.');
-% scatter3(all750x_ref,all750y_ref,all750z_ref,'c.'); 
-% title('unwarped');
-% view(90,0) % view(50,20)
-% 
-% figure(3); clf;
-% scatter3(all488x_ref,all488y_ref,all488z_ref,'b.'); hold on;
-% scatter3(tx488,ty488,tz488,'g.'); 
-% scatter3(tx561,ty561,tz561,'r.');
-% scatter3(tx750,ty750,tz750,'m.');
-% scatter3(all750x_ref,all750y_ref,all750z_ref,'c.'); 
-% title('warped');
+    % For reference beads
+    subplot(Nmovies,Nsamples,(2*n)); 
+    hist(dat2(s).refchn.zo(ref_clust(n,j-1)+1: ref_clust(n,j) ),hx);
+    title(data(s).refchn(1).chn); 
+    xlim([zmin,zmax]); hold on;
+    h1  = findobj(gca,'Type','Patch'); 
+    set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7; 
+    end
+end
+ colormap(col(1:passes,:));
+ colorbar;
+ set(gcf,'color','w');
 
+%%  XZ error
+  fig_xzerr =  figure(2); clf;
+  subplot(1,2,1);
+  for s=1:Nsamples
+  plot(dat(s).refchn.x,dat(s).refchn.z,mark{s},'color',cmap(s,:)); hold on;
+  plot(dat(s).sample.x,dat(s).sample.z,'+','color',cmap(s,:)); hold on;
+  end
+ title('unwarped xz scatter');     ylim([zmin,zmax]); % xlim([100,110]);    
 
+   subplot(1,2,2);
+  for s=1:Nsamples
+  plot(dat2(s).refchn.xt,dat2(s).refchn.zt,mark{s},'color',cmap(s,:)); hold on;
+  plot(dat2(s).sample.xt,dat2(s).sample.zt,'+','color',cmap(s,:)); hold on;
+  end
+ title('warped xz scatter');     ylim([zmin,zmax]); % xlim([100,110]);    
+
+ 
 % load([ScratchPath,'test4.mat']);
 
 %% XY average warp error
-  fig_xyerr =  figure(4); clf; subplot(1,2,1);
-    plot(all750x,all750y,'mo',all750x_ref,all750y_ref,'m+',...
-        all561x,all561y,'r*',all561x_ref,all561y_ref,'b+',...
-        all488x,all488y,'go',all488x_ref,all488y_ref,'b+');
-    title('before warp');
-    legend('750','647IR','561','647vis','488');
-    xlim([90,160]); ylim([90,120]);
+% xy error
+  fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
+  for s=1:Nsamples
+  plot(dat(s).refchn.x,dat(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
+  plot(dat(s).sample.x,dat(s).sample.y,'+','color',cmap(s,:)); hold on;
+  end
+ title('unwarped');  
 
-    subplot(1,2,2); 
-    plot(tx750_2d,ty750_2d,'mo',all750x_ref,all750y_ref,'m+',...
-        tx561_2d,ty561_2d,'r*',all561x_ref,all561y_ref,'b+',...
-        tx488_2d,ty488_2d,'go',all488x_ref,all488y_ref,'b+');
-    title('after warp');
-    legend('750','647IR','561','647vis','488');
-    xlim([90,160]); ylim([90,120]);
+ subplot(1,2,2);
+  for s=1:Nsamples
+  plot(dat2(s).refchn.x,dat2(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
+  plot(dat2(s).sample.tx,dat2(s).sample.ty,'+','color',cmap(s,:)); hold on;
+  end
+ title('warped');  
 
-
-      fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
-    plot(all750x,all750y,'mo',all750x_ref,all750y_ref,'m+',...
-        all561x,all561y,'r*',all561x_ref,all561y_ref,'b+',...
-        all488x,all488y,'go',all488x_ref,all488y_ref,'b+');
-    title('before warp');
-    legend('750','647IR','561','647vis','488');
-    subplot(1,2,2); plot(tx750_2d,ty750_2d,'mo',all750x_ref,all750y_ref,'m+',...
-        tx561_2d,ty561_2d,'r*',all561x_ref,all561y_ref,'b+',...
-        tx488_2d,ty488_2d,'go',all488x_ref,all488y_ref,'b+');
-    title('after warp');
-    legend('750','647IR','561','647vis','488');
 %% 3D average warp error
 nm_per_pix = 158; 
 xys = (nm_per_pix)^2;
-
-% pre-warp error
-do750 = sqrt( xys*(all750x - all750x_ref).^2 + xys*(all750y - all750y_ref).^2 + (all750z - all750z_ref).^2 );
-do561 = sqrt( xys*(all561x - all561x_ref).^2 + xys*(all561y - all561y_ref).^2 + (all561z - all561z_ref).^2 );
-do488 = sqrt( xys*(all488x - all488x_ref).^2 + xys*(all488y - all488y_ref).^2 + (all488z - all488z_ref).^2 );
-
-% post-warp error
-d750 = sqrt( xys*(tx750 - all750x_ref).^2 + xys*(ty750 - all750y_ref).^2 + (tz750 - all750z_ref).^2 );
-d561 = sqrt( xys*(tx561 - all561x_ref).^2 + xys*(ty561 - all561y_ref).^2 + (tz561 - all561z_ref).^2 );
-d488 = sqrt( xys*(tx488 - all488x_ref).^2 + xys*(ty488 - all488y_ref).^2 + (tz488 - all488z_ref).^2 );
-
-% compute warp accuracy
 thr = .75;
-[cdf750.y, cdf750.x] = ecdf(d750);
-[cdf561.y, cdf561.x] = ecdf(d561);
-[cdf488.y, cdf488.x] = ecdf(d488);
-cdf90_750 = (cdf750.x(find(cdf750.y>thr,1,'first')));
-cdf90_561 = (cdf561.x(find(cdf561.y>thr,1,'first')));
-cdf90_488 = (cdf488.x(find(cdf488.y>thr,1,'first')));
-disp([num2str(100*thr,2),'% of 750 beads aligned to ', num2str(cdf90_750),'nm']);
-disp([num2str(100*thr,2),'% of 561 beads aligned to ', num2str(cdf90_561),'nm']);
-disp([num2str(100*thr,2),'% of 488 beads aligned to ', num2str(cdf90_488),'nm']);
+
+% pre-warp error (3D)
+prewarperror = cell(Nsamples,1); 
+for s=1:Nsamples
+prewarperror{s} = sqrt( xys*(dat(s).sample.x - dat(s).refchn.x).^2 +...
+                 xys*(dat(s).sample.y - dat(s).refchn.y).^2 +...
+                (dat(s).sample.z - dat(s).refchn.z).^2 );
+end
+
+% post warp error (3D), 
+postwarperror = cell(Nsamples,1); 
+cdf(Nsamples).x = []; 
+cdf_thresh = zeros(Nsamples,1); 
+for s=1:Nsamples
+postwarperror{s} = sqrt( xys*(dat2(s).sample.tx - dat2(s).refchn.x).^2 +...
+                     xys*(dat(s).sample.ty - dat(s).refchn.y).^2 +...
+                    (dat(s).sample.tz - dat(s).refchn.z).^2 );
+[cdf(s).y, cdf(s).x] = ecdf(postwarperror{s});
+cdf_thresh(s)  = (cdf(s).x(find(cdf(s).y>thr,1,'first')));
+disp([num2str(100*thr,2),'% of ',data(s).sample(1).chn,...
+    ' 3D beads aligned to ', num2str(cdf_thresh(s)),'nm']);
+end
+
 
 % Histogram warp error
 fig_warperr = figure(1); clf; 
-subplot(3,2,1); hist(do750,100); title(['unwarped 750, mean error: ',num2str(mean(do750),3),'nm']);
-subplot(3,2,2); hist(d750,100);  title(['3D warped 750: ' num2str(100*thr,2),'% aligned to ', num2str(cdf90_750),'nm']);
-subplot(3,2,3); hist(do561,100);  title(['unwarped 561, mean error: ',num2str(mean(do561),3),'nm']);
-subplot(3,2,4); hist(d561,100);   title(['3D warped 561: ',num2str(100*thr,2),'% aligned to ', num2str(cdf90_561),'nm']);
-subplot(3,2,5); hist(do488,100);  title(['unwarped 488, mean error: ',num2str(mean(do488),3),'nm']);
-subplot(3,2,6); hist(d488,100);   title(['3D warped 488: ',num2str(100*thr,2),'% aligned to ', num2str(cdf90_488),'nm']);
+k=0;
+for s=1:Nsamples
+    k=k+1;
+    subplot(3,2,k); hist(prewarperror{s},100);
+    title(['unwarped ',data(s).sample(1).chn,' mean error: ',...
+        num2str(mean(prewarperror{s}),3),'nm']);
+    k=k+1;
+    subplot(3,2,k); hist(postwarperror{s},100);  
+    title(['3D warped ',data(s).sample(1).chn,': ' num2str(100*thr,2),...
+        '% aligned to ', num2str(cdf_thresh(s)),'nm']);
+end
 
 
+%% 2D XY average warp error
 
-% XY average warp error
 
-d2o750 =  nm_per_pix*sqrt( (all750x - all750x_ref).^2 + (all750y - all750y_ref).^2  );
-d2o561 =  nm_per_pix*sqrt( (all561x - all561x_ref).^2 + (all561y - all561y_ref).^2 );
-d2o488 =  nm_per_pix*sqrt( (all488x - all488x_ref).^2 + (all488y - all488y_ref).^2  );
+% pre-warp error (3D)
+prewarperror2D = cell(Nsamples,1); 
+for s=1:Nsamples
+prewarperror2D{s} = sqrt( xys*(dat(s).sample.x - dat(s).refchn.x).^2 +...
+                    xys*(dat(s).sample.y - dat(s).refchn.y).^2  );
+end
 
-d2_750 =  nm_per_pix*sqrt( (tx750 - all750x_ref).^2 + (ty750 - all750y_ref).^2  );
-d2_561 =  nm_per_pix*sqrt( (tx561 - all561x_ref).^2 + (ty561 - all561y_ref).^2  );
-d2_488 =  nm_per_pix*sqrt( (tx488 - all488x_ref).^2 + (ty488 - all488y_ref).^2 );
+% post warp error (3D), 
+postwarperror2D = cell(Nsamples,1); 
+cdf2D(Nsamples).x = []; 
+cdf2D_thresh = zeros(Nsamples,1); 
+for s=1:Nsamples
+postwarperror2D{s} = sqrt( xys*(dat2(s).sample.tx2D - dat2(s).refchn.x).^2 +...
+                     xys*(dat(s).sample.ty2D - dat(s).refchn.y).^2 );
+[cdf2D(s).y, cdf2D(s).x] = ecdf(postwarperror2D{s});
+cdf2D_thresh(s)  = (cdf2D(s).x(find(cdf2D(s).y>thr,1,'first')));
+disp([num2str(100*thr,2),'% of ',data(s).sample(1).chn,...
+    ' 2D beads aligned to ', num2str(cdf2D_thresh(s)),'nm']);
+end
 
-[cdf2_750.y, cdf2_750.x] = ecdf(d2_750);
-[cdf2_561.y, cdf2_561.x] = ecdf(d2_561);
-[cdf2_488.y, cdf2_488.x] = ecdf(d2_488);
-cdf2_750 = (cdf2_750.x(find(cdf2_750.y>thr,1,'first')));
-cdf2_561 = (cdf2_561.x(find(cdf2_561.y>thr,1,'first')));
-cdf2_488 = (cdf2_488.x(find(cdf2_488.y>thr,1,'first')));
 
-fig_warperr_2d = figure(3); clf; 
-subplot(3,2,1); hist(d2o750,100); title(['unwarped 750, mean error: ',num2str(mean(d2o750),3),'nm']);
-subplot(3,2,2); hist(d2_750,100);  title(['2D warped 750: ' num2str(100*thr,2),'% aligned to ', num2str(cdf2_750),'nm']);
-subplot(3,2,3); hist(d2o561,100);  title(['unwarped 561, mean error: ',num2str(mean(d2o561),3),'nm']);
-subplot(3,2,4); hist(d2_561,100);   title(['2D warped 561: ',num2str(100*thr,2),'% aligned to ', num2str(cdf2_561),'nm']);
-subplot(3,2,5); hist(d2o488,100);  title(['unwarped 488, mean error: ',num2str(mean(d2o488),3),'nm']);
-subplot(3,2,6); hist(d2_488,100);   title(['2D warped 488: ',num2str(100*thr,2),'% aligned to ', num2str(cdf2_488),'nm']);
+% Histogram warp error
+fig_warperr_2d = figure(1); clf; 
+k=0;
+for s=1:Nsamples
+    k=k+1;
+    subplot(3,2,k); hist(prewarperror2D{s},100);
+    title(['unwarped ',data(s).sample(1).chn,' mean error: ',...
+        num2str(mean(prewarperror{s}),3),'nm']);
+    k=k+1;
+    subplot(3,2,k); hist(postwarperror2D{s},100);  
+    title(['2D warped ',data(s).sample(1).chn,': ' num2str(100*thr,2),...
+        '% aligned to ', num2str(cdf2D_thresh(s)),'nm']);
+end
 
 
 saveas(fig_warperr,[pathin,'/',saveroot,'fig_warperr.png']);
@@ -825,51 +747,18 @@ saveas(fig_warperr_2d,[pathin,'/','fig_warperr_2d.png']);
 
 
 % SAVE transforms
-save([pathin,'/','tforms3D.mat'],'tform488','tform561','tform750',...
-    'tform488_1','tform561_1','tform750_1',...
-    'cdf750','cdf561','cdf488','cdf90_750','cdf90_561','cdf90_488','thr');
-disp(['wrote ',pathin,'/','tforms3D.mat']);    
+save([pathin,'/','chromewarps.mat'],'tform_1','tform','tform2D',...
+    'cdf','cdf2D','cdf_thresh','cdf2D_thresh','thr');
+disp(['wrote ',pathin,'/','chromewarps.mat']);    
 
-
-save([pathin,'/','tforms2D.mat'],'tform488_2D','tform561_2D','tform750_2D',...
-    'tform488_1','tform561_1','tform750_1',...    
-    'cdf2_750','cdf2_561','cdf2_488','thr');
-disp(['wrote ',pathin,'/','tforms2D.mat']);
 disp('3D bead fitting complete');
 
 
-%% test z-calibration by refitting calibration movie
-% zroot = 'Zcal'; 
-% chns = {'750','647','561','488'};
+
+
+
 % 
-% for c=1:length(chns);
-%     % find dax files 
-%     chn = chns{c}; 
-%      alldax = dir([pathin,'\',chn,'*.dax']);
-%      inidata = dir([pathin,'\',chn,'*.ini']); 
-%      ini = [pathin,'\',inidata.name];%   
-%      if QVZ == 1
-%          if strcmp(chn,'750')==1 || strcmp(chn,'647')==1
-%              alldax = dir([pathin,'\','IR','*',zroot,'*.dax']);
-%          elseif  strcmp(chn,'561')==1 || strcmp(chn,'488')==1
-%              alldax = dir([pathin,'\','Vis','*',zroot,'*.dax']);
-%          end
-%      end
-%      
-%      Nframes = length(alldax);  % unnecessary really as we only take z-calibration movie.   
-%         for k=1:Nframes             
-%                 dax = [pathin,'\',alldax(k,1).name];   
-%                 ccall = ['!',insight,' ',dax,' ',iniVis, '&& exit &'];
-%                 disp(ccall); % print command to screen
-%                 eval(ccall);  % Run insightM to get positions                       
-%         end
-% end
-% 
-%     allbin = dir([workdir,'\' Bead_folder,'\', '*',zroot,'*_list.bin']);
-%     Nframes = length(allbin);
-%     disp(['found ',num2str(Nframes), ' _list.bin files']); 
-% 
-%
+% Internal functions 
   
 function signalchn = remove_bleadthrough(signalchn,bkdchn,tform_start,cx_radius,verbose,sname,k)
        
@@ -909,22 +798,12 @@ end
          end
 
          
- function [zf,ps] = level_data(x,y,z)
-    % zf = level_data(x,y,z) 
-    % Returns vector zf of length(z) such that 
-    % z_leveled = z - level_data(x,y,z);
-    % will remove any systematic tilt in the dataset z.  
-    try
-    p = polyfitn([x',y'],z',2);
-    catch
-        p = polyfitn([x,y],z,2);
-    end
+ function [za,ps] = level_data(fit,apply)
+    x = fit(:,1); y = fit(:,2); z=fit(:,3);
+    p = polyfitn([x,y],z,2);
     ps = p.Coefficients;
-    zf = x.^2*ps(1) + x.*y*ps(2) + x*ps(3) + y.^2*ps(4) + y*ps(5) + ps(6);
-    % % For plotting only
-    % ti = 5:5:120;
-    % [xi,yi] = meshgrid(ti,ti);
-    % zi = xi.^2*ps(1) + xi.*yi*ps(2) + xi*ps(3) + yi.^2*ps(4) + yi*ps(5) + ps(6);
+    xa = apply(:,1); ya = apply(:,2);
+    za = xa.^2*ps(1) + xa.*ya*ps(2) + xa*ps(3) + ya.^2*ps(4) + ya*ps(5) + ps(6);
     
     
   function  WriteDax(movie,info,tag,newpath)
