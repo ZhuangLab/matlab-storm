@@ -11,7 +11,40 @@ function infoFile = ReadInfoFile(varargin)
 % Inputs:
 % fileName/string or cell array of strings ([]): A path to a .dax or .ini
 %   file
-%
+% Field: explanation
+%                  localName: what matlab will save this as 
+%                  localPath: where matlab will save this file
+%                   uniqueID: ?
+%                       file: full path to daxfile. 
+%               machine_name: e.g. 'storm2'
+%            parameters_file: Full pathname of pars file used in Hal
+%              shutters_file: e.g. 'shutters_default.xml'
+%                   CCD_mode: e.g. 'frame-transfer'
+%                  data_type: '16 bit integers (binary, big endian)'
+%           frame_dimensions: [256 256]
+%                    binning: [1 1]
+%                 frame_size: 262144
+%     horizontal_shift_speed: 10
+%       vertical_shift_speed: 3.3000
+%                 EMCCD_Gain: 20
+%                Preamp_Gain: 5
+%              Exposure_Time: 0.1000
+%          Frames_Per_Second: 9.8280
+%         camera_temperature: -70
+%           number_of_frames: 10
+%                camera_head: 'DU897_BV'
+%                     hstart: 1
+%                       hend: 256  
+%                     vstart: 1
+%                       vend: 256
+%                  ADChannel: 0
+%                    Stage_X: 0
+%                    Stage_Y: 5
+%                    Stage_Z: 0
+%                Lock_Target: 0
+%                   scalemax: 4038
+%                   scalemin: 0
+%                      notes: ''
 %--------------------------------------------------------------------------
 % Variable Inputs:
 % 'file'/string or cell array: The file name(s) for the .ini file(s) to load
