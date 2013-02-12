@@ -54,10 +54,10 @@ function [pars_nm,wx_fit,wy_fit] = CompZcal(daxfile,parsfile,varargin)
 zwindow = 100; % (in nm) max deviation of bead from plane to be used in refitting the z-plane
 NewParsRoot = '_zfit';
 PlotsOn = true; 
-ConfirmFit = false;
+ConfirmFit = true;
 verbose = true;
 ShowFit = true; 
-flipDaoZ = true; 
+flipZ = true; 
 closeoncomplete = true;
 %--------------------------------------------------------------------------
 %% Parse mustHave variables
@@ -118,17 +118,12 @@ binfile = [bead_path,'\',froot,bintype];
 mlist = ReadMasterMoleculeList(binfile);
 
 
-% toss any 'bad fits' and switch to shorthand
-c = mlist.c(mlist.c==1);
-if length(c) < .5*length(mlist.c)
-    c = true(length(mlist.c),1);
-end
-x = mlist.x(c==1);
-y = mlist.y(c==1);
-frame = mlist.frame(c==1);
-wx = mlist.w(c==1) ./ mlist.ax(c==1);  
-wy = mlist.w(c==1) .* mlist.ax(c==1);  
-z = mlist.z(c==1);
+x = mlist.x;
+y = mlist.y;
+frame = mlist.frame;
+wx = mlist.w ./ mlist.ax;   % /
+wy = mlist.w .* mlist.ax;  % *
+z = mlist.z;
 
 
 %% Load stage activity
@@ -142,10 +137,12 @@ fid = fopen(scanzfile);
 stage = textscan(fid, '%d\t%f\t%f\t%f','headerlines',1);
 fclose(fid);
 
-% compute conversion factor
-Offset2nm = nanmedian((stage{4}-stage{4}(1))./(stage{2}-stage{2}(1)));
-% Offset2nm = nanmedian((stage{4})./(stage{2}-stage{2}(1)));
-zst = stage{2}*Offset2nm*1000;
+zrange = max(stage{4}-stage{4}(1))*1000;
+[maxoffset,Zmaxoffset] = max(stage{2});
+offset_start = mean(stage{2}(1:Zmaxoffset-5));
+nm_per_offsetunit = zrange/(maxoffset - offset_start);
+
+zst = -stage{2}*nm_per_offsetunit; 
 zst = zst -zst(1);
 if PlotsOn
     stageplot = figure; plot(zst); 
@@ -224,7 +221,7 @@ wy = wy(moving_dots);
 stagepos = zst(frame(moving_dots));   
 frame = frame(moving_dots);  
 z_tilt_corr = x.^2*ps(1) + x.*y*ps(2) + x*ps(3) + y.^2*ps(4) + y*ps(5) + ps(6);
- if strcmp(parstype,'.ini')  && flipDaoZ
+ if flipZ
 zc =  z_tilt_corr - stagepos;  % corrected position of all beads
  else
      zc =  -(z_tilt_corr - stagepos);  % corrected position of all beads
@@ -359,7 +356,7 @@ swx = feval(wx_fit,zz);
 swy = feval(wy_fit,zz);
 
 % Refit, using only data near the curve
-gooddots = logical(1- (abs(wyf - swy)>zwindow*.3 | abs(wxf - swx)>zwindow*.3) );
+gooddots = logical(1- (abs(wyf - swy)>zwindow*.2 | abs(wxf - swx)>zwindow*.2) );
 zzg = zz(gooddots);
 wyfg = wyf(gooddots);
 wxfg =wxf(gooddots);
@@ -377,7 +374,6 @@ if PlotsOn || ShowFit
      hold on; 
     plot(zzg,wxfg,'b.',zzg,wyfg,'g.','MarkerSize',5);
     plot(zzg,swx,'c-',zzg,swy,'k-');
-    axis([-600 600 0 1100])
     xlabel('z (nm)');
     ylabel('width (nm)');
     legend('wx','wy');
@@ -441,7 +437,7 @@ end
 
 
 %%  
-% flipDaoZ =1
+% flipDaoZ =1  close all
 if ConfirmFit 
     % confirm z_offset is zero.  
     [~,zi] = min(abs(swx-swy));
@@ -451,25 +447,20 @@ if ConfirmFit
     % There's no need to run a dotfinder again, we don't need to recompute the
     % beads x,y, wx wy, those don't change.  
 
-    % Iterate
-    % toss any 'bad fits' and switch to shorthand
-    c = mlist.c(mlist.c==1);
-    if length(c) < .5*length(mlist.c)
-        c = true(length(mlist.c),1);
-    end
-    x = mlist.x(c==1);
-    y = mlist.y(c==1);
-    frame = mlist.frame(c==1);
-    wx = mlist.w(c==1) ./ mlist.ax(c==1);
-    wy = mlist.w(c==1) .* mlist.ax(c==1);  
-    z = mlist.z(c==1);
+
+    x = mlist.x;
+    y = mlist.y;
+    frame = mlist.frame;
+    wx = mlist.w ./ mlist.ax;   % /
+    wy = mlist.w .* mlist.ax;  % *
+    z = mlist.z;
 
     % Compute new z positions
     N = length(x);
     new_z = zeros(N,1);
     for n=1:N
-     [~,i] = min( (wx(n).^.5 - swx.^.5).^2 + (wy(n).^.5 - swy.^.5).^2 );
-     new_z(n) = zz(i); 
+      [~,i] = min( (wx(n).^.5 - swx.^.5).^2 + (wy(n).^.5 - swy.^.5).^2 );
+     new_z(n) = zzg(i); 
     end
 
     if PlotsOn
@@ -529,10 +520,10 @@ if ConfirmFit
     y = y(moving_dots);
     wx = wx(moving_dots);
     wy = wy(moving_dots); 
-    stagepos = zst(frame(moving_dots));   
+    stagepos = zst(frame(moving_dots)); 
     frame = frame(moving_dots);  
     z_tilt_corr = x.^2*ps(1) + x.*y*ps(2) + x*ps(3) + y.^2*ps(4) + y*ps(5) + ps(6);
- if strcmp(parstype,'.ini') && flipDaoZ
+ if  flipZ
 zc =  z_tilt_corr - stagepos;  % corrected position of all beads
  else
      zc =  -(z_tilt_corr - stagepos);  % corrected position of all beads
@@ -584,7 +575,8 @@ ZData(bad_mols,:,:) = [];
     if PlotsOn
         after_fit = figure; clf;
         cmap = hsv(Nmolecules);
-        plot(zz,swx,'b-',zz,swy,'k-','linewidth',2); hold on; 
+        plot(zzg,swx,'c-',zzg,swy,'k-','linewidth',2);
+        hold on; 
         for n=1:Nmolecules
             m_wx = reshape(ZData(n,:,1),1,Nframes);
             m_wy = reshape(ZData(n,:,2),1,Nframes);
@@ -606,10 +598,10 @@ ZData(bad_mols,:,:) = [];
 end
 
 
-% cleanup
+%% cleanup
 if PlotsOn
     if closeoncomplete
-       close(before_fit, stagelevel_fit, mol_stacks, stagelevel, stageplot);
+       close(before_fit, mol_stacks, stagelevel, stageplot);
         if ConfirmFit
             close(stagelevel_afterfit,after_fit,ZvZ);
         end
