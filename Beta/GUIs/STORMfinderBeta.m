@@ -74,10 +74,11 @@ try
 LoadFile_Callback(hObject, eventdata, handles)
 catch er
     % disp(er.message);
-    disp('please load a dax file');
+    disp('please load a dax file into matlab');
+    disp('drag and drop to command window, then press Update Dax File');
 end
 
-set(handles.FitMethod,'Value',2); % set default method to DaoSTORM
+% set(handles.FitMethod,'Value',2); % set default method to DaoSTORM
 % 1 = InsightM, 3 = GPUmultifit
 handles.axes1; 
 axis off; 
@@ -145,7 +146,6 @@ global FitPars
          
         
         ccall = ['!', insight,' ',daxtemp,' ',inifile];
-        % ccall = ['!', insight,' ',daxtemp,' ',inifile,  '  && exit &'];
         disp(ccall); 
         eval(ccall); 
         binfile = regexprep([fpath,'mov_temp.dax'],'\.dax','_list.bin');
@@ -840,9 +840,39 @@ function MenuChromeWarp_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuChromeWarp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global daxfile
+global daxfile Zcalpars
+
+FitMethod = get(handles.FitMethod,'Value');
+if FitMethod == 1
+    method = 'insight';
+elseif FitMethod == 2
+    method = 'DaoSTORM';
+elseif FitMethod == 3
+    method = 'GPUmultifit';
+end
+
 pathin = extractpath(daxfile);
-CalcChromeWarp(pathin)
+ZCalibrationParameters; 
+
+M = Zcalpars.NMovieSets;
+beadsets(M).chns =[];
+for m=1:M 
+    beadsets(m).chns = Zcalpars.Chns{m};
+    beadsets(m).refchn = Zcalpars.ReferenceChannel{m};
+    beadsets(m).daxroot = Zcalpars.DaxfileRoots{m};
+    beadsets(m).parsroot = Zcalpars.ParameterRoots{m};
+    beadsets(m).quadview = Zcalpars.Quadview{m};
+end
+
+CalcChromeWarp(pathin,'beadsets',beadsets,'method',method,...
+    'QVorder',Zcalpars.QVorder,'overwrite',Zcalpars.OverwriteBin,...
+    'save root',Zcalpars.SaveNameRoot,'affine match radius',Zcalpars.AffineRadius,...
+    'polyfit match radius',Zcalpars.PolyRadius,'verbose',Zcalpars.VerboseOn,...
+    'hideterminal',Zcalpars.Hideterminal,'Noclass9',Zcalpars.ExcludePoorZ,...
+    'frames per Z',Zcalpars.FramesPerZ); 
+
+
+
 
 
 

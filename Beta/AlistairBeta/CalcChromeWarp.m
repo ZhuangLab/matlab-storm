@@ -22,24 +22,28 @@ function CalcChromeWarp(pathin,varargin)
 % 
 %--------------------------------------------------------------------------
 %% Optional Inuputs
-% 'refitZ' / logical 2-vector / [1,1]
-%                       -- rerun beadfitting or search for existing
-%                       VisBeadPos.mat and IRBeadPos.mat
+% 'beadmovie' / structure nx1
+%           required fields if passed: 
+%               'chns' / cell of strings / {'647','750'}
+%               'refchn' / string / '647'
+%           Optional fileds
+%               'quadview' / logical / true
+%               'daxroot' / string / 'IRbeads' - part of daxfile filename
+%               'parsroot' / string / 'Visbeads' - part of .ini or .xml
+%                       filename
 % 'overwrite' / double / 2
 %                       -- 0 skip, 1 = overwrite, 2 = ask me.
-% 'batchsize' / double / 3
-%                       -- maximum number of external versions of InsightM
-%                       to run at once. 
-% 'parsroot' / string / 'Bead'
-%                       -- ini files for analysis contain this string after
-%                       the channel number.  channel number must be
-%                       '750','647','561', or '488';
 % 'max frames' / double
 %                       -- maximum number of bead frames to include in the
 %                       analysis.  Typically 5-7 z-sections of 36 positions.
 % 'saveroot' / string / ''
 %                       -- string to be incorporated into exported files
-% 'match radius' / double / 6
+% 'affine match radius' / double / 6
+%                       -- maximum distance between beads in different
+%                       color channels to still be considered same bead.
+%                       measured in pixels.  used in affine transformation
+%                       only, which is robust to larger values.  
+% 'polyfit match radius' / double / 2
 %                       -- maximum distance between beads in different
 %                       color channels to still be considered same bead.
 %                       measured in pixels.  STORM4 quadview requires large
@@ -48,33 +52,32 @@ function CalcChromeWarp(pathin,varargin)
 %                       -- Vis beads sometimes show up in IR channels.
 %                       This will attempt to remove these beads to improve
 %                       fits and estimate of fit errors
-% 'IRroot' / string / 'IRbeads'
-%                       -- the IR bead images contain this string in the
-%                       filename.
-% 'Visroot' / string /'Visbeads'
-%                       -- the Vis bead images contain this string in the
-%                       filename
 % 'method' /string / 'insight'
 %                       -- 'insight' or 'DaoSTORM' for dotfitting
-% class1only / logical / true
-%                       -- use only class1 molecules only (good z fit).
+% noclass9 / logical / false
+%                       -- exclude class9 molecules? (failed z-fit error
+%                       tolerance in insight).  
 %--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
 % February 7th, 2013
 %
-% Version 3.0
+% Version 4.0
 %--------------------------------------------------------------------------
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
 %% updates
-% Version update information
-% Version 3.0 Rewritten to use ReadMasterMoleculeList format, clean up code
-% a little bit by subfunctionalization.  
-% Version 2.2 computes a coarse affine warp to followed by a fine
-% polynomial warp; 
-% Version 2.1 change defaults so that if list.bin files exist insight 
-% will not rerun.
+% Version 4.1 Updated for integration into STORMfinderBeta, complete with
+%   its own GUI for choosing parameters.  
+% Version 4.0  02/10/13 -- Rewritten to accomidate arbitrary number of 
+%    movies and arbitrary combinations of reference and sample channels. 
+%    Works in with successive movies or quadview split.
+% Version 3.0 02/08/13 -- Rewritten to use ReadMasterMoleculeList format,
+%    clean up code a little bit by subfunctionalization.  
+% Version 2.2 12/2012 computes a coarse affine warp to followed by a fine
+%   polynomial warp; 
+% Version 2.1 06/2012 change defaults so that if list.bin files exist
+%   insight will not rerun.
 % Version 2.0 fxn_BeadWarp3D
 % Version 1.0 Adapted from MapBeadWarp3D from Sang-Hee Shim 05/11/12.  
 %--------------------------------------------------------------------------
@@ -96,46 +99,39 @@ global ScratchPath
 %--------------------------------------------------------------------------
 %% Hardcoded Variables
 %-------------------------------------------------------------------------- 
-match_radius1 = 8;
-testing = false;
-
 % These can all become user inputs later: 
-QVorder = {'647','561','750','488'}; % topleft, topright,bottomleft, bottomright.
-
-Nmovies = 2;
-beadmovie(1).chns = {'750','647'};
-beadmovie(1).daxroot = 'IRbeads';
-beadmovie(1).parsroot = 'IRBead';
-beadmovie(1).quadview = true;
-beadmovie(1).refchn = '647';
-beadmovie(1).binname = [];
-beadmovie(1).parsfile = [];
-beadmovie(1).refchni = [];
 
 
-
-beadmovie(2).chns = {'647','561','488'};
-beadmovie(2).daxroot = 'Visbeads';
-beadmovie(2).parsroot = 'VisBead';
-beadmovie(2).quadview = true;
-beadmovie(2).refchn = '647';
-beadmovie(2).binname = [];
-beadmovie(2).parsfile = [];
-beadmovie(2).Nfields = [];
+% beadmovie(1).daxroot = 'IRbeads';
+% beadmovie(1).parsroot = 'IRBead';
+% beadmovie(1).quadview = true;
+% beadmovie(2).daxroot = 'Visbeads';
+% beadmovie(2).parsroot = 'VisBead';
+% beadmovie(2).quadview = true;
 
 %--------------------------------------------------------------------------
 %% Default Parameters
 %--------------------------------------------------------------------------
-max_frames = 36*7; % 36*3; %  36*3; % 
-saveroot = ''; 
-remove_crosstalk = 1;
-match_radius =  6; %6.5  7 4
-fpZ = 5; % frames per z
+QVorder = {'647','561','750','488'}; % topleft, topright,bottomleft, bottomright.
 
-overwrite = 0;  % needs to overwrite files to apply different parameters
+% Defaults for beadmovie:
+    beadmovie(1).chns = {'750','647'};
+    beadmovie(1).refchn = '647';
+    beadmovie(2).chns = {'647','561','488'};
+    beadmovie(2).refchn = '647';
+    optional_fields = {'daxroot','parsroot','quadview'};
+    default_values = {'','',true};
+
+match_radius1 = 10;
+max_frames = 36*7; % 36*3; %  36*3; % 
+saveroot = 'allclass'; 
+remove_crosstalk = false;
+match_radius =  2; %6.5  7 4
+fpZ = 5; % frames per z
+overwrite = 1;  % needs to overwrite files to apply different parameters
 method ='insight'; %  'DaoSTORM';
 hideterminal = true;
-class1only = false;
+Noclass9 = false;
 verbose = true;
   %  pathin = 'I:\2013-02-02_BXCemb\Beads';  IRroot = 'IRbeads'; max_frames = 1000;
 
@@ -163,33 +159,51 @@ if nargin > 1
         switch parameterName  
             case 'method'
                 method = checkList(parametervalue,{'insight','DaoSTORM'},'method');
-            case 'refitZ'
-                refitZ = parameterValue;  
             case 'overwrite'
                 overwrite = parameterValue;
-            case 'ini root'
-                ini_root = checkParameter(parameterValue,'string','ini root');
+            case 'frames per Z'
+                fpZ = CheckParameter(parameterValue,'positive','fpZ');
             case 'max frames'
-                max_frames =checkParameter(parameterValue,'positive','max frames');
+                max_frames = CheckParameter(parameterValue,'positive','max frames');
             case 'save root'
-                saveroot = checkParameter(parameterValue,'string','save root');
-            case 'match radius'
-                match_radius = checkParameter(parameterValue,'positive','match radius');
+                saveroot = CheckParameter(parameterValue,'string','save root');
+            case 'affine match radius'
+                match_radius1 = CheckParameter(parameterValue,'positive','affine match radius');
+            case 'polyfit match radius'
+                match_radius = CheckParameter(parameterValue,'positive','polyfit match radius');
             case 'remove crosstalk'
-                remove_crosstalk = checkParameter(parameterValue,'boolean','remove crosstalk');
-            case 'batchsize'
-                 batchsize = checkParameter(parameterValue,'positive','batchsize');
-            case 'IRroot'
-                IRroot = checkParameter(parameterValue,'string','IRroot');
-            case 'Visroot'
-                Visroot = checkParameter(parameterValue,'string','Visroot');
-            case 'class1only'
-                class1only = checkParameter(parameterValue,'boolean','class1only');
+                remove_crosstalk = CheckParameter(parameterValue,'boolean','remove crosstalk');
+            case 'beadset'
+                beadmovie = CheckParameter(parameterValue,'struct','beadset');
+            case 'Noclass9'
+                Noclass9 = CheckParameter(parameterValue,'boolean','Noclass9');
+            case 'QVorder'
+                QVorder = CheckParameter(parameterValue,'array','QVorder'); 
+            case 'hideterminal'
+                hideterminal = CheckParameter(parameterValue,'boolean','hideterminal');
+            case 'verbose'
+                verbose =  CheckParameter(parameterValue,'boolean','verbose');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
     end
 end
+
+
+% parsing optional fields of beadmovie
+    Nmovies = length(beadmovie);
+
+    for n=1:length(optional_fields)
+        if ~isfield(beadmovie(1),optional_fields(n))
+            beadmovie(1).(optional_fields(n)) = default_values{n};
+        end
+    end
+
+    % fields that CalcChromeWarp will add to the 
+    beadmovie(Nmovies).binname = [];
+    beadmovie(Nmovies).parsfile = [];
+    beadmovie(Nmovies).Nfields = [];
+    beadmovie(Nmovies).refchni = [];
 
 %--------------------------------------------------------------------------
 %% Main code
@@ -201,15 +215,13 @@ if strcmp(method,'insight')
    datatype = '_list.bin';
 elseif strcmp(method,'DaoSTORM');
     parstype = '.xml';
-   datatype = '_alist.bin'; 
-   class1only = false; % DaoSTORM puts everything in class 0.  
+   datatype = '_alist.bin';  
 end
 
 
 %%  Run beadfitting
 % match each region of the movie to the appropriate bead parameters 
 
-if ~testing
 
 for m=1:Nmovies
 
@@ -328,10 +340,6 @@ end
 
 
 
-end  % DUMMY END 
- % load([ScratchPath,'test.mat']);
-
-
 % split data into reference channels and samples 
 
 % Nsamples is number of channels minus 1 reference channel for every movie 
@@ -370,15 +378,14 @@ for m=1:Nmovies
                 end 
                 % only keep beads that are detected in all frames
                 frames_per_field = max(mol_list.length);
-                mols_on_allframes = mol_list.length >= .75*frames_per_field;
+                mols_on_allframes = mol_list.length >= .9*frames_per_field;
                 if sum(mols_on_allframes) < .1*length(mol_list.x)
-                    disp('warning: many molecules not well linked between frames');
-                    disp('proceeding with unlinked beads.  reduced quality of fit may result');
-                    disp('try rerunning with a larger match radius');  
-                    mols_on_allframes = true(length(mol_list.x),1); % avoid tossing too many molecules with this filter
+                    disp('warning: many molecules not detected or linked for all frames in:');
+                    disp(beadmovie(m).binname{c,n});
+                   % disp('try rerunning with a larger match radius');  
                 end
-                if class1only
-                    goodmol = mol_list.c & mols_on_allframes; % use only molecules with good z-fit score (class 1)
+                if Noclass9
+                    goodmol = (mol_list.c~=9) & mols_on_allframes; % use only molecules with good z-fit score (class 1)
                 else
                     goodmol = mols_on_allframes;
                 end
@@ -403,30 +410,23 @@ for m=1:Nmovies
     end
 end
 
- save([ ScratchPath,'test2.mat']); 
-
- 
+  
  %% match molecules in each section
 % (much less ambiguious than matching superimposed selection list). 
 
- 
- %load([ ScratchPath,'test2.mat']); 
-
-
-
-cx_radius = 4;
+cx_radius = match_radius;
 
 % for plotting
 cmap = hsv(Nsamples);
 mark = {'o','o','.'};
       
-% plots for troubleshooting
-k = 1; 
-figure(1); clf; 
-for s=1:Nsamples
-    plot(data(s).refchn(k).x,data(s).refchn(k).y,mark{s},'color',cmap(s,:)); hold on;
-      plot(data(s).sample(k).x,data(s).sample(k).y,'+','color',cmap(s,:)); hold on;
-end
+% % plots for troubleshooting
+% k = 1; 
+% figure(1); clf; 
+% for s=1:Nsamples
+%     plot(data(s).refchn(k).x,data(s).refchn(k).y,mark{s},'color',cmap(s,:)); hold on;
+%       plot(data(s).sample(k).x,data(s).sample(k).y,'+','color',cmap(s,:)); hold on;
+% end
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
 dat(Nsamples).refchn.x = [];
@@ -440,25 +440,23 @@ for s=1:Nsamples
         tform_start, match_radius1,verbose,data(s).sample(k).chn,k,...
         set1{s},set2{s},Nfields);
     end   
-      save([ ScratchPath,'test3.mat']); 
-    % load([ ScratchPath,'test3.mat']); 
-    dat(s).refchn.x = cell2mat(set1{s}.x);
-    dat(s).refchn.y = cell2mat(set1{s}.y);
-    dat(s).refchn.z = cell2mat(set1{s}.z);
-    dat(s).sample.x = cell2mat(set2{s}.x);
-    dat(s).sample.y = cell2mat(set2{s}.y);
-    dat(s).sample.z = cell2mat(set2{s}.z);
+    dat(s).refchn.x = cat(1,set1{s}.x{:}); % cell2mat(set1{s}.x);
+    dat(s).refchn.y = cat(1,set1{s}.y{:}); % cell2mat(set1{s}.y);
+    dat(s).refchn.z =cat(1,set1{s}.z{:}); %  cell2mat(set1{s}.z);
+    dat(s).sample.x =cat(1,set2{s}.x{:}); %  cell2mat(set2{s}.x);
+    dat(s).sample.y =cat(1,set2{s}.y{:}); %  cell2mat(set2{s}.y);
+    dat(s).sample.z =cat(1,set2{s}.z{:}); %  cell2mat(set2{s}.z);
 end
 
 
 
 
-% test plot
-  fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
-  for s=1:Nsamples
-  plot(dat(s).refchn.x,dat(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
-  plot(dat(s).sample.x,dat(s).sample.y,'+','color',cmap(s,:)); hold on;
-  end
+% % test plot
+%   figure; clf; 
+%   for s=1:Nsamples
+%   plot(dat(s).refchn.x,dat(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
+%   plot(dat(s).sample.x,dat(s).sample.y,'+','color',cmap(s,:)); hold on;
+%   end
       
  
 %% Compute and apply x-y translation warp (transform 1) 
@@ -490,13 +488,13 @@ end
 % different matching, which could get confusing if it's 1 var
 
 
-%  A plot just for troubleshooting
-k = 1; % just beads in this field
-figure(1); clf; 
-for s=1:Nsamples
-    plot(data2(s).refchn(k).x,data2(s).refchn(k).y,mark{s},'color',cmap(s,:)); hold on;
-     plot(data2(s).sample(k).x,data2(s).sample(k).y,'+','color',cmap(s,:)); hold on;
-end
+% %  A plot just for troubleshooting
+% k = 1; % just beads in this field
+% figure(1); clf; 
+% for s=1:Nsamples
+%     plot(data2(s).refchn(k).x,data2(s).refchn(k).y,mark{s},'color',cmap(s,:)); hold on;
+%      plot(data2(s).sample(k).x,data2(s).sample(k).y,'+','color',cmap(s,:)); hold on;
+% end
 
 
 %% match molecules in each section
@@ -533,7 +531,7 @@ for s = 1:Nsamples
 end
     
 %   % test plot
-%       fig_xyerr_all =  figure(5); clf; subplot(1,2,1);
+%       fig_xyerr_all =  figure; clf; subplot(1,2,1);
 %       for s=1:Nsamples
 %       plot(dat(s).refchn.x,dat(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;
 %       plot(dat(s).sample.x,dat(s).sample.y,'+','color',cmap(s,:)); hold on;
@@ -573,32 +571,31 @@ end
 %% level the data and plot z-distribution
 
 
-zmin = -650; zmax = 650; % for plotting only
+
 % level unwarped zdata based on flatness of field in frame1
 % syntax 
  % zlevel = z_apply - level_data([x_fit,y_fit,z_fit],[x_apply,y_apply])  (x,y,z to compute tilt)
 for s=1:Nsamples
-   % Level just using tilt from frame 0.  
-     zc_ref  = level_data([data2(s).refchn(1).x, data2(s).refchn(1).y, data2(s).refchn(1).z],[dat2(s).refchn.x, dat2(s).refchn.y]); % unwarped ref data
-     dat2(s).refchn.zo  = dat2(s).refchn.z - zc_ref;
-     zc_sample  = level_data([data2(s).sample(1).x, data2(s).sample(1).y, data2(s).sample(1).z],[dat2(s).sample.x, dat2(s).sample.y]); % unwarped sample data
-    dat2(s).sample.zo = dat2(s).sample.z- zc_sample;
- 
-% % Level using best global filt of a plane to all data
-%         % zlevel = z_apply - level_data([x_fit,y_fit,z_fit],[x_apply,y_apply])  (x,y,z to compute tilt)
-%      zc_ref  = level_data([dat2(s).refchn.x, dat2(s).refchn.y, dat2(s).refchn.z],[dat2(s).refchn.x, dat2(s).refchn.y]); % unwarped ref data
+%    % Level just using tilt from frame 0.  
+%      zc_ref  = level_data([data2(s).refchn(1).x, data2(s).refchn(1).y, data2(s).refchn(1).z],[dat2(s).refchn.x, dat2(s).refchn.y]); % unwarped ref data
 %      dat2(s).refchn.zo  = dat2(s).refchn.z - zc_ref;
-%      zc_sample  = level_data([dat2(s).sample.x, dat2(s).sample.y, dat2(s).sample.z],[dat2(s).sample.x, dat2(s).sample.y]); % unwarped sample data
-%     dat2(s).sample.zo = dat2(s).sample.z- zc_sample;  
+%      zc_sample  = level_data([data2(s).sample(1).x, data2(s).sample(1).y, data2(s).sample(1).z],[dat2(s).sample.x, dat2(s).sample.y]); % unwarped sample data
+%     dat2(s).sample.zo = dat2(s).sample.z- zc_sample;
+%  
+% Level using best global filt of a plane to all data
+   % zlevel = z_apply - level_data([x_fit,y_fit,z_fit],[x_apply,y_apply])  (x,y,z to compute tilt)
+     zc_ref  = level_data([dat2(s).refchn.x, dat2(s).refchn.y, dat2(s).refchn.z],[dat2(s).refchn.x, dat2(s).refchn.y]); % unwarped ref data
+     dat2(s).refchn.zo  = dat2(s).refchn.z - zc_ref;
+     zc_sample  = level_data([dat2(s).sample.x, dat2(s).sample.y, dat2(s).sample.z],[dat2(s).sample.x, dat2(s).sample.y]); % unwarped sample data
+    dat2(s).sample.zo = dat2(s).sample.z- zc_sample;  
 end
 
 
- save([ ScratchPath,'test4.mat']);
-
- % load([ ScratchPath,'test4.mat']);
 %% 
 % Color coded histograms of the leveled z-distributions of beads in each
 % color.  The bar color indicates the actual cluster. 
+zmin = -650; zmax = 650; % for plotting only
+
 try
     passes = Nfields/fpZ ;
     col = hsv(passes+1);
@@ -614,7 +611,8 @@ try
 
     % histogram each z cluster as a different color.  Do for each of the
         % channels (including reference channels) 
-    fig_zdist = figure(7); clf;
+    fig_zdist = figure; clf;
+    
     hx = linspace(zmin,zmax,50);    
     for n=1:Nsamples    
         for j=2:passes+1 % j=3;
@@ -645,7 +643,7 @@ catch er
     disp(['should the frames per z be: ',num2str(fpZ)]);
 end
 %%  XZ error
-  fig_xzerr =  figure(2); clf;
+  fig_xzerr =  figure; clf;
   subplot(1,2,1);
   for s=1:Nsamples
   plot(dat(s).refchn.x,dat(s).refchn.z,mark{s},'color',cmap(s,:)); hold on;
@@ -661,7 +659,6 @@ end
  title('warped xz scatter');     ylim([zmin,zmax]); % xlim([100,110]);    
 
  
-% load([ScratchPath,'test4.mat']);
 
 %% XY average warp error
 % xy error
@@ -699,7 +696,7 @@ xmin = 100; xmax = 130; ymin = 100; ymax = 130;
  xlim([xmin,xmax]);
  ylim([ymin,ymax]);  
 
-%% 3D average warp error
+%% 3D Total warp error
 nm_per_pix = 158; 
 xys = (nm_per_pix)^2;
 thr = .75;
@@ -710,6 +707,14 @@ for s=1:Nsamples
 prewarperror{s} = sqrt( xys*(dat(s).sample.x - dat(s).refchn.x).^2 +...
                  xys*(dat(s).sample.y - dat(s).refchn.y).^2 +...
                 (dat(s).sample.z - dat(s).refchn.z).^2 );
+end
+
+% post-warp1 error (3D)
+warp1error = cell(Nsamples,1); 
+for s=1:Nsamples
+warp1error{s} = sqrt( xys*(dat2(s).sample.x - dat2(s).refchn.x).^2 +...
+                 xys*(dat2(s).sample.y - dat2(s).refchn.y).^2 +...
+                (dat2(s).sample.z - dat2(s).refchn.z).^2 );
 end
 
 % post warp error (3D), 
@@ -726,20 +731,27 @@ disp([num2str(100*thr,2),'% of ',data(s).sample(1).chn,...
     ' 3D beads aligned to ', num2str(cdf_thresh(s)),'nm']);
 end
 
-
 % Histogram warp error
 fig_warperr = figure; clf; 
 k=0;
 for s=1:Nsamples
     k=k+1;
-    subplot(3,2,k); hist(prewarperror{s},100);
-    title(['unwarped ',data(s).sample(1).chn,' mean error: ',...
-        num2str(mean(prewarperror{s}),3),'nm']);
+    subplot(Nsamples,3,k); hist(prewarperror{s},100);
+    title(['unwarped ',data(s).sample(1).chn,' <error>: ',...
+        num2str(mean(prewarperror{s}),3),'nm'],'FontSize',7);
     k=k+1;
-    subplot(3,2,k); hist(postwarperror{s},100);  
+    subplot(Nsamples,3,k); hist(warp1error{s},100);
+    title(['After affine : ',data(s).sample(1).chn,' <error>: ',...
+        num2str(mean(warp1error{s}),3),'nm'],'FontSize',7);
+    k=k+1;
+    subplot(Nsamples,3,k); hist(postwarperror{s},100);  
     title(['3D warped ',data(s).sample(1).chn,': ' num2str(100*thr,2),...
-        '% aligned to ', num2str(cdf_thresh(s)),'nm']);
+        '% aligned to ', num2str(cdf_thresh(s),4),'nm'],'FontSize',7);
 end
+set(gcf,'color','w');
+
+
+
 
 
 %% 2D XY average warp error
@@ -750,6 +762,13 @@ prewarperror2D = cell(Nsamples,1);
 for s=1:Nsamples
 prewarperror2D{s} = sqrt( xys*(dat(s).sample.x - dat(s).refchn.x).^2 +...
                     xys*(dat(s).sample.y - dat(s).refchn.y).^2  );
+end
+
+% pre-warp error (3D)
+warp1error2D = cell(Nsamples,1); 
+for s=1:Nsamples
+warp1error2D{s} = sqrt( xys*(dat2(s).sample.x - dat2(s).refchn.x).^2 +...
+                    xys*(dat2(s).sample.y - dat2(s).refchn.y).^2  );
 end
 
 % post warp error (3D), 
@@ -767,39 +786,43 @@ end
 
 
 % Histogram warp error
-fig_warperr_2d = figure(1); clf; 
+fig_warperr_2d = figure; clf; 
 k=0;
 for s=1:Nsamples
     k=k+1;
-    subplot(3,2,k); hist(prewarperror2D{s},100);
-    title(['unwarped ',data(s).sample(1).chn,' mean error: ',...
-        num2str(mean(prewarperror{s}),3),'nm']);
+    subplot(Nsamples,3,k); hist(prewarperror2D{s},100);
+    title(['unwarped ',data(s).sample(1).chn,' <error>: ',...
+        num2str(mean(prewarperror{s}),3),'nm'],'FontSize',7);
     k=k+1;
-    subplot(3,2,k); hist(postwarperror2D{s},100);  
+    subplot(Nsamples,3,k); hist(warp1error2D{s},100);
+    title(['After affine ',data(s).sample(1).chn,' <error>: ',...
+        num2str(mean(warp1error{s}),3),'nm'],'FontSize',7);
+    k=k+1;
+    subplot(Nsamples,3,k); hist(postwarperror2D{s},100);  
     title(['2D warped ',data(s).sample(1).chn,': ' num2str(100*thr,2),...
-        '% aligned to ', num2str(cdf2D_thresh(s)),'nm']);
+        '% aligned to ', num2str(cdf2D_thresh(s),4),'nm'],'FontSize',7);
 end
+set(gcf,'color','w');
 
-
-saveas(fig_warperr,[pathin,'/',saveroot,'fig_warperr.png']);
-saveas(fig_xyerr,[pathin,'/',saveroot,'fig_xyerr.png']);  
-saveas(fig_zdist,[pathin,'/',saveroot,'fig_zdist.png']);
-saveas(fig_xzerr,[pathin,'/',saveroot,'fig_xyzerr.png']);
-saveas(fig_xyerr_all,[pathin,saveroot,'/','fig_xyerr_all.png']);
-saveas(fig_warperr_2d,[pathin,'/','fig_warperr_2d.png']);
+saveas(fig_warperr,[pathin,filesep,saveroot,'fig_warperr.png']);
+saveas(fig_xyerr,[pathin,filesep,saveroot,'fig_xyerr.png']);  
+saveas(fig_zdist,[pathin,filesep,saveroot,'fig_zdist.png']);
+saveas(fig_xzerr,[pathin,filesep,saveroot,'fig_xyzerr.png']);
+saveas(fig_xyerr_all,[pathin,filesep,saveroot,'fig_xyerr_all.png']);
+saveas(fig_warperr_2d,[pathin,filesep,saveroot,'fig_warperr_2d.png']);
 
 
 % SAVE transforms
-save([pathin,'/','chromewarps.mat'],'tform_1','tform','tform2D',...
+save([pathin,filesep,'chromewarps.mat'],'tform_1','tform','tform2D',...
     'cdf','cdf2D','cdf_thresh','cdf2D_thresh','thr');
-disp(['wrote ',pathin,'/','chromewarps.mat']);    
+disp(['wrote ',pathin,filesep,'chromewarps.mat']);    
 
 disp('3D bead fitting complete');
 
 
 
-
-
+close(fig_xyerr, fig_zdist, fig_xzerr, fig_xyerr_all);
+ close(fig_warperr,fig_warperr_2d)
 % 
 % Internal functions 
   
@@ -814,7 +837,7 @@ function signalchn = remove_bleadthrough(signalchn,bkdchn,tform_start,cx_radius,
        %  figure(2); hold on; plot(signalchn.x, signalchn.y,'g+');
      end
      if verbose
-       disp(['frame ',num2str(k),':  ', num2str(length(matched.set1_inds)), '/',...
+       disp(['frame ',num2str(k),':  ', num2str(length(matched.set1_inds)), filesep,...
        num2str(length(signalchn.x)),...
        ' IR blead-through molecules removed from', sname])
      end        
@@ -827,7 +850,7 @@ if isempty(set1); % initialize on the first time through;
     set2.x = cell(Nfields,1); set2.y = cell(Nfields,1); set2.z = cell(Nfields,1);
 end
     
-       [matched, unmatched] = corr_mols(ref, sample,tform, match_radius);                   
+       [matched, unmatched] = corr_mols(ref, sample,tform, match_radius);  
          set1.x{k} = ref.x( matched.set1_inds ); % points in ref channel
          set1.y{k} = ref.y( matched.set1_inds );
          set1.z{k} = ref.z( matched.set1_inds );
@@ -835,11 +858,21 @@ end
          set2.y{k} = sample.y( matched.set2_inds );
          set2.z{k} = sample.z( matched.set2_inds );   
          if verbose
-         disp(['frame ',num2str(k),':  ', num2str(length(matched.set2_inds)), '/'...
+         disp(['frame ',num2str(k),':  ', num2str(length(matched.set2_inds)), filesep...
            num2str( length(matched.set2_inds) + length(unmatched.set2_inds) ),...
            ' ', sname ,' molecules matched'])   
          end
-
+        if isempty(set1.x{k})
+            set1.x{k} = []; % handling  Empty [0x1] not concat with Empty 1x0 matrix errors  
+            set1.y{k} = [];
+            set1.z{k} = [];
+        end
+        if isempty(set2.x{k})
+            set2.x{k} = []; % handling  Empty [0x1] not concat with Empty 1x0 matrix errors  
+            set2.y{k} = [];
+            set2.z{k} = [];
+        end
+         
          
  function [za,ps] = level_data(fit,apply)
     x = fit(:,1); y = fit(:,2); z=fit(:,3);
