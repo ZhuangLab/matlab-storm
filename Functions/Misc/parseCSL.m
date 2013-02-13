@@ -13,6 +13,6 @@ items = [0,items,length(stringlist)+1];
 Nitems = length(items) -1;
 cellstring = cell(1,Nitems);
 for i=1:Nitems
-    cellstring{i} = deblank(stringlist(items(i)+1:items(i+1)-1));
+    cellstring{i} = strtrim(stringlist(items(i)+1:items(i+1)-1));
 end
 
