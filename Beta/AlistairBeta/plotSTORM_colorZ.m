@@ -1,5 +1,5 @@
 function I = plotSTORM_colorZ(mlist, imaxes, varargin)
-% I = plotSTORM(mlist, imaxes, infilter)
+% I = plotSTORM_colorZ(mlist, imaxes, infilter)
 % routine from the STORMrender GUI
 %--------------------------------------------------------------------------
 %% Necessary inputs
@@ -18,8 +18,10 @@ function I = plotSTORM_colorZ(mlist, imaxes, varargin)
 %               input gives an output image 512x512.  
 %--------------------------------------------------------------------------
 %% Outputs
-% I matrix HxWxN where N is the number of color channels (no empty elements
-% in mlist)
+% I / cell of HxWxZn matrices
+%               -- each color channel is given a different element in the
+%               cell.  
+% 
 %--------------------------------------------------------------------------
 %% Optional inputs
 %--------------------------------------------------------------------------
@@ -73,7 +75,11 @@ end
 dotsize = 4;
 maxblobs = 2E4; %
 maxdotsize = .05; 
-Zs = 3; 
+Zs = 20;
+Zrange = [-600,600]; % range in nm 
+npp = 160; 
+scalebar = 500;
+showScalebar = 1; 
 %--------------------------------------------------------------------------
 
 
@@ -100,6 +106,14 @@ if nargin > 2
                 maxdotsize = parameterValue;
             case 'Zsteps'
                 Zs = parameterValue; 
+            case 'Zrange'
+                Zrange = parameterValue;
+            case 'nm per pixel'
+                npp = parameterValue;
+            case 'scalebar size'
+                scalebar = parameterValue;
+            case 'scalebar'
+                showScalebar = CheckParameter(parameterValue,'boolean',scalebar); 
         end
     end
 end
@@ -121,51 +135,35 @@ for c=chns
     a = mlist{c}.a;
     sig{c} = real(dotsize./sqrt(a)); % 5
 end
-xsize = W/zm;% imaxes.xmax - imaxes.xmin;
-ysize = H/zm; % imaxes.ymax - imaxes.ymin;
+xsize = W/zm; 
+ysize = H/zm; 
 
-
-disp('dotsize='); 
-disp(dotsize);
-
- I = zeros(ceil(xsize*zm*scale),ceil(ysize*zm*scale),Zs*Cs,'uint16');
- n = 0;
+I = cell(length(chns),1); 
   for c=chns
-
-      zmin = min(z{c});
-      zmax = max(z{c});
-      
-      disp([zmin,zmax]);
-      figure(10+c); hist(z{c},1000);
+      I{c} = zeros(ceil(xsize*zm*scale),ceil(ysize*zm*scale),Cs,'uint16');
+      zmin = Zrange(1);
+      zmax = Zrange(2); 
       
       Zsteps = linspace(zmin,zmax,Zs);
       Zsteps = [-inf,Zsteps,inf];
       
       for k=1:Zs
-          n=n+1;
           if length(x{c}) >1
               inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax & z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
-              tic
              xi = (x{c}(inbox & infilter{c}')-imaxes.xmin);
              yi = (y{c}(inbox & infilter{c}')-imaxes.ymin);
              si = sig{c}(inbox & infilter{c}');
              si(si<maxdotsize) = maxdotsize;  % 
-             Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';  % 1E5     
-            % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat','imaxes','I','Itemp');
-             I(:,:,n) = Itemp;
-             toc
+             Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';    
+             I{c}(:,:,k) = Itemp;
           end
       end
   end  
   
-   % 
-%   save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test2.mat');
- % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test2.mat');
-  
   % add scalebar
-npp = 160; scale_bar = 500;
-scb = round(1:scale_bar/npp*zm*scale);
-h1 = round(imaxes.H*.9*scale);
-I(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Zs*Cs,'uint16'); % Add scale bar and labels
-
+if showScalebar
+    scb = round(1:scalebar/npp*zm*scale);
+    h1 = round(imaxes.H*.9*scale);
+    I(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Zs*Cs,'uint16'); % Add scale bar and labels
+end
   

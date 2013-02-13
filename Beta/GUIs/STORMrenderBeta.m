@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 02-Feb-2013 12:09:16
+% Last Modified by GUIDE v2.5 13-Feb-2013 14:23:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -59,7 +59,8 @@ handles.output = hObject;
 set(handles.Yslider,'Value',0);
 set(handles.Yslider,'Min',-256);
 set(handles.Yslider,'Max',256);
-
+ axes(handles.axes1); axis off; set(gca,'color','k');
+ axes(handles.axes2); axis off; set(gca,'color','k');
 
 % build dropdown menu
 molfields = {'custom';'region';'z';'h';'a';'i';'w'};
@@ -108,7 +109,7 @@ function QuickLoad_Callback(hObject, eventdata, handles)
 % if exist('molist','var') == 0
 %     error('file does not contain a recognized molecule list');
 % end
-figure(1); close; 
+axes(handles.axes2); cla; 
 clear global mlist fnames;
 global mlist fnames binfile
 if isempty(binfile)
@@ -147,7 +148,7 @@ catch er
     'Apply chromatic warp?:',...
     'Warp dimension (2, 3 or 2.5)',...
     'Exlude bad z-fits for channel 1:4',...
-    'binflag (_list.bin or _mlist.bin)',...
+    'binflag (_list.bin or _alist.bin)',...
     'channels'};
     default_opts = {'',...
     '1',...
@@ -218,7 +219,8 @@ global loadops mlist fnames froots
     binnames =  bins(hasdata,i); % length cls must equal length binnames
     fnames = froots(hasdata,i); 
     disp(fnames);
-    figure(1); title(fnames(:),'interpreter','none');  
+    axes(handles.axes2); 
+    set(handles.imtitle,'String',fnames(:)); % ,'interpreter','none');  
     chns = loadops{8}(hasdata); 
     disp('no data found for in channels:');
     disp(loadops{8}(logical(1-hasdata)))
@@ -275,6 +277,7 @@ function imsetup(hObject,eventdata, handles)
     imaxes.xmax = imaxes.W;
     imaxes.ymin = 0; 
     imaxes.ymax = imaxes.H; 
+    imaxes.updatemini = true; 
     set(handles.Xslider,'Min',imaxes.xmin);
     set(handles.Xslider,'Max',imaxes.xmax);
     set(handles.Yslider,'Min',imaxes.ymin);
@@ -438,6 +441,7 @@ end
 function loadim(hObject,eventdata, handles)
 % load variables
 global mlist imaxes I infilter DisplayOps
+axes(handles.axes2); 
 % if we're zoomed out fully, recenter everything
 disp(imaxes);
 if imaxes.zm == 1
@@ -450,6 +454,8 @@ disp(['updated miny=',num2str(imaxes.ymin)]);
 
 tic
 if DisplayOps.ColorZ
+    % In general, not worth excluding these dots from 2d images.
+    % if desired, can be done by applying a molecule list filter.  
     if DisplayOps.HidePoor 
         for c = 1:length(infilter)
             infilter{c}(mlist{c}.c==9) = 0;  
@@ -460,7 +466,7 @@ if DisplayOps.ColorZ
 else
     I = plotSTORM(mlist, imaxes,'filter',infilter,'dotsize',DisplayOps.DotScale);
 end
-update_imcolor(handles); % converts I, applys contrast, to RBG
+update_imcolor(hObject,handles); % converts I, applys contrast, to RBG
 guidata(hObject, handles);
 plottime = toc;
 disp(['total time to render image: ',num2str(plottime)]);
@@ -557,45 +563,52 @@ disp('this function still under development');
 
  
  
-function update_imcolor(handles)
-global I Ic Io max_sat min_off fnames DisplayOps
+function update_imcolor(hObject,handles)
+global I Io max_sat min_off fnames DisplayOps imaxes ScratchPath
+guidata(hObject, handles);
 channels(1) = get(handles.chn1,'Value');
 channels(2) = get(handles.chn2,'Value');
 channels(3) = get(handles.chn3,'Value');
 channels(4) = get(handles.chn4,'Value');
 active_channels = find(channels);
-
-Ic = I; % incase Ic doesn't exist.  since new values are about to get applied anyway. 
-Zs = DisplayOps.Zsteps; % simplier
-[h,w,Cs] = size(I);
-
 if DisplayOps.ColorZ  
+    n=0;
+    [h,w,Zs] = size(I{1});
     Ic = zeros(h,w,Zs*length(active_channels),'uint16');   
-   n = 0; 
     for c=active_channels
        for k=1:DisplayOps.Zsteps
-          n = n+1;
-          if channels(c) == 1
-              % disp((c-1)*Zs+k);
-            Ic(:,:,n) = mycontrast(I(:,:,(c-1)*Zs+k),max_sat(c),min_off(c));
-          end
+           n=n+1;
+            Ic(:,:,n) = mycontrast(I{c}(:,:,k),max_sat(c),min_off(c));
        end
    end
 else
+    [~,~,Cs] = size(I);
     for c=1:Cs
+          Ic = I; % incase Ic doesn't exist.  
           Ic(:,:,c) = mycontrast(I(:,:,c),max_sat(c),min_off(c));
     end
     Ic(:,:,logical(1-channels)) = cast(0,'uint16'); 
 end
 
-%  save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat','Ic','handles','I','DisplayOps','max_sat','min_off','active_channels','channels');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
+%  save([ScratchPath,'test.mat'],'Ic','handles','I','DisplayOps','max_sat','min_off','active_channels','channels');
+% load([ScratchPath,'test.mat']);
 
 Io = Ncolor(Ic,[]); 
-figure(1); clf; set(gcf,'color','w'); 
+axes(handles.axes2); cla; axis off;
 imagesc(Io); 
 shading interp;
-figure(1); title(fnames(:),'interpreter','none'); colorbar; colormap(hsv(Cs));
+axes(handles.axes2);
+set(handles.imtitle,'String',fnames(:)); % interpreter, none
+colorbar; colormap(hsv(Cs));
+
+if imaxes.updatemini
+    axes(handles.axes1); cla; axis off;
+    imagesc(Io); 
+    imaxes.updatemini = false;
+end
+guidata(hObject, handles);
+
+
 % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat','Ic','I','Io');
  
 
@@ -603,15 +616,30 @@ figure(1); title(fnames(:),'interpreter','none'); colorbar; colormap(hsv(Cs));
 
 
 
+% --------------------------------------------------------------------
+function ManualContrastTool_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to ManualContrastTool (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+Rescale_Callback
 
-
+% --------------------------------------------------------------------
+function AutoContrastTool_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to AutoContrastTool (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global max_sat min_off
+    max_sat = [.01,.01,.01,.01];
+    min_off = [.4,.4,.4,.4];
+ update_imcolor(hObject,handles);
+ guidata(hObject, handles);
 
 
  % --- Executes on button press in Rescale.
 function Rescale_Callback(hObject, eventdata, handles)
 % changes min and max range for color histogram in selected channel.
 % try making this a toggle button ?
-global I Ic max_sat min_off
+global I max_sat min_off
     channels(1) = get(handles.fchn1,'Value');
     channels(2) = get(handles.fchn2,'Value');
     channels(3) = get(handles.fchn3,'Value');
@@ -623,8 +651,11 @@ global I Ic max_sat min_off
     end
     
     for c=channels
-       ints = double(Ic(:,:,c)); 
-       raw_ints = double(I(:,:,c)); 
+        if DisplayOps.ColorZ 
+            raw_ints = double(I{c});
+        else
+            raw_ints = double(I(:,:,c)); 
+        end
        im_max = max(raw_ints(:)); 
        im_min = min(raw_ints(:));
        xs = linspace(im_min,im_max,2000);
@@ -633,9 +664,6 @@ global I Ic max_sat min_off
        hist(raw_ints(:),xs);
        h = findobj('type','patch'); 
        hold on;
-       hist(ints(:),xs);
-       h2 = findobj('type','patch'); 
-       set(h2,'FaceColor','m','EdgeColor','m');
        set(h,'FaceColor','b','EdgeColor','b');
        alpha .5;
        disp({'choose lower and upper bounds for color map from the histogram.';
@@ -657,26 +685,26 @@ global I Ic max_sat min_off
        end
        
     end
-    update_imcolor(handles);
-guidata(hObject, handles);
+ update_imcolor(hObject,handles);
+ guidata(hObject, handles);
 
 
 % color controls
 function chn1_Callback(hObject, eventdata, handles)
-update_imcolor(handles);
+update_imcolor(hObject,handles);
 guidata(hObject, handles);
 
 function chn2_Callback(hObject, eventdata, handles)
-update_imcolor(handles);
+update_imcolor(hObject,handles);
 guidata(hObject, handles);
 
 
 function chn3_Callback(hObject, eventdata, handles)
-update_imcolor(handles);
+update_imcolor(hObject,handles);
 guidata(hObject, handles);
 
 function chn4_Callback(hObject, eventdata, handles)
-update_imcolor(handles);
+update_imcolor(hObject,handles);
 guidata(hObject, handles);
 
 
@@ -799,7 +827,7 @@ function zoomtool_ClickedCallback(hObject, eventdata, handles)
 global imaxes
 handles = guidata(hObject);
 % user specifies box:
-figure(1); 
+axes(handles.axes2); 
 disp(['curr zoom=',num2str(imaxes.zm)]);
 disp(['curr cx=',num2str(imaxes.cx)]);
 disp(['curr cy=',num2str(imaxes.cy)]); 
@@ -835,7 +863,7 @@ UpdateSliders(hObject,eventdata,handles)
 % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
 
 % plot box
-figure(1); hold on;
+axes(handles.axes2); hold on;
 rectangle('Position',[min(x),min(y),abs(x(2)-x(1)),abs(y(2)-y(1))],'EdgeColor','w'); hold off;
 % rectangle('Position',[imaxes.cx-xdiff/2,imaxes.cy-ydiff/2,xdiff,ydiff],'EdgeColor','c');
 guidata(hObject, handles);
@@ -851,7 +879,7 @@ function recenter_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global imaxes
 handles = guidata(hObject);
-figure(1); 
+axes(handles.axes2); 
 [x,y] = ginput(1); % these are relative to the current frame
 xim = imaxes.xmin + x/imaxes.scale/imaxes.zm;
 yim = imaxes.ymin + y/imaxes.scale/imaxes.zm;
@@ -960,7 +988,7 @@ ylim([0,(imaxes.ymax-imaxes.ymin)*160]);
 
 else
     disp('must set Display Ops color Z to true for 3D rendering'); 
-    dips('Go to "More Display Ops" and set first field as "true"');
+    disp('Go to "More Display Ops" and set first field as "true"');
 end
 
 % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
@@ -1025,15 +1053,9 @@ end
 
 
 %==========================================================================
-%% Overlays / Image Context / Batch 
+%% Overlays / Image Context 
 %==========================================================================
 
-% --- Executes on button press in BatchOptions.
-function BatchOptions_Callback(hObject, eventdata, handles)
-disp('This function still under development')
-% --- Executes on button press in BatchProcess.
-function BatchProcess_Callback(hObject, eventdata, handles)
-disp('This function still under development')
 
 
 
@@ -1222,10 +1244,19 @@ function fchn3_Callback(hObject, eventdata, handles)
 % --- Executes on button press in fchn1.
 function fchn1_Callback(hObject, eventdata, handles)
 
-function edit3_Callback(hObject, eventdata, handles)
 
-% % --- Executes during object creation, after setting all properties.
-% function edit3_CreateFcn(hObject, eventdata, handles)
-% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%     set(hObject,'BackgroundColor','white');
-% end
+
+% --------------------------------------------------------------------
+function plot3Ddots_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to plot3Ddots (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function plot2Ddots_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to plot2Ddots (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
