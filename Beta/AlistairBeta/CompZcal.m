@@ -29,7 +29,7 @@ function [pars_nm,wx_fit,wy_fit] = CompZcal(daxfile,parsfile,varargin)
 %                       -- the new parameter file with have this string
 %                       appendend at the end.  Leave empty ('') to
 %                       overwrite existing parameter file.
-% 'zwindow' / double / 100; 
+% 'zwindow' / double / 100
 %                       -- (in nm) max deviation of bead from plane to be 
 %                       used in refitting the z-plane
 % 'PlotsOn' / logical / true 
@@ -39,6 +39,10 @@ function [pars_nm,wx_fit,wy_fit] = CompZcal(daxfile,parsfile,varargin)
 % 'ConfirmFit' / logical / false
 %                       -- refit Z and replot initial fits.  Automatically
 %                       sets PlotsOn to true. (otherwise no output)
+% 'SaveRoot' / string / ''
+%                       -- this string will be added to all saved plots
+%                       created by CompZcal.  This can be useful to avoid
+%                       overwriting.  
 %--------------------------------------------------------------------------
 %
 % Alistair Boettiger
@@ -47,17 +51,20 @@ function [pars_nm,wx_fit,wy_fit] = CompZcal(daxfile,parsfile,varargin)
 % Copyright Creative Commons 3.0 CC BY.    
 %
 
+%% Hard coded parameters
+Dao = false; 
+flipZ = true; 
 %--------------------------------------------------------------------------
 %% Default paramaters
 %------------------------------------------------------------------------
 % global daxfile inifile xmlfile; parsfile = inifile;
 zwindow = 100; % (in nm) max deviation of bead from plane to be used in refitting the z-plane
 NewParsRoot = '_zfit';
+SaveRoot = ''; 
 PlotsOn = true; 
 ConfirmFit = true;
 verbose = true;
 ShowFit = true; 
-flipZ = true; 
 closeoncomplete = true;
 %--------------------------------------------------------------------------
 %% Parse mustHave variables
@@ -87,6 +94,8 @@ if nargin > 2
                 ConfirmFit = CheckParameter(parameterValue, 'boolean', 'ConfirmFit');
             case 'NewParsRoot'
                 NewParsRoot = CheckParameter(parameterValue, 'string', 'NewParsRoot');
+            case 'SaveRoot'
+                SaveRoot = CheckParameter(parameterValue, 'string', 'SaveRoot');
             case 'verbose'
                 verbose  = CheckParameter(parameterValue, 'boolean', 'verbose');
             otherwise
@@ -111,7 +120,9 @@ parstype = parsfile(k:end);
 if strcmp(parstype,'.ini')
     bintype = '_list.bin';
 elseif strcmp(parstype,'.xml');
-    bintype = '_alist.bin';
+    bintype = '_mlist.bin';
+    Dao = true;
+    % flipZ = false;
 end
 
 binfile = [bead_path,'\',froot,bintype];
@@ -150,9 +161,9 @@ if PlotsOn
     xlabel('frame','FontSize',14); 
     ylabel('stage position','FontSize',14); 
     set(gca,'FontSize',14);
-    saveas(stageplot,[bead_path,'\fig_',froot,'_stage','.png']);
+    saveas(stageplot,[bead_path,'\fig_',SaveRoot,froot,'_stage','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',froot,'_stage','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_stage','.png']);
     end
 end
 [~,fstart] = min(zst);
@@ -167,9 +178,9 @@ if PlotsOn
     xlabel('x-pos (pixels)','FontSize',14); 
     ylabel('y-pos (pixels)','FontSize',14); 
     plot(Molecule_Positions(:,1),Molecule_Positions(:,2),'ro');
-    saveas(mol_stacks,[bead_path,'\fig_',froot,'_mol_stacks','.png']);
+    saveas(mol_stacks,[bead_path,'\fig_',SaveRoot,froot,'_mol_stacks','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',froot,'_mol_stacks','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_mol_stacks','.png']);
     end
 end
 
@@ -203,9 +214,9 @@ ps = p.Coefficients;
     hold on; surf(xi,yi,double(zi)); 
     shading flat; colormap jet;
     xlabel('x');ylabel('y');
-    saveas(stagelevel,[bead_path,'\fig_',froot,'_','stagelevel','.png']);
+    saveas(stagelevel,[bead_path,'\fig_',SaveRoot,froot,'_','stagelevel','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',froot,'_','stagelevel','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','stagelevel','.png']);
     end
   end
 
@@ -285,9 +296,9 @@ if PlotsOn
     legend('wx','wy'); set(gca,'FontSize',14);
     set(gcf,'color','w');
     ylim([100,1000]);
-     saveas(before_fit,[bead_path,'\fig_',froot,'_','before_fit','.png']);
+     saveas(before_fit,[bead_path,'\fig_',SaveRoot,froot,'_','before_fit','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',froot,'_','before_fit','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','before_fit','.png']);
     end
 end
 
@@ -313,8 +324,6 @@ for n=1:Nmolecules
 end
 
 %% Compute curve fits
-
-
 hasdata =  logical(1-isnan(Wx(:)));
 wxf =  Wx(hasdata);
 wyf = Wy(hasdata);
@@ -323,9 +332,28 @@ zz = Z(hasdata);
 wxf = wxf(zi);
 wyf = wyf(zi);
 
+% Fit is stupid un-robust, so on bad data we may need a little course
+% filtering
+pfitx = polyfit(zz,wxf,2);
+pfity = polyfit(zz,wyf,2);
+wxp = polyval(pfitx,zz);
+wyp = polyval(pfity,zz);
+decent = logical(1- (abs(wyf - wyp)>zwindow*2 | abs(wxf - wxp)>zwindow*2) );
 
-% figure(3); clf; 
-% plot(zz,wxf,'g.',zz,wyf,'b.','MarkerSize',1);
+if PlotsOn
+    postshift =  figure;  
+    plot(zz,wxf,'g.',zz,wyf,'b.','MarkerSize',1);
+    figure(postshift); hold on; plot(zz,wxp,'k.');
+    plot(zz,wyp,'k.');
+    plot(zz(decent),wxf(decent),'g.',zz(decent),wyf(decent),'b.','MarkerSize',5);
+     saveas(postshift,[bead_path,'\fig_',SaveRoot,froot,'_','postshift','.png']);
+    if verbose; 
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','postshift','.png']);
+    end
+end
+zz = zz(decent); wxf=wxf(decent); wyf=wyf(decent);
+
+%%
 
 % Coarse fit, no higher order correction terms 
 ftype = fittype('w0*sqrt( ((z-g)/zr)^2 + 1 ) ','coeff', {'w0','zr','g'},'ind','z'); 
@@ -377,9 +405,9 @@ if PlotsOn || ShowFit
     xlabel('z (nm)');
     ylabel('width (nm)');
     legend('wx','wy');
-    saveas(zcal_curves,[bead_path,'\fig_',froot,'_','zcal_curves','.png']);
+    saveas(zcal_curves,[bead_path,'\fig_',SaveRoot,froot,'_','zcal_curves','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',froot,'_','zcal_curves','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','zcal_curves','.png']);
     end
 end
 
@@ -468,9 +496,9 @@ if ConfirmFit
         xlabel('z-new (nm)','FontSize',14);
         ylabel('z-old (nm)','FontSize',14);
         set(gcf,'color','w');
-        saveas(ZvZ,[bead_path,'\fig_',froot,'_','ZvZ','.png']);
+        saveas(ZvZ,[bead_path,'\fig_',SaveRoot,froot,'_','ZvZ','.png']);
         if verbose; 
-            disp(['wrote: ',bead_path,'\fig_',froot,'_','ZvZ','.png']);
+            disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','ZvZ','.png']);
         end
     end
 
@@ -505,9 +533,9 @@ if ConfirmFit
         hold on; surf(xi,yi,double(zi)); 
         shading flat; colormap jet;
         xlabel('x');ylabel('y');
-        saveas(stagelevel_afterfit,[bead_path,'\fig_',froot,'_','stagelevel_afterfit','.png']);
+        saveas(stagelevel_afterfit,[bead_path,'\fig_',SaveRoot,froot,'_','stagelevel_afterfit','.png']);
         if verbose; 
-            disp(['wrote: ',bead_path,'\fig_',froot,'_','stagelevel_afterfit','.png']);
+            disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','stagelevel_afterfit','.png']);
         end
       end
 
@@ -589,9 +617,9 @@ ZData(bad_mols,:,:) = [];
         legend('wx','wy'); set(gca,'FontSize',14);
         set(gcf,'color','w');
         ylim([100,1000]);
-         saveas(after_fit,[bead_path,'\fig_',froot,'_','after_fit','.png']);
+         saveas(after_fit,[bead_path,'\fig_',SaveRoot,froot,'_','after_fit','.png']);
         if verbose; 
-            disp(['wrote: ',bead_path,'\fig_',froot,'_','after_fit','.png']);
+            disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','after_fit','.png']);
         end
     end
     %--------------------------------------
@@ -601,7 +629,7 @@ end
 %% cleanup
 if PlotsOn
     if closeoncomplete
-       close(before_fit, mol_stacks, stagelevel, stageplot);
+       close(before_fit, mol_stacks, stagelevel, stageplot,postshift);
         if ConfirmFit
             close(stagelevel_afterfit,after_fit,ZvZ);
         end
