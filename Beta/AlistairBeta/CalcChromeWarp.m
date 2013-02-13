@@ -22,7 +22,7 @@ function CalcChromeWarp(pathin,varargin)
 % 
 %--------------------------------------------------------------------------
 %% Optional Inuputs
-% 'beadmovie' / structure nx1
+% 'beadsets' / structure nx1
 %           required fields if passed: 
 %               'chns' / cell of strings / {'647','750'}
 %               'refchn' / string / '647'
@@ -31,11 +31,12 @@ function CalcChromeWarp(pathin,varargin)
 %               'daxroot' / string / 'IRbeads' - part of daxfile filename
 %               'parsroot' / string / 'Visbeads' - part of .ini or .xml
 %                       filename
-% 'overwrite' / double / 2
+% 'QVorder' / cell / {'647','561','750',488'}
+%               Only relevant if using quadview.  with the same labels as
+%               in beadsets.chns, the order, right to left and top to
+%               bottom, that the channels are arranged in quadview. 
+% 'overwrite' / double / 0
 %                       -- 0 skip, 1 = overwrite, 2 = ask me.
-% 'max frames' / double
-%                       -- maximum number of bead frames to include in the
-%                       analysis.  Typically 5-7 z-sections of 36 positions.
 % 'saveroot' / string / ''
 %                       -- string to be incorporated into exported files
 % 'affine match radius' / double / 6
@@ -54,15 +55,17 @@ function CalcChromeWarp(pathin,varargin)
 %                       fits and estimate of fit errors
 % 'method' /string / 'insight'
 %                       -- 'insight' or 'DaoSTORM' for dotfitting
-% noclass9 / logical / false
+% 'noclass9' / logical / false
 %                       -- exclude class9 molecules? (failed z-fit error
 %                       tolerance in insight).  
+% 'verobse' / logical / true
+%                       -- print progress updates to screen
 %--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
-% February 7th, 2013
+% February 12th, 2013
 %
-% Version 4.0
+% Version 4.1
 %--------------------------------------------------------------------------
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
@@ -112,7 +115,15 @@ global ScratchPath
 %--------------------------------------------------------------------------
 %% Default Parameters
 %--------------------------------------------------------------------------
-QVorder = {'647','561','750','488'}; % topleft, topright,bottomleft, bottomright.
+match_radius1 = 10;
+saveroot = ''; 
+match_radius =  2; %
+fpZ = 5; % frames per z
+overwrite = 0;  % needs to overwrite files to apply different parameters
+method ='insight'; %  'DaoSTORM';
+hideterminal = true;
+Noclass9 = false;
+verbose = true;
 
 % Defaults for beadmovie:
     beadmovie(1).chns = {'750','647'};
@@ -121,19 +132,12 @@ QVorder = {'647','561','750','488'}; % topleft, topright,bottomleft, bottomright
     beadmovie(2).refchn = '647';
     optional_fields = {'daxroot','parsroot','quadview'};
     default_values = {'','',true};
+    
+QVorder = {'647','561','750','488'}; % topleft, topright,bottomleft, bottomright.
 
-match_radius1 = 10;
-max_frames = 36*7; % 36*3; %  36*3; % 
-saveroot = 'allclass'; 
+% might be removed in future: 
 remove_crosstalk = false;
-match_radius =  2; %6.5  7 4
-fpZ = 5; % frames per z
-overwrite = 1;  % needs to overwrite files to apply different parameters
-method ='insight'; %  'DaoSTORM';
-hideterminal = true;
-Noclass9 = false;
-verbose = true;
-  %  pathin = 'I:\2013-02-02_BXCemb\Beads';  IRroot = 'IRbeads'; max_frames = 1000;
+max_frames = inf; % May be removed soon
 
 %--------------------------------------------------------------------------
 
@@ -158,9 +162,9 @@ if nargin > 1
         parameterValue = varargin{parameterIndex*2};
         switch parameterName  
             case 'method'
-                method = checkList(parametervalue,{'insight','DaoSTORM'},'method');
+                method = CheckList(parameterValue,{'insight','DaoSTORM'},'method');
             case 'overwrite'
-                overwrite = parameterValue;
+                overwrite= CheckParameter(parameterValue,'nonnegative','overwrite');
             case 'frames per Z'
                 fpZ = CheckParameter(parameterValue,'positive','fpZ');
             case 'max frames'

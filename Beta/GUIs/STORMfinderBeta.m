@@ -852,25 +852,27 @@ elseif FitMethod == 3
 end
 
 pathin = extractpath(daxfile);
-ZCalibrationParameters; 
-
+f = ZCalibrationParameters; 
+waitfor(f);
+  
+if ~Zcalpars.cancel
 M = Zcalpars.NMovieSets;
-beadsets(M).chns =[];
+beadset(M).chns =[];
 for m=1:M 
-    beadsets(m).chns = Zcalpars.Chns{m};
-    beadsets(m).refchn = Zcalpars.ReferenceChannel{m};
-    beadsets(m).daxroot = Zcalpars.DaxfileRoots{m};
-    beadsets(m).parsroot = Zcalpars.ParameterRoots{m};
-    beadsets(m).quadview = Zcalpars.Quadview{m};
+    beadset(m).chns = Zcalpars.Chns{m};
+    beadset(m).refchn = Zcalpars.ReferenceChannel{m};
+    beadset(m).daxroot = Zcalpars.DaxfileRoots{m};
+    beadset(m).parsroot = Zcalpars.ParameterRoots{m};
+    beadset(m).quadview = Zcalpars.Quadview{m};
 end
 
-CalcChromeWarp(pathin,'beadsets',beadsets,'method',method,...
+CalcChromeWarp(pathin,'beadset',beadset,'method',method,...
     'QVorder',Zcalpars.QVorder,'overwrite',Zcalpars.OverwriteBin,...
     'save root',Zcalpars.SaveNameRoot,'affine match radius',Zcalpars.AffineRadius,...
     'polyfit match radius',Zcalpars.PolyRadius,'verbose',Zcalpars.VerboseOn,...
-    'hideterminal',Zcalpars.Hideterminal,'Noclass9',Zcalpars.ExcludePoorZ,...
+    'hideterminal',Zcalpars.HideTerminal,'Noclass9',Zcalpars.ExcludePoorZ,...
     'frames per Z',Zcalpars.FramesPerZ); 
-
+end
 
 
 

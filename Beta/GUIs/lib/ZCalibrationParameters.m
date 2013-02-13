@@ -22,7 +22,7 @@ function varargout = ZCalibrationParameters(varargin)
 
 % Edit the above text to modify the response to help ZCalibrationParameters
 
-% Last Modified by GUIDE v2.5 12-Feb-2013 17:14:15
+% Last Modified by GUIDE v2.5 12-Feb-2013 20:54:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,6 +55,7 @@ function ZCalibrationParameters_OpeningFcn(hObject, eventdata, handles, varargin
 global Zcalpars
 % Choose default command line output for ZCalibrationParameters
 handles.output = hObject;
+Zcalpars.cancel = true;
 
 % Set defaults:
 Zcalpars.ChannelNames{1} = '750,647';
@@ -87,31 +88,39 @@ function varargout = ZCalibrationParameters_OutputFcn(hObject, eventdata, handle
 varargout{1} = handles.output;
 
 
+% --- Executes on button press in Cancel.
+function Cancel_Callback(hObject, eventdata, handles)
+% hObject    handle to Cancel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global Zcalpars
+Zcalpars.cancel = true;
+pause(.1);
+close(ZCalibrationParameters); 
+
 % --- Executes on button press in SavePars.
 function SavePars_Callback(hObject, eventdata, handles)
 % hObject    handle to SavePars (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global Zcalpars
-
-Zcalpars.NMovieSets = num2str(get(handles.NMovieSets,'String'));
-Zcalpars.FramesPerZ = num2str(get(handles.FramesPerZ,'String'));
-Zcalpars.AffineRadius = num2str(get(handles.AffineRadius,'String'));
-Zcalpars.PolyRadius = num2str(get(handles.PolyRadius,'String'));
+Zcalpars.cancel = false;
+Zcalpars.NMovieSets = str2double(get(handles.NMovieSets,'String'));
+Zcalpars.FramesPerZ = str2double(get(handles.FramesPerZ,'String'));
+Zcalpars.AffineRadius = str2double(get(handles.AffineRadius,'String'));
+Zcalpars.PolyRadius = str2double(get(handles.PolyRadius,'String'));
 Zcalpars.SaveNameRoot = get(handles.SaveNameRoot,'String');
-Zcalpars.OverwriteBin = get(handles.SaveNameRoot,'Value');
-Zcalpars.Hideterminal = get(handles.SaveNameRoot,'Value');
-Zcalpars.ExcludePoorZ = get(handles.SaveNameRoot,'Value');
-Zcalpars.VerboseOn = get(handles.SaveNameRoot,'Value');
+Zcalpars.OverwriteBin = logical(get(handles.OverwriteBin,'Value'));
+Zcalpars.HideTerminal = logical(get(handles.HideTerminal,'Value'));
+Zcalpars.ExcludePoorZ = logical(get(handles.ExcludePoorZ,'Value'));
+Zcalpars.VerboseOn = logical(get(handles.VerboseOn,'Value'));
+Zcalpars.ListQVorder = get(handles.ListQVorder,'String');
 
-Zcalpars.ListQVorder = get(handles.ListQVorder,'Value');
-
-Nsets = get(handles.SelectSet,'Value');
-for m=1:Nsets
+for m=1:Zcalpars.NMovieSets
     Zcalpars.Chns{m} = parseCSL(Zcalpars.ChannelNames{m}); 
 end
 Zcalpars.QVorder = parseCSL(Zcalpars.ListQVorder); 
-
+pause(.1);
 close(ZCalibrationParameters); 
 
 % --- Executes on selection change in SelectSet.
@@ -129,27 +138,27 @@ set(handles.ChannelNames,'String',Zcalpars.ChannelNames{m});
 set(handles.DaxfileRoots,'String',Zcalpars.DaxfileRoots{m});
 set(handles.ParameterRoots,'String',Zcalpars.ParameterRoots{m});
 set(handles.ReferenceChannel,'String',Zcalpars.ReferenceChannel{m});
+set(handles.Quadview,'Value',Zcalpars.Quadview{m});
  catch
  end
 
- 
-% --------------------------------------------------------------------
-function CameraMode_ButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to CameraMode (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+ % --- Executes when selected object is changed in CameraMode.
+function CameraMode_SelectionChangeFcn(hObject, eventdata, handles)
 global Zcalpars
+ m = get(handles.SelectSet,'Value');
 Zcalpars.Quadview{m} = get(handles.Quadview,'Value');
 dualview = get(handles.Dualview,'Value');
 if dualview
-    error('sorry, dualview analysis not yet available. please chose another option');
+    disp('sorry, dualview analysis not yet available. please chose another option');
+    set(handles.Quadview,'Value',1);
 end
+
 
 
 function NMovieSets_Callback(hObject, eventdata, handles)
  Nmovies = str2double(get(handles.NMovieSets,'String'));
- num2str( (1:Nmovies)' );
- set(handles.SelectSet,'String');
+ newsets = num2str( (1:Nmovies)' );
+ set(handles.SelectSet,'String',newsets);
 
 
 function ChannelNames_Callback(hObject, eventdata, handles)
@@ -404,9 +413,6 @@ end
 
 
 
-
-
-
 % --- Executes during object creation, after setting all properties.
 function ListQVorder_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to ListQVorder (see GCBO)
@@ -418,3 +424,23 @@ function ListQVorder_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+% --------------------------------------------------------------------
+function CameraMode_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to CameraMode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+delete(hObject);
+
+
+
+
