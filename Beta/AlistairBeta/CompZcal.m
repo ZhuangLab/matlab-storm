@@ -53,6 +53,7 @@ function [pars_nm,wx_fit,wy_fit] = CompZcal(daxfile,parsfile,varargin)
 
 %% Hard coded parameters
 Dao = false; 
+Dao_root = '';
 flipZ = true; 
 %--------------------------------------------------------------------------
 %% Default paramaters
@@ -122,7 +123,7 @@ if strcmp(parstype,'.ini')
 elseif strcmp(parstype,'.xml');
     bintype = '_mlist.bin';
     Dao = true;
-    % flipZ = false;
+    Dao_root = 'dao_';
 end
 
 binfile = [bead_path,'\',froot,bintype];
@@ -161,9 +162,9 @@ if PlotsOn
     xlabel('frame','FontSize',14); 
     ylabel('stage position','FontSize',14); 
     set(gca,'FontSize',14);
-    saveas(stageplot,[bead_path,'\fig_',SaveRoot,froot,'_stage','.png']);
+    saveas(stageplot,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_stage','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_stage','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_stage','.png']);
     end
 end
 [~,fstart] = min(zst);
@@ -178,9 +179,9 @@ if PlotsOn
     xlabel('x-pos (pixels)','FontSize',14); 
     ylabel('y-pos (pixels)','FontSize',14); 
     plot(Molecule_Positions(:,1),Molecule_Positions(:,2),'ro');
-    saveas(mol_stacks,[bead_path,'\fig_',SaveRoot,froot,'_mol_stacks','.png']);
+    saveas(mol_stacks,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_mol_stacks','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_mol_stacks','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_mol_stacks','.png']);
     end
 end
 
@@ -214,9 +215,9 @@ ps = p.Coefficients;
     hold on; surf(xi,yi,double(zi)); 
     shading flat; colormap jet;
     xlabel('x');ylabel('y');
-    saveas(stagelevel,[bead_path,'\fig_',SaveRoot,froot,'_','stagelevel','.png']);
+    saveas(stagelevel,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','stagelevel','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','stagelevel','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','stagelevel','.png']);
     end
   end
 
@@ -296,9 +297,9 @@ if PlotsOn
     legend('wx','wy'); set(gca,'FontSize',14);
     set(gcf,'color','w');
     ylim([100,1000]);
-     saveas(before_fit,[bead_path,'\fig_',SaveRoot,froot,'_','before_fit','.png']);
+     saveas(before_fit,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','before_fit','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','before_fit','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','before_fit','.png']);
     end
 end
 
@@ -346,9 +347,9 @@ if PlotsOn
     figure(postshift); hold on; plot(zz,wxp,'k.');
     plot(zz,wyp,'k.');
     plot(zz(decent),wxf(decent),'g.',zz(decent),wyf(decent),'b.','MarkerSize',5);
-     saveas(postshift,[bead_path,'\fig_',SaveRoot,froot,'_','postshift','.png']);
+     saveas(postshift,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','postshift','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','postshift','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','postshift','.png']);
     end
 end
 zz = zz(decent); wxf=wxf(decent); wyf=wyf(decent);
@@ -405,9 +406,9 @@ if PlotsOn || ShowFit
     xlabel('z (nm)');
     ylabel('width (nm)');
     legend('wx','wy');
-    saveas(zcal_curves,[bead_path,'\fig_',SaveRoot,froot,'_','zcal_curves','.png']);
+    saveas(zcal_curves,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','zcal_curves','.png']);
     if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','zcal_curves','.png']);
+        disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','zcal_curves','.png']);
     end
 end
 
@@ -496,9 +497,9 @@ if ConfirmFit
         xlabel('z-new (nm)','FontSize',14);
         ylabel('z-old (nm)','FontSize',14);
         set(gcf,'color','w');
-        saveas(ZvZ,[bead_path,'\fig_',SaveRoot,froot,'_','ZvZ','.png']);
+        saveas(ZvZ,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','ZvZ','.png']);
         if verbose; 
-            disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','ZvZ','.png']);
+            disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','ZvZ','.png']);
         end
     end
 
@@ -533,9 +534,9 @@ if ConfirmFit
         hold on; surf(xi,yi,double(zi)); 
         shading flat; colormap jet;
         xlabel('x');ylabel('y');
-        saveas(stagelevel_afterfit,[bead_path,'\fig_',SaveRoot,froot,'_','stagelevel_afterfit','.png']);
+        saveas(stagelevel_afterfit,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','stagelevel_afterfit','.png']);
         if verbose; 
-            disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','stagelevel_afterfit','.png']);
+            disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','stagelevel_afterfit','.png']);
         end
       end
 
@@ -617,9 +618,9 @@ ZData(bad_mols,:,:) = [];
         legend('wx','wy'); set(gca,'FontSize',14);
         set(gcf,'color','w');
         ylim([100,1000]);
-         saveas(after_fit,[bead_path,'\fig_',SaveRoot,froot,'_','after_fit','.png']);
+         saveas(after_fit,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','after_fit','.png']);
         if verbose; 
-            disp(['wrote: ',bead_path,'\fig_',SaveRoot,froot,'_','after_fit','.png']);
+            disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','after_fit','.png']);
         end
     end
     %--------------------------------------

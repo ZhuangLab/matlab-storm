@@ -160,8 +160,6 @@ modify_script(parsfile,parstemp,linkmolecules,new_values,parsflag);
 %----------------------------------------------------------------
 % run z-calibration, get updated parameter file
 %----------------------------------------------------------------
-disp(daxfile);
-disp(parstemp);
  RunDotFinder('daxfile',daxfile,'parsfile',parstemp,'method',method,...
      'runinMatlab',runinMatlab,'overwrite',overwrite,....
      'printprogress',printprogress,'hideterminal',printprogress,'verbose',verbose);
