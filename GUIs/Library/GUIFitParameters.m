@@ -22,7 +22,7 @@ function varargout = GUIFitParameters(varargin)
 
 % Edit the above text to modify the response to help GUIFitParameters
 
-% Last Modified by GUIDE v2.5 12-Feb-2013 21:44:11
+% Last Modified by GUIDE v2.5 12-Feb-2013 22:15:41
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -732,6 +732,3 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);
-
-
-

@@ -805,7 +805,10 @@ elseif FitMethod == 2
 elseif FitMethod == 3
     disp('Z-fitting not available for GPU multifit');
 end
-
+if isempty(parsfile)
+    disp('warning no parameter file selected');
+    disp('perhaps Fit Method does not match current parameter type?');
+end
 
 dlg_title = 'Compute Z-calibration';
 num_lines = 1;
@@ -819,14 +822,16 @@ catch er
         'Run Silently?';
         'overwrite? (1=y,0=n,2=ask me)';
         'Show plots?';
-        'Z window to estimate stage tilt'};
+        'Z window to estimate stage tilt';
+        'string to append in saveplots'};
     Zopts = {
         '_zpars',...
         'true',...
         'false',...
         '2',...
         'true',...
-        '100'}; 
+        '100',...
+        ''}; 
     Zopts = inputdlg(Zprompt,dlg_title,num_lines,Zopts);
 end
 
@@ -835,7 +840,7 @@ end
  AutoZcal(daxfile,'parsfile',parsfile,'method',method,...
        'NewParsRoot',Zopts{1},'runinMatlab',eval(Zopts{2}),...
        'printprogress',eval(Zopts{3}),'overwrite',eval(Zopts{4}),...
-    'PlotsOn',eval(Zopts{5}),'zwindow',eval(Zopts{6}));
+    'PlotsOn',eval(Zopts{5}),'zwindow',eval(Zopts{6}),'SaveRoot',Zopts{7});
 
 
 % --------------------------------------------------------------------
