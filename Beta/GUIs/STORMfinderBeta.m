@@ -80,8 +80,7 @@ end
 
 % set(handles.FitMethod,'Value',2); % set default method to DaoSTORM
 % 1 = InsightM, 3 = GPUmultifit
-handles.axes1; 
-axis off; 
+axes(handles.axes1); axis off; 
 % UIWAIT makes STORMfinderBeta wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
