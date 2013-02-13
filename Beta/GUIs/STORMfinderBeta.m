@@ -252,6 +252,7 @@ global daxfile impars
     impars.cmin = min(Im(:));
 % set up framer slider
     impars.cframe = 1; % reset to 1
+    set(handles.currframe,'String',num2str(impars.cframe));
     % str2double(get(handles.currframe,'String'));
     fid = fopen(daxfile);
     fseek(fid,0,'eof');
@@ -448,32 +449,35 @@ global FitPars inifile xmlfile gpufile
  FitMethod = get(handles.FitMethod,'Value');
  [FitPars,parameters] = ReadParameterFile(FitMethod,handles); 
  parfile = make_temp_parameters(handles,'temp'); % if _temp.ini / .xml parameter files have not been made, make them.
-%  disp('parfile = ');
-%  disp(parfile)
+FitPars.OK = false;
+
  if FitMethod == 1 % InsightM
     f = GUIFitParameters;
     waitfor(f); % need to wait until parameter selection is closed. 
-    new_values = struct2cell(FitPars)';
-                                                disp('new_values:'); disp(new_values);
-    modify_script(inifile,parfile,parameters,new_values,'');   
-    inifile = parfile;
+    if FitPars.OK 
+        new_values = struct2cell(FitPars)';
+        modify_script(inifile,parfile,parameters,new_values,'');   
+        inifile = parfile;
+    end
  %   disp(inifile);
  elseif FitMethod == 2    % DaoSTORM   
     f = GUIDaoParameters;
     waitfor(f); % need to wait until parameter selection is closed.   
-    new_values = struct2cell(FitPars)';
-    modify_script(xmlfile,parfile,parameters,new_values,'<');
-    xmlfile = parfile; 
+    if FitPars.OK % only update parameters if user presses save button
+        new_values = struct2cell(FitPars)';
+        modify_script(xmlfile,parfile,parameters,new_values,'<');
+        xmlfile = parfile;
+    end
  elseif FitMethod == 3
     f = GUIgpuParameters;
     waitfor(f);
-    GPUmultiPars = FitPars;
-    gpufile = parfile; 
-    save(gpufile,'GPUmultiPars');
+    if FitPars.OK
+        GPUmultiPars = FitPars;
+        gpufile = parfile; 
+        save(gpufile,'GPUmultiPars');
+    end
  end
     set(handles.CurrentPars,'String',parfile);
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test2.mat');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test2.mat');
 
 
 
@@ -719,19 +723,18 @@ fpath = daxfile(1:k(end));
 RunDotFinder('path',fpath,'batchsize',eval(Dopts{1}),'daxroot',Dopts{2},...
      parflag,Dopts{3},'overwrite',eval(Dopts{4}),'method',method);
 
-%% if DaoSTORM needs to use non_temp parameters!! 
+% if DaoSTORM needs to use non_temp parameters!! 
+% ^ has this been dealt with?
 
 
-
-
-% I think these have been deleted {
+% This may be deleted: {
 function currentpath_Callback(hObject, eventdata, handles)
 
 function currentpath_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-%  }
+%   }
 
 
 
@@ -851,11 +854,12 @@ elseif FitMethod == 3
     method = 'GPUmultifit';
 end
 
+Zcalpars.OK = false;
 pathin = extractpath(daxfile);
 f = ZCalibrationParameters; 
 waitfor(f);
   
-if ~Zcalpars.cancel
+if Zcalpars.OK
 M = Zcalpars.NMovieSets;
 beadset(M).chns =[];
 for m=1:M 

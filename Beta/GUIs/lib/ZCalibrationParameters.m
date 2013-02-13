@@ -55,9 +55,9 @@ function ZCalibrationParameters_OpeningFcn(hObject, eventdata, handles, varargin
 global Zcalpars
 % Choose default command line output for ZCalibrationParameters
 handles.output = hObject;
-Zcalpars.cancel = true;
 
 % Set defaults:
+if ~Zcalpars.OK  % only update on load, not on exit
 Zcalpars.ChannelNames{1} = '750,647';
 Zcalpars.DaxfileRoots{1} = 'IRbeads';
 Zcalpars.ParameterRoots{1} = 'IRBead';
@@ -70,6 +70,7 @@ Zcalpars.ParameterRoots{2} = 'VisBead';
 Zcalpars.ReferenceChannel{2} = '647';
 Zcalpars.Quadview{2} = 1;
 Zcalpars.ListQVorder = '647,561,750,488';
+end
 % Update handles structure
 guidata(hObject, handles);
 
@@ -94,7 +95,6 @@ function Cancel_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global Zcalpars
-Zcalpars.cancel = true;
 pause(.1);
 close(ZCalibrationParameters); 
 
@@ -104,7 +104,7 @@ function SavePars_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global Zcalpars
-Zcalpars.cancel = false;
+Zcalpars.OK = true;
 Zcalpars.NMovieSets = str2double(get(handles.NMovieSets,'String'));
 Zcalpars.FramesPerZ = str2double(get(handles.FramesPerZ,'String'));
 Zcalpars.AffineRadius = str2double(get(handles.AffineRadius,'String'));

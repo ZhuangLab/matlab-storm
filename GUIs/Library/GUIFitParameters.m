@@ -22,7 +22,7 @@ function varargout = GUIFitParameters(varargin)
 
 % Edit the above text to modify the response to help GUIFitParameters
 
-% Last Modified by GUIDE v2.5 19-Jan-2013 18:32:43
+% Last Modified by GUIDE v2.5 12-Feb-2013 21:44:11
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -83,9 +83,9 @@ global FitPars
 
     % Zcal
     if strmatch(FitPars.Fit3D,'2')
-       set(handles.Fit3D,'Value',1)
+       set(handles.Fit3D,'Value',1);
     else 
-        set(handles.Fit3D,'Value',0)
+        set(handles.Fit3D,'Value',0);
     end
     set(handles.zcaltxt,'String',FitPars.zcaltxt);
     set(handles.zop,'String',FitPars.zop);
@@ -160,8 +160,19 @@ FitPars.zstart = get(handles.zstart,'String');
 FitPars.zend = get(handles.zend,'String');
 FitPars.zstep = get(handles.zstep,'String');
 
+FitPars.OK = true;
+
 pause(.1); 
 close(GUIFitParameters);
+
+% --- Executes on button press in Cancel.
+function Cancel_Callback(hObject, eventdata, handles)
+% hObject    handle to Cancel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+FitPars.OK = false;
+close(GUIFitParameters);
+
 
 
 % --- Executes on button press in CorDrift.
@@ -711,3 +722,16 @@ function startFrame_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+delete(hObject);
+
+
+

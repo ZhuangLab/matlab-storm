@@ -183,6 +183,7 @@ FitPars.By  = get(handles.By,'String');
 FitPars.Cy  = get(handles.Cy,'String');
 FitPars.Dy  = get(handles.Dy,'String');
 
+FitPars.OK = true;
 pause(.1); 
 close(GUIDaoParameters);
 
