@@ -323,7 +323,9 @@ for m=1:Nmovies
             beadmovie(m).binname{c,n} = [daxfile(1:end-4),datatype]; 
             RunDotFinder('method',method,'parsfile',beadmovie(m).parsfile{c},...
                'daxfile',daxfile,'hideterminal',hideterminal,...
-               'overwrite',overwrite); 
+               'overwrite',overwrite,'batchsize',2); 
+           % batchsize 2 implies RunDotFinder will return control to
+           % CalcChromeWarp without waiting for analysis to finish
         end
     end
 end

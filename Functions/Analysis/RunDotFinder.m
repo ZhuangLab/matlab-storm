@@ -350,5 +350,5 @@ end
 time_run = toc(time_run);
 if verbose
 disp(['RunDotFinder finished processing ',num2str(Sections),' dax movies',...
-    ' Total time=',num2str(time_run/(60*60)),'hours']); 
+    ' Total time=',num2str(time_run/(60*60)),' hours']); 
 end
