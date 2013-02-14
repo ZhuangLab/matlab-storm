@@ -150,7 +150,7 @@ ysize = H/zm;
 if showScalebar
     scb = round(1:scalebar/npp*zm*scale);
     h1 = round(imaxes.H*.9*scale);
-    I(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Zs*Cs,'uint16'); % Add scale bar and labels
+    I(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Cs,'uint16'); % Add scale bar and labels
 end
 
   

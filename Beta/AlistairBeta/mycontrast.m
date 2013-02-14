@@ -28,8 +28,15 @@ elseif strcmp(c,'single') == 1 || strcmp(c,'double') == 1
     m = max(v);
 end
 
+minp
+maxp
+
 if sum(I(:))~= 0
-    o1 = double(v(1+round(minp*l)))/m;
+    if minp~=1
+    o1 = double(v(1+floor(minp*l)))/m;
+    else
+        o1 = 0;
+    end
     o2 = double(v(round(s*l)))/m;    
     while o2 == 0
         maxp = maxp*.1;

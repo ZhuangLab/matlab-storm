@@ -25,6 +25,7 @@ lib\cp2tform3D.m (for chromatic correction calibration)
 Beta Files in here required for STORMrenderBeta GUI
 ----
 automatch_files.m
+findfile.m
 MultiChnDriftCorrect..m
 chromewarp.m
 plotSTORM.m

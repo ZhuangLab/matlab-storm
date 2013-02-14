@@ -138,15 +138,15 @@ end
 xsize = W/zm; 
 ysize = H/zm; 
 
-I = cell(length(chns),1); 
-  for c=chns
-      I{c} = zeros(ceil(xsize*zm*scale),ceil(ysize*zm*scale),Cs,'uint16');
-      zmin = Zrange(1);
-      zmax = Zrange(2); 
-      
-      Zsteps = linspace(zmin,zmax,Zs);
-      Zsteps = [-inf,Zsteps,inf];
-      
+I = cell(max(chns),1); 
+for c=chns
+  I{c} = zeros(ceil(xsize*zm*scale),ceil(ysize*zm*scale),Cs,'uint16');
+  zmin = Zrange(1);
+  zmax = Zrange(2); 
+
+  Zsteps = linspace(zmin,zmax,Zs);
+  Zsteps = [-inf,Zsteps,inf];
+
       for k=1:Zs
           if length(x{c}) >1
               inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax & z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
@@ -158,12 +158,13 @@ I = cell(length(chns),1);
              I{c}(:,:,k) = Itemp;
           end
       end
-  end  
+   % add scalebar
+    if showScalebar
+        scb = round(1:scalebar/npp*zm*scale);
+        h1 = round(imaxes.H*.9*scale);
+        I{c}(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Zs,'uint16'); % Add scale bar and labels
+    end     
+end  
   
-  % add scalebar
-if showScalebar
-    scb = round(1:scalebar/npp*zm*scale);
-    h1 = round(imaxes.H*.9*scale);
-    I(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Zs*Cs,'uint16'); % Add scale bar and labels
-end
+
   

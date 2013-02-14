@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 13-Feb-2013 14:23:06
+% Last Modified by GUIDE v2.5 13-Feb-2013 17:59:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -52,6 +52,12 @@ function STORMrenderBeta_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to STORMrenderBeta (see VARARGIN)
 
+global DisplayOps binfile
+DisplayOps.ColorZ = false; 
+DisplayOps.Zsteps = 5;
+DisplayOps.DotScale = 4;
+DisplayOps.HidePoor = false;
+
 % Choose default command line output for STORMrenderBeta
 handles.output = hObject;
 
@@ -59,18 +65,25 @@ handles.output = hObject;
 set(handles.Yslider,'Value',0);
 set(handles.Yslider,'Min',-256);
 set(handles.Yslider,'Max',256);
- axes(handles.axes1); axis off; set(gca,'color','k');
- axes(handles.axes2); axis off; set(gca,'color','k');
-
+ axes(handles.axes1); 
+ set(gca,'color','k');
+ set(gca,'XTickLabel','','XTick',[],'YTickLabel','','YTick',[])
+ axes(handles.axes2); 
+ set(gca,'color','k');
+set(gca,'XTickLabel','','XTick',[],'YTickLabel','','YTick',[])
 % build dropdown menu
 molfields = {'custom';'region';'z';'h';'a';'i';'w'};
 set(handles.choosefilt,'String',molfields);
 
-global DisplayOps binfile
-DisplayOps.ColorZ = false; 
-DisplayOps.Zsteps = 5;
-DisplayOps.DotScale = 4;
-DisplayOps.HidePoor = false;
+
+set(handles.MaxIntSlider,'Max',1);
+set(handles.MaxIntSlider,'Min',0);
+set(handles.MaxIntSlider,'Value',1);
+set(handles.MaxIntSlider,'SliderStep',[1/2^12,1/2^4])
+set(handles.MinIntSlider,'Max',1);
+set(handles.MinIntSlider,'Min',0);
+set(handles.MinIntSlider,'Value',0); 
+set(handles.MinIntSlider,'SliderStep',[1/2^12,1/2^4])
 
 if ~isempty(binfile)
     QuickLoad_Callback(hObject, eventdata, handles);
@@ -222,9 +235,10 @@ global loadops mlist fnames froots
     axes(handles.axes2); 
     set(handles.imtitle,'String',fnames(:)); % ,'interpreter','none');  
     chns = loadops{8}(hasdata); 
-    disp('no data found for in channels:');
-    disp(loadops{8}(logical(1-hasdata)))
-     
+    if sum((logical(1-hasdata))) ~=0
+        disp('no data found for in channels:');
+        disp(loadops{8}(logical(1-hasdata)))
+    end
   % combine folder with binnames in order to call DriftCorrect / binload
     [Tchns,~] = size(binnames);
     allbins = cell(Tchns,1); 
@@ -564,28 +578,33 @@ disp('this function still under development');
  
  
 function update_imcolor(hObject,handles)
-global I Io max_sat min_off fnames DisplayOps imaxes ScratchPath
+global I Ic Io max_sat min_off fnames DisplayOps imaxes ScratchPath
 guidata(hObject, handles);
 channels(1) = get(handles.chn1,'Value');
 channels(2) = get(handles.chn2,'Value');
 channels(3) = get(handles.chn3,'Value');
 channels(4) = get(handles.chn4,'Value');
 active_channels = find(channels);
+
 if DisplayOps.ColorZ  
     n=0;
+    Cs = length(I); 
     [h,w,Zs] = size(I{1});
-    Ic = zeros(h,w,Zs*length(active_channels),'uint16');   
+    Ic = zeros(h,w,Zs*length(active_channels),'uint16'); 
+    active_channels(active_channels>Cs) = []; 
     for c=active_channels
+        %load([ScratchPath,'test.mat']);
        for k=1:DisplayOps.Zsteps
            n=n+1;
-            Ic(:,:,n) = mycontrast(I{c}(:,:,k),max_sat(c),min_off(c));
+            Ic(:,:,n) = mycontrast(I{c}(:,:,k),max_sat(c),min_off(c));   
        end
    end
 else
     [~,~,Cs] = size(I);
     for c=1:Cs
           Ic = I; % incase Ic doesn't exist.  
-          Ic(:,:,c) = mycontrast(I(:,:,c),max_sat(c),min_off(c));
+          % Ic(:,:,c) = mycontrast(I(:,:,c),max_sat(c),min_off(c));
+          Ic(:,:,c) = imadjust(I(:,:,c),[min_off(c),max_sat(c)],[0,1]);
     end
     Ic(:,:,logical(1-channels)) = cast(0,'uint16'); 
 end
@@ -621,8 +640,12 @@ function ManualContrastTool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to ManualContrastTool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-Rescale_Callback
-
+global max_sat min_off 
+max_sat = input('enter a vector for max intensity for each channel: ');
+min_off = input('enter a vector for min intensity for each channel: ');
+ update_imcolor(hObject,handles);
+ guidata(hObject, handles);
+ 
 % --------------------------------------------------------------------
 function AutoContrastTool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to AutoContrastTool (see GCBO)
@@ -630,63 +653,97 @@ function AutoContrastTool_ClickedCallback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global max_sat min_off
     max_sat = [.01,.01,.01,.01];
-    min_off = [.4,.4,.4,.4];
+    min_off = [.0,.0,.0,.0];
  update_imcolor(hObject,handles);
  guidata(hObject, handles);
 
-
- % --- Executes on button press in Rescale.
-function Rescale_Callback(hObject, eventdata, handles)
-% changes min and max range for color histogram in selected channel.
-% try making this a toggle button ?
-global I max_sat min_off
+% ------
+ function scalecolor(hObject,handles)
+ global I max_sat min_off DisplayOps ScratchPath
     channels(1) = get(handles.fchn1,'Value');
     channels(2) = get(handles.fchn2,'Value');
     channels(3) = get(handles.fchn3,'Value');
     channels(4) = get(handles.fchn4,'Value');
     channels = find(channels);
   
-    if isempty(channels)
-        disp('please select a channel to rescale "Apply Filter to"');
-    end
+    c = channels(1); 
+   
+    set(handles.levelpanel,'Title',['channel ',num2str(c)]);
     
-    for c=channels
+   maxin = get(handles.MaxIntSlider,'Value');
+   minin = get(handles.MinIntSlider,'Value'); 
+   set(handles.MaxIntBox,'String',num2str(maxin));
+   set(handles.MinIntBox,'String',num2str(minin));
+   
+   logscalecolor = logical(get(handles.logscalecolor,'Value'));
+   
+     save([ScratchPath,'test.mat']);
+%     % load([ScratchPath,'test.mat']);
+   
+   max_sat(c) = maxin;
+   min_off(c) = minin;
+    
         if DisplayOps.ColorZ 
-            raw_ints = double(I{c});
+            raw_ints  = double(I{c}(:));     
         else
-            raw_ints = double(I(:,:,c)); 
+            raw_ints = double(I(:,:,c));
+            
         end
-       im_max = max(raw_ints(:)); 
-       im_min = min(raw_ints(:));
-       xs = linspace(im_min,im_max,2000);
-       
-       figure(2); clf; 
-       hist(raw_ints(:),xs);
-       h = findobj('type','patch'); 
-       hold on;
-       set(h,'FaceColor','b','EdgeColor','b');
-       alpha .5;
-       disp({'choose lower and upper bounds for color map from the histogram.';
-           'double click left of the histogram to enter fraction with keyboard.'})
-       [v,~] = ginput(2);
-       disp(v);
-       
-       if v(2) > 0 
-       
-       disp(v(2)/im_max)
-       v(1) = max(v(1),0); 
-       max_sat(c) = sum(raw_ints(:)>v(2))/length(raw_ints(:)); % 256^2;
-       min_off(c) = sum(raw_ints(:)<v(1))/length(raw_ints(:)); %256^2;
-       disp(['new max sat for channel ',num2str(c),'=',num2str(max_sat(c))]);
-       disp(['new min off for channel ',num2str(c),'=',num2str(min_off(c))]);
+        raw_ints = raw_ints(:);
+        max_int = max(raw_ints);
+        
+       axes(handles.axes3); cla;
+       if ~logscalecolor
+           xs = linspace(0,max_int,1000); 
+            hi1 = hist(nonzeros(raw_ints)./max_int,xs);
+            hist(nonzeros(raw_ints),xs); hold on;
+            inrange = nonzeros(raw_ints( raw_ints/max_int>minin & raw_ints/max_int<maxin))./max_int;
+            hist(inrange,xs);
+            h2 = findobj('type','patch'); 
+            xlim([min(xs),max(xs)]);
        else
-           max_sat(c) = input('max fraction of pixels to saturate: ');
-           min_off(c) = 0; 
+           xs = linspace(-5,0,100);
+           hi1 = hist(log10(nonzeros(raw_ints)/(max_int)),xs);
+           hist(log10(nonzeros(raw_ints)/(max_int)),xs); hold on;
+           xlim([min(xs),max(xs)]);
+    
+           inrange = nonzeros(raw_ints( raw_ints/max_int>minin & raw_ints/max_int<maxin))./max_int;
+           hist(log10(inrange),xs);
+           xlim([min(xs),max(xs)]);
+           h2 = findobj('type','patch'); 
        end
+        ylim([0,1.2*max(hi1)]);
+       set(h2(1),'FaceColor','b','EdgeColor','b');
+       set(h2(2),'FaceColor','r','EdgeColor','r');
+       alpha .5;
        
-    end
- update_imcolor(hObject,handles);
+       clear raw_ints; 
+       
+      update_imcolor(hObject,handles);
+      guidata(hObject, handles);
+
+function MinIntBox_Callback(hObject, eventdata, handles)
+ minin = str2double(get(handles.MinIntBox,'Value'));
+ set(handles.MinIntSlider,'Value',minin);
+ scalecolor(hObject,handles);
+ guidata(hObject, handles); 
+
+function MaxIntBox_Callback(hObject, eventdata, handles)      
+ maxin = str2double(get(handles.MaxIntBox,'Value'));
+ set(handles.MaxIntSlider,'Value',maxin);
+ scalecolor(hObject,handles);
+ guidata(hObject, handles); 
+ 
+% --- Executes on slider movement.
+function MaxIntSlider_Callback(hObject, eventdata, handles)
+ scalecolor(hObject,handles);
+ guidata(hObject, handles);   
+ 
+% --- Executes on slider movement.
+function MinIntSlider_Callback(hObject, eventdata, handles)
+ scalecolor(hObject,handles);
  guidata(hObject, handles);
+
 
 
 % color controls
@@ -930,13 +987,21 @@ end
 
 
 
+
+
+%% 3D Plotting Options
+
 % --------------------------------------------------------------------
 function Render3D_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to Render3D (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global imaxes Ic DisplayOps
+global imaxes I DisplayOps
+
+% currently hard-coded, should be user options 
+npp = 160; 
+zrange = [-600,600];
 
 if DisplayOps.ColorZ
 disp('use cell arrays of parameters for multichannel rendering'); 
@@ -959,32 +1024,33 @@ num_lines = 1;
 opts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
 Zs = DisplayOps.Zsteps;
 
-xyp = 160/imaxes.scale/imaxes.zm; % nm per x/y pixel
-zstp = 1200/Zs;
+xyp = npp/imaxes.scale/imaxes.zm; % nm per x/y pixel
+zstp = (zrange(2)-zrange(1))/Zs;
 
 theta = eval(opts{1});
 stp = eval(opts{2});
 res = eval(opts{3});
 colr = opts{4}; 
 
-% Split the multiple color channels up into different MxNxZs images.  
-[~,~,Cs] = size(Ic); 
-C = Cs/Zs;
-I3D = cell(C,1); 
-for c=1:C; 
-    I3D{c} = Ic(:,:,(c-1)*Zs+1:c*Zs);
-end
+channels(1) = get(handles.chn1,'Value');
+channels(2) = get(handles.chn2,'Value');
+channels(3) = get(handles.chn3,'Value');
+channels(4) = get(handles.chn4,'Value');
+active_channels = find(channels);
+Cs = length(I);
+active_channels(active_channels>Cs) = [];
 
-figure(3); clf; 
-Im3D(I3D,'resolution',res,'zStepSize',zstp,'xyStepSize',xyp,...
+
+figure; clf; 
+Im3D(I(active_channels),'resolution',res,'zStepSize',zstp,'xyStepSize',xyp,...
     'theta',theta,'downsample',stp,'color',colr);
 set(gcf,'color','w');
 camlight left;
 xlabel('nm');
 ylabel('nm');
 zlabel('nm');
-xlim([0,(imaxes.xmax-imaxes.xmin)*160]);
-ylim([0,(imaxes.ymax-imaxes.ymin)*160]);
+xlim([0,(imaxes.xmax-imaxes.xmin)*npp]);
+ylim([0,(imaxes.ymax-imaxes.ymin)*npp]);
 
 else
     disp('must set Display Ops color Z to true for 3D rendering'); 
@@ -993,7 +1059,6 @@ end
 
 % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
 % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
-% could loop through channels and plot each in a different color;
 
 
 % --------------------------------------------------------------------
@@ -1001,7 +1066,11 @@ function Rotate3Dslices_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to Rotate3Dslices (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes Ic DisplayOps
+global imaxes I DisplayOps
+
+% currently hard-coded, should be user options 
+npp = 160; 
+zrange = [-600,600];
 
 if DisplayOps.ColorZ
 dlg_title = 'Render3D';
@@ -1016,23 +1085,23 @@ num_lines = 1;
 
 opts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
 
-[~,~,Zs] = size(Ic);
-xyp = 160/imaxes.scale/imaxes.zm; % nm per x/y pixel
-zstp = 1200/Zs;
+Zs = DisplayOps.Zsteps;
+xyp = npp/imaxes.scale/imaxes.zm; % nm per x/y pixel
+zstp = (zrange(2)-zrange(1))/Zs;
 
 theta = eval(opts{1});
 stp = str2double(opts{2});
 
 
-figure(4); clf; 
-Im3Dslices(Ic,'zStepSize',zstp,'xyStepSize',xyp,...
+figure; clf; 
+Im3Dslices(I,'zStepSize',zstp,'xyStepSize',xyp,...
     'theta',theta,'downsample',stp,'coloroffset',0);
 set(gcf,'color','w');
 xlabel('x-position (nm)');
 ylabel('y-position (nm)');
 zlabel('z-position (nm)');
-xlim([0,(imaxes.xmax-imaxes.xmin)*160]);
-ylim([0,(imaxes.ymax-imaxes.ymin)*160])
+xlim([0,(imaxes.xmax-imaxes.xmin)*npp]);
+ylim([0,(imaxes.ymax-imaxes.ymin)*npp])
 
 else
     disp('must set Display Ops color Z to true for 3D rendering'); 
@@ -1042,6 +1111,57 @@ end
 % make coloroffset larger than largest intensity of previous image to have
 % stacked dots rendered in different intensities.  
 
+% --------------------------------------------------------------------
+function plot3Ddots_ClickedCallback(hObject, eventdata, handles)
+
+
+    
+    
+% --------------------------------------------------------------------
+function plot2Ddots_ClickedCallback(hObject, eventdata, handles)
+
+
+    
+    
+function vlist = MolsInView(hObject,handles)
+% 
+    
+global mlist imaxes infilter
+
+
+% initialize variables
+sig = cell(Cs,1);
+x = cell(Cs,1); 
+y = cell(Cs,1); 
+z = cell(Cs,1); 
+
+
+for c=chns
+    x{c} = mlist{c}.xc;
+    y{c} = mlist{c}.yc;
+    z{c} = mlist{c}.zc;
+    a = mlist{c}.a;
+    sig{c} = real(dotsize./sqrt(a)); % 5
+end
+xsize = W/zm;
+ysize = H/zm;
+
+ I = zeros(ceil(xsize*zm*scale),ceil(ysize*zm*scale),Cs,'uint16');
+  for c=chns
+      if length(x{c}) >1
+          inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax;
+          tic
+         xi = (x{c}(inbox & infilter{c}')-imaxes.xmin);
+         yi = (y{c}(inbox & infilter{c}')-imaxes.ymin);
+         si = sig{c}(inbox & infilter{c}');
+         si(si<maxdotsize) = maxdotsize;  % 
+         si(si>mindotsize) = mindotsize; 
+         Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';  % 1E5     
+                 I(:,:,c) = Itemp;
+         toc
+      end
+  end  
+  
 %=========================================================================%
 
 
@@ -1114,7 +1234,7 @@ for k=1:cin
     Ozoom(:,:,k) = mycontrast(Ozoom(:,:,k),.001,.01); 
 end
 It = Ncolor(Ozoom,'');
-figure(2); clf; imagesc(It); % display contrasted image
+figure; clf; imagesc(It); % display contrasted image
 Ic = I; 
 for k=1:Cs
       Ic(:,:,k) = mycontrast(I(:,:,k),max_sat(k),min_off(k));
@@ -1126,7 +1246,7 @@ title('isolated overlay');
 % choose color map; (could make into a menu option in FUTURE version)
 %Io = Ncolor(I2,[hsv(Cs);hsv(cin)]); % match colors
 Io = Ncolor(I2,hsv(Cs+cin)); % unique colors
-figure(4); clf; imagesc(Io);
+figure; clf; imagesc(Io);
 set(gcf,'color','w'); 
 title(fnames(:),'interpreter','none');
 shading interp;
@@ -1158,10 +1278,7 @@ shrk = 1;
   if isempty(stage)  % Don't want to rebuild the mosaic everytime.  
     [Im,stage] = fxn_rebuild_mosaic([pathroot,filesep,Mfolder],'shrink',shrk);
   end
-   figure(6); clf; imagesc(Im);
-  
-  % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat','Im','stage','pathin','fnames','shrk');
-  % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
+   figure; clf; imagesc(Im);
   
   % get location of current image on mosaic
   info = ReadInfoFile('path',[pathin,filesep],'files',[fnames{1},'.inf']);
@@ -1180,7 +1297,7 @@ shrk = 1;
     Im_zoom(:,:,1) = mycontrast(Im_zoom(:,:,1),.00025,0);
 
     % Save zoomed in version of mosaic
-    mosaic_zoom = figure(5); clf; 
+    mosaic_zoom = figure; clf; 
     imagesc(Im_zoom);
     rectangle('Position',[zn-127,zn-127,256,256],'EdgeColor','c');    
       
@@ -1246,17 +1363,38 @@ function fchn1_Callback(hObject, eventdata, handles)
 
 
 
-% --------------------------------------------------------------------
-function plot3Ddots_ClickedCallback(hObject, eventdata, handles)
-% hObject    handle to plot3Ddots (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 
-% --------------------------------------------------------------------
-function plot2Ddots_ClickedCallback(hObject, eventdata, handles)
-% hObject    handle to plot2Ddots (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --- Executes during object creation, after setting all properties.
+function MaxIntBox_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
+
+
+% --- Executes during object creation, after setting all properties.
+function MinIntBox_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+% --- Executes during object creation, after setting all properties.
+function MaxIntSlider_CreateFcn(hObject, eventdata, handles)
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function MinIntSlider_CreateFcn(hObject, eventdata, handles)
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on button press in logscalecolor.
+function logscalecolor_Callback(hObject, eventdata, handles)
 

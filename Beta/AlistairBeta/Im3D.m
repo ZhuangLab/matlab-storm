@@ -1,15 +1,15 @@
 function Im3D(I,varargin)
 %-------------------------------------------------------------------------
 %% function Im3D
-% Im3D(Ic);
-% Im3D(Ic,'downsample',value,'zStepSize',value,'xyStepSize',value,...
+% Im3D(I);
+% Im3D(I,'downsample',value,'zStepSize',value,'xyStepSize',value,...
 %    'theta',value,'resolution',value,'color',value);
 %  Converts at 3D image file into a 3D surface plot image, using the 3rd
 %  dimension as Z information.  Isosurfaces are plotted at the indicated
 %  threshold.  
 %-------------------------------------------------------------------------
 % Inputs
-% I mxnxp image  -- image matrix to render 3D.  If multicolor, Ic is a
+% I mxnxp image  -- image matrix to render 3D.  If multicolor, I is a
 %                   cell array of 3D image matrices.   
 % 
 %-------------------------------------------------------------------------
@@ -48,7 +48,10 @@ function Im3D(I,varargin)
 % boettiger.alistair@gmail.com
 % October 10th, 2012
 %
-% Version 1.0
+% Version 1.1
+%--------------------------------------------------------------------------
+% Updates
+% Version 1.1 now in multicolor!
 %--------------------------------------------------------------------------
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
@@ -60,7 +63,7 @@ function Im3D(I,varargin)
 xyp = 1;
 stp = 3;
 zstp = 1; 
-theta = []; 
+theta = cell(10,1); 
 res = 3; 
 colr = 'blue';
 
@@ -129,7 +132,7 @@ if length(colr) < channels
     colr =  mat2cell(hsv(channels),ones(1,channels),3);
 end
 
- save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
+ % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
 % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
 
 %-------------------------------------------------------------------------
