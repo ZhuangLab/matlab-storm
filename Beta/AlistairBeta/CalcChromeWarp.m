@@ -304,28 +304,33 @@ for m=1:Nmovies
     for n=1:Nfields
         % Check to see if split dax movies already exist in target folder
         % if not found for all channels, load original dax and split again.
-        splitdax = dir([newpath,'*',alldax(n).name]); 
-        notsplit = length(splitdax) < Nchns;
-        if   notsplit
-            daxfile = [pathin,filesep,alldax(n).name];
-            [movies,info] = ReadDaxBeta(daxfile,'Quadviewsplit',true);
-        end
-        for c=1:Nchns
-            if notsplit
-                QVframe = strcmp(QVorder,beadmovie(m).chns{c});
-                WriteDax(movies{QVframe},info,beadmovie(m).chns{c},newpath);     
+        try
+            splitdax = dir([newpath,'*',alldax(n).name]); 
+            notsplit = length(splitdax) < Nchns;
+            if   notsplit
+                daxfile = [pathin,filesep,alldax(n).name];
+                [movies,info] = ReadDaxBeta(daxfile,'Quadviewsplit',true);
             end
-            if beadmovie(m).quadview
-            daxfile = [newpath,filesep,beadmovie(m).chns{c},'_',alldax(n).name];
-            else
-            daxfile = [newpath,filesep,alldax(n).name];
+            for c=1:Nchns
+                if notsplit
+                    QVframe = strcmp(QVorder,beadmovie(m).chns{c});
+                    WriteDax(movies{QVframe},info,beadmovie(m).chns{c},newpath);     
+                end
+                if beadmovie(m).quadview
+                daxfile = [newpath,filesep,beadmovie(m).chns{c},'_',alldax(n).name];
+                else
+                daxfile = [newpath,filesep,alldax(n).name];
+                end
+                beadmovie(m).binname{c,n} = [daxfile(1:end-4),datatype]; 
+                RunDotFinder('method',method,'parsfile',beadmovie(m).parsfile{c},...
+                   'daxfile',daxfile,'hideterminal',hideterminal,...
+                   'overwrite',overwrite,'batchsize',2); 
+               % batchsize 2 implies RunDotFinder will return control to
+               % CalcChromeWarp without waiting for analysis to finish
             end
-            beadmovie(m).binname{c,n} = [daxfile(1:end-4),datatype]; 
-            RunDotFinder('method',method,'parsfile',beadmovie(m).parsfile{c},...
-               'daxfile',daxfile,'hideterminal',hideterminal,...
-               'overwrite',overwrite,'batchsize',2); 
-           % batchsize 2 implies RunDotFinder will return control to
-           % CalcChromeWarp without waiting for analysis to finish
+        catch er
+            disp(er.message); 
+            disp(['skipping field: ',num2str(n)]);
         end
     end
 end
@@ -378,40 +383,42 @@ for m=1:Nmovies
           for n = 1:Nfields; 
                 try % keep going even if a movie is missing
                     mol_list = ReadMasterMoleculeList( beadmovie(m).binname{c,n},'verbose',false); 
+
+                    % only keep beads that are detected in all frames
+                    frames_per_field = max(mol_list.length);
+                    mols_on_allframes = mol_list.length >= .9*frames_per_field;
+                    if sum(mols_on_allframes) < .1*length(mol_list.x)
+                        disp('warning: many molecules not detected or linked for all frames in:');
+                        disp(beadmovie(m).binname{c,n});
+                       % disp('try rerunning with a larger match radius');  
+                    end
+                    if Noclass9
+                        goodmol = (mol_list.c~=9) & mols_on_allframes; % use only molecules with good z-fit score (class 1)
+                    else
+                        goodmol = mols_on_allframes;
+                    end
+
+                    if issample  % store as sample data
+                        data(sampleset).sample(n).x = cast(mol_list.xc(goodmol==1),'double');
+                        data(sampleset).sample(n).y = cast(mol_list.yc(goodmol==1),'double');
+                        data(sampleset).sample(n).z = cast(mol_list.z(goodmol==1),'double');
+                        data(sampleset).sample(n).chn = beadmovie(m).chns{c};       
+                        data(sampleset).sample(n).bin = beadmovie(m).binname{c,n};             
+                    else % store as reference data for all matching samples
+                        for k=refset:refset-1+length(beadmovie(m).chns)-1
+                        data(k).refchn(n).x = cast(mol_list.xc(goodmol==1),'double');
+                        data(k).refchn(n).y = cast(mol_list.yc(goodmol==1),'double');
+                        data(k).refchn(n).z = cast(mol_list.z(goodmol==1),'double');  
+                        data(k).refchn(n).chn = beadmovie(m).chns{c};       
+                        data(k).refchn(n).bin = beadmovie(m).binname{c,n};   
+                        end
+                    end
+                
                 catch er
                     disp(er.message); 
                     warning(['failed to load ',pathin,filesep, beadmovie(m).binname{c,n}]);
+                    disp(['skipping field: ',num2str(n)]); 
                 end 
-                % only keep beads that are detected in all frames
-                frames_per_field = max(mol_list.length);
-                mols_on_allframes = mol_list.length >= .9*frames_per_field;
-                if sum(mols_on_allframes) < .1*length(mol_list.x)
-                    disp('warning: many molecules not detected or linked for all frames in:');
-                    disp(beadmovie(m).binname{c,n});
-                   % disp('try rerunning with a larger match radius');  
-                end
-                if Noclass9
-                    goodmol = (mol_list.c~=9) & mols_on_allframes; % use only molecules with good z-fit score (class 1)
-                else
-                    goodmol = mols_on_allframes;
-                end
-                
-                if issample  % store as sample data
-                    data(sampleset).sample(n).x = cast(mol_list.xc(goodmol==1),'double');
-                    data(sampleset).sample(n).y = cast(mol_list.yc(goodmol==1),'double');
-                    data(sampleset).sample(n).z = cast(mol_list.z(goodmol==1),'double');
-                    data(sampleset).sample(n).chn = beadmovie(m).chns{c};       
-                    data(sampleset).sample(n).bin = beadmovie(m).binname{c,n};             
-                else % store as reference data for all matching samples
-                    for k=refset:refset-1+length(beadmovie(m).chns)-1
-                    data(k).refchn(n).x = cast(mol_list.xc(goodmol==1),'double');
-                    data(k).refchn(n).y = cast(mol_list.yc(goodmol==1),'double');
-                    data(k).refchn(n).z = cast(mol_list.z(goodmol==1),'double');  
-                    data(k).refchn(n).chn = beadmovie(m).chns{c};       
-                    data(k).refchn(n).bin = beadmovie(m).binname{c,n};   
-                    end
-                end
-
           end  
     end
 end
