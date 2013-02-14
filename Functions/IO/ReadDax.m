@@ -44,6 +44,9 @@ function [movie, infoFile] = ReadDax(varargin)
 % by the user.  Removed 'image_dimension' flag (this was non-functional)
 % and removed allFrames (this has become redundant);  
 % Alistair Boettiger
+%-------------------
+% 2/14/13: JRM
+% Minor fix to dax data type
 %--------------------------------------------------------------------------
 
 %--------------------------------------------------------------------------
@@ -183,7 +186,7 @@ end
 
 fseek(fid,(frameSize*(startFrame - 1))*16/8,'bof'); % bits/(bytes per bit) 
 dataSize = frameSize*numFrames;
-movie = fread(fid, dataSize, '*int16', 'b');
+movie = fread(fid, dataSize, '*uint16', 'b');
 fclose(fid);
 
 
