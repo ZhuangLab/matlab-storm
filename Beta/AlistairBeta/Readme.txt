@@ -18,15 +18,17 @@ Beta Files in here required for STORMfinderBeta GUI
 ----
 CompZcal.m  (for z-calibration)
 AutoZcal.m  (for z-calibration)
+CompChromeWarp.m (for chromatic calibration)
 lib\polyfitn.m  (for z-calibration)
 lib\corr_mols.m  (for chromatic correction calibration)
 lib\cp2tform3D.m (for chromatic correction calibration)
 
 Beta Files in here required for STORMrenderBeta GUI
 ----
-automatch_files.m
-findfile.m
-MultiChnDriftCorrect..m
+automatch_files.m (matches names based on common file root and common number)
+findfile.m  (goes looking for chromatic warp maps)
+applyfilter.m   
+MultiChnDriftCorrect.m
 chromewarp.m
 plotSTORM.m
 plotSTORM_colorZ.m

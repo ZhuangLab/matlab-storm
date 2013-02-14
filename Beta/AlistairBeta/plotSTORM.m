@@ -133,7 +133,6 @@ ysize = H/zm;
   for c=chns
       if length(x{c}) >1
           inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax;
-          tic
          xi = (x{c}(inbox & infilter{c}')-imaxes.xmin);
          yi = (y{c}(inbox & infilter{c}')-imaxes.ymin);
          si = sig{c}(inbox & infilter{c}');
@@ -141,7 +140,6 @@ ysize = H/zm;
          si(si>mindotsize) = mindotsize; 
          Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';  % 1E5     
                  I(:,:,c) = Itemp;
-         toc
       end
   end  
   

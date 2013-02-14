@@ -65,12 +65,17 @@ handles.output = hObject;
 set(handles.Yslider,'Value',0);
 set(handles.Yslider,'Min',-256);
 set(handles.Yslider,'Max',256);
+
+% set up axes for plotting
  axes(handles.axes1); 
  set(gca,'color','k');
- set(gca,'XTickLabel','','XTick',[],'YTickLabel','','YTick',[])
+ set(gca,'XTick',[],'','YTick',[]);
  axes(handles.axes2); 
  set(gca,'color','k');
-set(gca,'XTickLabel','','XTick',[],'YTickLabel','','YTick',[])
+set(gca,'XTick',[],'YTick',[]);
+ axes(handles.axes3); 
+ set(gca,'color','w');
+set(gca,'XTick',[],'YTick',[]);
 % build dropdown menu
 molfields = {'custom';'region';'z';'h';'a';'i';'w'};
 set(handles.choosefilt,'String',molfields);
@@ -177,7 +182,7 @@ loadops = default_opts;
 for n=[2:6,8]
     loadops{n} = eval(default_opts{n}); % saves a lot of str2double later.  
 end
-loadops{2}
+disp(['loading image ',loadops{2}]);
 if ~isempty(froots)
     disp('will load');
     fname = froots(:,loadops{2});
@@ -550,7 +555,7 @@ loadim(hObject,eventdata, handles); % calls plotdata function
 % --- Executes on button press in ApplyFilter.
 function ApplyFilter_Callback(hObject, eventdata, handles)
 % chose filter
-  global mlist infilter filts
+  global infilter filts ScratchPath
     contents = cellstr(get(handles.choosefilt,'String')); % returns choosefilt contents as cell array
     par = contents{get(handles.choosefilt,'Value')}; % returns selected item from choosefilt 
 
@@ -562,8 +567,18 @@ function ApplyFilter_Callback(hObject, eventdata, handles)
     channels = find(channels);
     
     myfilt = get(handles.CustomFilter,'String');
+    vlist = MolsInView(handles);
     
-  [infilter,filts] = applyfilter(mlist, infilter, filts, channels, par, myfilt);   
+    local_filter = cell(max(channels),1);
+ for c=1:channels;
+    local_filter{c} = vlist{c}.locinfilter;
+ end
+  [newfilter,filts] = applyfilter(vlist,local_filter, filts, channels, par, myfilt); 
+  
+  
+  for c=1:channels
+    infilter{c}(vlist{c}.inbox & vlist{c}.infilter') =  newfilter{c};
+  end
   loadim(hObject,eventdata, handles); % calls plotdata function
 
 % --- Executes on button press in ShowFilters.
@@ -722,7 +737,7 @@ global max_sat min_off
       update_imcolor(hObject,handles);
       guidata(hObject, handles);
 
-function MinIntBox_Callback(hObject, eventdata, handles)
+function MinIntBox_Callback(hObject, eventdata, handles) %#ok<*INUSL>
  minin = str2double(get(handles.MinIntBox,'Value'));
  set(handles.MinIntSlider,'Value',minin);
  scalecolor(hObject,handles);
@@ -1114,53 +1129,84 @@ end
 % --------------------------------------------------------------------
 function plot3Ddots_ClickedCallback(hObject, eventdata, handles)
 
+global plt3Dfig  ScratchPath
+npp = 160; % should be a global in imageops or something
+vlist = MolsInView(handles);
+chns = find(cellfun(@(x) ~isempty(x),vlist))
+Cs = length(chns); 
+cmap = hsv(Cs);
+lab = cell(Cs,1);
 
-    
-    
-% --------------------------------------------------------------------
-function plot2Ddots_ClickedCallback(hObject, eventdata, handles)
-
-
-    
-    
-function vlist = MolsInView(hObject,handles)
-% 
-    
-global mlist imaxes infilter
-
-
-% initialize variables
-sig = cell(Cs,1);
-x = cell(Cs,1); 
-y = cell(Cs,1); 
-z = cell(Cs,1); 
-
-
-for c=chns
-    x{c} = mlist{c}.xc;
-    y{c} = mlist{c}.yc;
-    z{c} = mlist{c}.zc;
-    a = mlist{c}.a;
-    sig{c} = real(dotsize./sqrt(a)); % 5
+if ~isempty(plt3Dfig)
+    try
+    close(plt3Dfig);
+    catch er
+        disp(er.message);
+    end
 end
-xsize = W/zm;
-ysize = H/zm;
+plt3Dfig = figure; 
+save([ScratchPath,'testdat.mat']);
+load([ScratchPath,'testdat.mat']);
 
- I = zeros(ceil(xsize*zm*scale),ceil(ysize*zm*scale),Cs,'uint16');
-  for c=chns
+for c = chns
+    plot3(vlist{c}.x*npp,vlist{c}.y*npp,vlist{c}.z*npp,'.','color',cmap(c,:),...
+        'MarkerSize',5);
+    lab{c} = ['channel ',num2str(c)', ' # loc:',num2str(length(vlist{c}.x))];
+    hold on;
+end
+xlabel('x (nm)'); ylabel('y (nm)'); zlabel('z (nm)'); 
+title(lab); 
+
+save([ScratchPath,'testdat.mat']);
+
+% --------------------------------------------------------------------
+function plot2Ddots_ClickedCallback(hObject, eventdata, handles) %#ok<*INUSD,*DEFNU>
+
+
+    
+    
+function vlist = MolsInView(handles)
+% return just the portion of the molecule list in the fied of view; 
+    
+    global mlist imaxes infilter 
+    channels(1) = get(handles.chn1,'Value');
+    channels(2) = get(handles.chn2,'Value');
+    channels(3) = get(handles.chn3,'Value');
+    channels(4) = get(handles.chn4,'Value');
+    
+    
+    all_channels = 1:4;
+    active_channels = intersect(all_channels(logical(channels)),1:length(mlist));
+    Cs = length(mlist); 
+    
+    % initialize variables
+    vlist = cell(Cs,1);
+    x = cell(Cs,1); 
+    y = cell(Cs,1); 
+    
+    for c=active_channels;
+        x{c} = mlist{c}.xc;
+        y{c} = mlist{c}.yc;
       if length(x{c}) >1
-          inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax;
-          tic
-         xi = (x{c}(inbox & infilter{c}')-imaxes.xmin);
-         yi = (y{c}(inbox & infilter{c}')-imaxes.ymin);
-         si = sig{c}(inbox & infilter{c}');
-         si(si<maxdotsize) = maxdotsize;  % 
-         si(si>mindotsize) = mindotsize; 
-         Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';  % 1E5     
-                 I(:,:,c) = Itemp;
-         toc
+         inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax;
+         vlist{c}.x = (x{c}(inbox & infilter{c}')-imaxes.xmin);
+         vlist{c}.y = (y{c}(inbox & infilter{c}')-imaxes.ymin);
+         vlist{c}.z = (mlist{c}.z(inbox & infilter{c}'));
+         vlist{c}.a= (mlist{c}.a(inbox & infilter{c}'));
+         vlist{c}.i= (mlist{c}.i(inbox & infilter{c}'));
+         vlist{c}.h= (mlist{c}.h(inbox & infilter{c}'));
+         vlist{c}.frame= (mlist{c}.frame(inbox & infilter{c}'));
+         vlist{c}.length= (mlist{c}.length(inbox & infilter{c}'));
+         vlist{c}.w= (mlist{c}.w(inbox & infilter{c}'));
+         vlist{c}.xc = vlist{c}.x;
+         vlist{c}.yc = vlist{c}.y;
+         vlist{c}.zc = vlist{c}.z;
+         vlist{c}.channel = c; 
+         vlist{c}.inbox = inbox; 
+         vlist{c}.infilter = infilter{c};
+         vlist{c}.locinfilter = infilter{c}(infilter{c}' & inbox)';
       end
-  end  
+    end  
   
 %=========================================================================%
 
