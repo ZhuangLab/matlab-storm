@@ -896,7 +896,7 @@ function zoomtool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to zoomtool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes
+global imaxes ScratchPath
 handles = guidata(hObject);
 % user specifies box:
 axes(handles.axes2); 
@@ -928,11 +928,22 @@ end
 disp(['new zoom=',num2str(imaxes.zm)]);
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
 
+axes(handles.axes1);
+hold on;
+hside= imaxes.H*imaxes.scale/imaxes.zm;
+wside = imaxes.W*imaxes.scale/imaxes.zm;
+lower_x = imaxes.scale*imaxes.cx-wside/2;
+lower_y = imaxes.scale*imaxes.cy-hside/2;
+
+rectangle('Position',[lower_x,lower_y,wside,hside],...
+    'EdgeColor','w','linewidth',1); 
+hold off;
+
 guidata(hObject, handles);
 UpdateSliders(hObject,eventdata,handles)
 
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
+ save([ScratchPath,'test.mat']);
+  % load([ScratchPath,'test.mat']);
 
 % plot box
 axes(handles.axes2); hold on;
