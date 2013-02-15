@@ -886,7 +886,7 @@ end
 
 
 
-function dpath = extractpath(fullfilename)
+function [dpath,filename] = extractpath(fullfilename)
 k = strfind(fullfilename,filesep);
 dpath = fullfilename(1:k(end));
-
+filename = fullfilename(k(end)+1:end);
