@@ -121,12 +121,6 @@ varargout{1} = handles.output;
 function QuickLoad_Callback(hObject, eventdata, handles)
 
  
-% % load a .mat file for troubleshooting
-% datapath = get(handles.datapath,'String');
-% load(datapath); mlist = molist; 
-% if exist('molist','var') == 0
-%     error('file does not contain a recognized molecule list');
-% end
 axes(handles.axes2); cla; 
 clear global mlist fnames;
 global mlist fnames binfile
@@ -140,16 +134,15 @@ disp('file loaded');
 
 imsetup(hObject,eventdata, handles);
 ClearFilters_Callback(hObject, eventdata, handles); 
-
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
 guidata(hObject, handles);
 
 
 
-% --- Executes on button press in SetLoadOps.
+% --- Executes on button press in SetLoadOps.-----------------------------
 function SetLoadOps_Callback(hObject, eventdata, handles)
-global loadops prompt default_opts froots
+   % Configure load options for multichannel loading 
+    
+global loadops prompt default_opts froots bins
 if ~isempty(froots)
     disp(froots)
 end
@@ -175,24 +168,17 @@ catch er
     '3',...
     '[false,true,true,true]',...
     '_list.bin',...
-    ['{', sprintf('''%3d'',',[750,647,561,488]), '}']}; 
+    '750,647,561,488'}; 
 end
 
 loadops = default_opts; 
 for n=[2:6,8]
     loadops{n} = eval(default_opts{n}); % saves a lot of str2double later.  
 end
-disp(['loading image ',loadops{2}]);
-if ~isempty(froots)
-    disp('will load');
-    fname = froots(:,loadops{2});
-    disp(fname);
-end
-% --- Executes on button press in MultiColorLoad.
-function MultiColorLoad_Callback(hObject, eventdata, handles)
-global loadops mlist fnames froots
+loadops{8} = parseCSL(loadops{8});
 
-  % parse pathin (whether it's a filename or a folder, we want the folder)
+
+% parse pathin (whether it's a filename or a folder, we want the folder)
     pathin = get(handles.datapath,'String');
     f = strfind(pathin,'.');
     if ~isempty(f)
@@ -205,13 +191,25 @@ global loadops mlist fnames froots
 
   % Automatically group all bin files of same section in different colors
   %   based on image number. 
-
     [bins,froots] = automatch_files(pathin,'sourceroot',loadops{1},'filetype',loadops{7},'chns',loadops{8});
-    disp('files found and grouped:'); disp(bins(:));
+    disp('files found and grouped:'); 
+    disp(bins(:));
+
+    disp('will load');
+    fname = froots(:,loadops{2});
+    disp(fname);
+
+
+% --- Executes on button press in MultiColorLoad.
+function MultiColorLoad_Callback(hObject, eventdata, handles)
+global loadops mlist fnames froots bins
+
 
   % Search for the correct chromatic warp file if chromatic warp is desired
     if loadops{4}
         warpD = loadops{5};
+        
+        
         if warpD == 3 || 2.5
             sfile = 'tforms3D.mat';
         elseif warD == 2
