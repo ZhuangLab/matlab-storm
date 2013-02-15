@@ -46,7 +46,7 @@ function I = plotSTORM_colorZ(mlist, imaxes, varargin)
 % boettiger.alistair@gmail.com
 % October 10th, 2012
 %
-% Version 1.0
+% Version 1.2
 %--------------------------------------------------------------------------
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
@@ -62,7 +62,7 @@ W = imaxes.W;
 zm = imaxes.zm;
 Cs = length(mlist);
 chns = find(true - cellfun(@isempty,mlist))';
-
+showScalebar = true;
 
 %--------------------------------------------------------------------------
 %% Default inputs
@@ -79,7 +79,6 @@ Zs = 20;
 Zrange = [-600,600]; % range in nm 
 npp = 160; 
 scalebar = 500;
-showScalebar = 1; 
 %--------------------------------------------------------------------------
 
 
@@ -110,16 +109,18 @@ if nargin > 2
                 Zrange = parameterValue;
             case 'nm per pixel'
                 npp = parameterValue;
-            case 'scalebar size'
-                scalebar = parameterValue;
             case 'scalebar'
-                showScalebar = CheckParameter(parameterValue,'boolean',scalebar); 
+                scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
         end
     end
 end
 
 %% Main Function
 %--------------------------------------------------------------------------
+
+if scalebar < 1
+    showScalebar = false; 
+end
 
 % initialize variables
 sig = cell(Cs,1);

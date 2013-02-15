@@ -44,7 +44,7 @@ elseif  ((~isempty(findstr(type,'.bin'))) && (direct))
     binfile = type;
     dispresults = input('display image in STORMrenderer? 1=yes, 0=no:  ');
     if dispresults
-        STORMrender;
+        STORMrenderBeta;
     else
         disp(['reading ',binfile,' into mlist']); 
         mlist = ReadMasterMoleculeList(binfile);

@@ -52,11 +52,17 @@ function STORMrenderBeta_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to STORMrenderBeta (see VARARGIN)
 
-global DisplayOps binfile
+global DisplayOps binfile cmin cmax
 DisplayOps.ColorZ = false; 
 DisplayOps.Zsteps = 5;
 DisplayOps.DotScale = 4;
 DisplayOps.HidePoor = false;
+DisplayOps.scalebar = 500;
+DisplayOps.npp = 160;
+DisplayOps.verbose = true;
+
+cmin = [0,0,0,0];
+cmax = [.7,.7,.7,.7]; % fixed 4 channel
 
 % Choose default command line output for STORMrenderBeta
 handles.output = hObject;
@@ -69,7 +75,7 @@ set(handles.Yslider,'Max',256);
 % set up axes for plotting
  axes(handles.axes1); 
  set(gca,'color','k');
- set(gca,'XTick',[],'','YTick',[]);
+ set(gca,'XTick',[],'YTick',[]);
  axes(handles.axes2); 
  set(gca,'color','k');
 set(gca,'XTick',[],'YTick',[]);
@@ -119,23 +125,24 @@ varargout{1} = handles.output;
 %========================================================================%
 % --- Executes on button press in QuickLoad.
 function QuickLoad_Callback(hObject, eventdata, handles)
-
- 
-axes(handles.axes2); cla; 
-clear global mlist fnames;
-global mlist fnames binfile
+clear global mlist bins fnames froots infofile;
+global mlist fnames binfile infofile
 if isempty(binfile)
    [filename,pathname] = uigetfile('*.bin');
    binfile = [pathname,filesep,filename];
 end
+disp('reading binfile...');
 mlist{1} = ReadMasterMoleculeList(binfile);
 fnames{1} = binfile; 
 disp('file loaded'); 
 
+k = strfind(filename,'_');
+infofile = ReadInfoFile([pathname,filesep,filename(1:k(end)-1),'.inf']);
+disp('setting up image options...');
 imsetup(hObject,eventdata, handles);
+disp('drawing data...');
 ClearFilters_Callback(hObject, eventdata, handles); 
 guidata(hObject, handles);
-
 
 
 % --- Executes on button press in SetLoadOps.-----------------------------
@@ -172,7 +179,7 @@ catch er
 end
 
 loadops = default_opts; 
-for n=[2:6,8]
+for n=2:6
     loadops{n} = eval(default_opts{n}); % saves a lot of str2double later.  
 end
 loadops{8} = parseCSL(loadops{8});
@@ -187,7 +194,7 @@ loadops{8} = parseCSL(loadops{8});
     end
     set(handles.datapath,'String',pathin);
     disp(['searching for bin files in ', pathin,'...'])
-
+    loadops{9} = pathin;
 
   % Automatically group all bin files of same section in different colors
   %   based on image number. 
@@ -202,8 +209,13 @@ loadops{8} = parseCSL(loadops{8});
 
 % --- Executes on button press in MultiColorLoad.
 function MultiColorLoad_Callback(hObject, eventdata, handles)
-global loadops mlist fnames froots bins
-
+clear global mlist bins fnames froots infofile;
+global loadops mlist fnames froots bins infofile
+    
+i = loadops{2}; % im number
+pathin = loadops{9};
+filename = froots(:,loadops{2});
+infofile = ReadInfoFile([pathname,filesep,filename,'.inf']);
 
   % Search for the correct chromatic warp file if chromatic warp is desired
     if loadops{4}
@@ -228,8 +240,8 @@ global loadops mlist fnames froots bins
         Bead_folder = [];
     end 
 
-    i = loadops{2}; % im number
 
+    
   % Figure out which channels are really in data set  
     hasdata = logical(1-cellfun(@isempty, bins(:,i)));
     binnames =  bins(hasdata,i); % length cls must equal length binnames
@@ -335,7 +347,7 @@ function SaveData_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global mlist infilter imaxes I Ozoom max_sat min_off savepath Io
+global mlist infilter imaxes I Ozoom cmax cmin savepath Io
 chns = find(true - cellfun(@isempty,mlist))';
 Cs = length(chns);
 molist = cell(Cs,1);
@@ -362,7 +374,7 @@ if ~isempty(k)
     savename = savename(1:k-1); 
 end
 
-if isempty(I) || isempty(max_sat) || isempty(min_off)
+if isempty(I) || isempty(cmax) || isempty(cmin)
     disp('no image data to save');
 end
 if isempty(Ozoom)
@@ -370,7 +382,7 @@ if isempty(Ozoom)
 end
 
 if savename ~= 0 % save was not 'canceled'
-    save([savepath,filesep,savename,'.mat'],'molist','mfilter','I','Ozoom','imaxes','max_sat','min_off');
+    save([savepath,filesep,savename,'.mat'],'molist','mfilter','I','Ozoom','imaxes','cmax','cmin');
     disp([savepath,filesep,savename,'.mat' ' saved successfully']);
     imwrite(Io,[savepath,filesep,savename,'.png']); 
     disp(['wrote ', savepath,filesep,savename,'.png']);
@@ -460,14 +472,13 @@ function loadim(hObject,eventdata, handles)
 global mlist imaxes I infilter DisplayOps
 axes(handles.axes2); 
 % if we're zoomed out fully, recenter everything
-disp(imaxes);
 if imaxes.zm == 1
   imsetup(hObject,eventdata, handles); % reset to center
 end
 getedges(hObject, eventdata, handles);
 UpdateSliders(hObject,eventdata,handles);
-disp(['updated minx=',num2str(imaxes.xmin)]);
-disp(['updated miny=',num2str(imaxes.ymin)]); 
+% disp(['updated minx=',num2str(imaxes.xmin)]);
+% disp(['updated miny=',num2str(imaxes.ymin)]); 
 
 tic
 if DisplayOps.ColorZ
@@ -528,7 +539,7 @@ function choosefilt_Callback(hObject, eventdata, handles)
 
 % --- Executes on button press in ClearFilters.
 function ClearFilters_Callback(hObject, eventdata, handles)
-global mlist infilter filts max_sat min_off
+global mlist infilter filts cmax cmin
 filts = struct('custom',[]); % empty structure to store filters
 Cs = length(mlist);
     infilter = cell(Cs,1);
@@ -544,8 +555,8 @@ set(handles.chn2,'Value',channel_active(2));
 set(handles.chn3,'Value',channel_active(3));
 set(handles.chn4,'Value',channel_active(4));
     
-max_sat = .0003*ones(Cs,1); % default values
-min_off = 0*ones(Cs,1);  % default values
+cmax = .0003*ones(Cs,1); % default values
+cmin = 0*ones(Cs,1);  % default values
 loadim(hObject,eventdata, handles); % calls plotdata function
  
  
@@ -591,7 +602,7 @@ disp('this function still under development');
  
  
 function update_imcolor(hObject,handles)
-global I Ic Io max_sat min_off fnames DisplayOps imaxes ScratchPath
+global I Ic Io cmax cmin fnames DisplayOps imaxes ScratchPath
 guidata(hObject, handles);
 channels(1) = get(handles.chn1,'Value');
 channels(2) = get(handles.chn2,'Value');
@@ -606,45 +617,40 @@ if DisplayOps.ColorZ
     Ic = zeros(h,w,Zs*length(active_channels),'uint16'); 
     active_channels(active_channels>Cs) = []; 
     for c=active_channels
-        %load([ScratchPath,'test.mat']);
-       for k=1:DisplayOps.Zsteps
+       for k=1:Zs
            n=n+1;
-            Ic(:,:,n) = mycontrast(I{c}(:,:,k),max_sat(c),min_off(c));   
+            Ic(:,:,n) =  imadjust(I{c}(:,:,k),[cmin(c),cmax(c)],[0,1]);
        end
    end
 else
     [~,~,Cs] = size(I);
+    Zs =1;
     for c=1:Cs
           Ic = I; % incase Ic doesn't exist.  
-          % Ic(:,:,c) = mycontrast(I(:,:,c),max_sat(c),min_off(c));
-          Ic(:,:,c) = imadjust(I(:,:,c),[min_off(c),max_sat(c)],[0,1]);
+          Ic(:,:,c) = imadjust(I(:,:,c),[cmin(c),cmax(c)],[0,1]);
     end
     Ic(:,:,logical(1-channels)) = cast(0,'uint16'); 
 end
 
-%  save([ScratchPath,'test.mat'],'Ic','handles','I','DisplayOps','max_sat','min_off','active_channels','channels');
+%  save([ScratchPath,'test.mat'],'Ic','handles','I','DisplayOps','cmax','cmin','active_channels','channels');
 % load([ScratchPath,'test.mat']);
 
 Io = Ncolor(Ic,[]); 
-axes(handles.axes2); cla; axis off;
+axes(handles.axes2); cla; 
 imagesc(Io); 
 shading interp;
 axes(handles.axes2);
 set(handles.imtitle,'String',fnames(:)); % interpreter, none
-colorbar; colormap(hsv(Cs));
+colorbar; colormap(hsv(Zs*Cs));
+set(gca,'XTick',[],'YTick',[]);
 
 if imaxes.updatemini
-    axes(handles.axes1); cla; axis off;
+    axes(handles.axes1); cla;
+    set(gca,'XTick',[],'YTick',[]);
     imagesc(Io); 
     imaxes.updatemini = false;
 end
 guidata(hObject, handles);
-
-
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat','Ic','I','Io');
- 
-
-
 
 
 
@@ -653,9 +659,9 @@ function ManualContrastTool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to ManualContrastTool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global max_sat min_off 
-max_sat = input('enter a vector for max intensity for each channel: ');
-min_off = input('enter a vector for min intensity for each channel: ');
+global cmax cmin 
+cmax = input('enter a vector for max intensity for each channel: ');
+cmin = input('enter a vector for min intensity for each channel: ');
  update_imcolor(hObject,handles);
  guidata(hObject, handles);
  
@@ -664,15 +670,15 @@ function AutoContrastTool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to AutoContrastTool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global max_sat min_off
-    max_sat = [.01,.01,.01,.01];
-    min_off = [.0,.0,.0,.0];
+global cmax cmin
+    cmax = [.9,.9,.9,.9];
+    cmin = [.0,.0,.0,.0];
  update_imcolor(hObject,handles);
  guidata(hObject, handles);
 
 % ------
  function scalecolor(hObject,handles)
- global I max_sat min_off DisplayOps ScratchPath
+ global I cmax cmin DisplayOps ScratchPath
     channels(1) = get(handles.fchn1,'Value');
     channels(2) = get(handles.fchn2,'Value');
     channels(3) = get(handles.fchn3,'Value');
@@ -690,11 +696,9 @@ global max_sat min_off
    
    logscalecolor = logical(get(handles.logscalecolor,'Value'));
    
-     save([ScratchPath,'test.mat']);
-%     % load([ScratchPath,'test.mat']);
    
-   max_sat(c) = maxin;
-   min_off(c) = minin;
+   cmax(c) = maxin;
+   cmin(c) = minin;
     
         if DisplayOps.ColorZ 
             raw_ints  = double(I{c}(:));     
@@ -705,7 +709,7 @@ global max_sat min_off
         raw_ints = raw_ints(:);
         max_int = max(raw_ints);
         
-       axes(handles.axes3); cla;
+       axes(handles.axes3); cla reset; 
        if ~logscalecolor
            xs = linspace(0,max_int,1000); 
             hi1 = hist(nonzeros(raw_ints)./max_int,xs);
@@ -715,23 +719,32 @@ global max_sat min_off
             h2 = findobj('type','patch'); 
             xlim([min(xs),max(xs)]);
        else
-           xs = linspace(-5,0,100);
-           hi1 = hist(log10(nonzeros(raw_ints)/(max_int)),xs);
-           hist(log10(nonzeros(raw_ints)/(max_int)),xs); hold on;
+           
+           xs = linspace(-5,0,50);
+           lognorm =  log10(nonzeros(raw_ints)/max_int);
+           hi1 = hist(lognorm,xs);
+           hist(lognorm,xs); hold on;
            xlim([min(xs),max(xs)]);
-    
-           inrange = nonzeros(raw_ints( raw_ints/max_int>minin & raw_ints/max_int<maxin))./max_int;
-           hist(log10(inrange),xs);
+          log_min = (minin-1)*5; % map relative [0,1] to logpowers [-5 0];
+          log_max = (maxin-1)*5; % map relative [0,1] to logpowers [-5 0];
+          
+           % inrange = log10(nonzeros(raw_ints(lognorm > log_min & lognorm < log_max))/max_int);
+           inrange = lognorm(lognorm>log_min & lognorm<log_max);
+           hist(inrange,xs);
            xlim([min(xs),max(xs)]);
+           clear h2;
            h2 = findobj('type','patch'); 
        end
         ylim([0,1.2*max(hi1)]);
-       set(h2(1),'FaceColor','b','EdgeColor','b');
-       set(h2(2),'FaceColor','r','EdgeColor','r');
+       set(h2(3),'FaceColor','b','EdgeColor','b');
+       set(h2(4),'FaceColor','r','EdgeColor','r');
+       set(gca,'XTick',[],'YTick',[]);
        alpha .5;
        
-       clear raw_ints; 
+     %      save([ScratchPath,'test.mat']);
+     % load([ScratchPath,'test.mat']);  figure(3); clf;
        
+       clear raw_ints;        
       update_imcolor(hObject,handles);
       guidata(hObject, handles);
 
@@ -792,7 +805,10 @@ Dprompt = {
     'Display Z as color',...
     'Number of Z-steps',...
     'Dot scale',...
-    'hide poor z-fits'};
+    'hide poor z-fits',...
+    'scalebar (0 for off)',...
+    'nm per pixel',...
+    'verbose'};
 default_Dopts{1} = num2str(DisplayOps.ColorZ);
 default_Dopts{2} = num2str(DisplayOps.Zsteps);
 default_Dopts{3} = num2str(DisplayOps.DotScale);
@@ -807,12 +823,20 @@ catch er
     'false',...
     '3',...
     '4',...
-    'false'};
+    'false',...
+    '500',...
+    '160',...
+    'true'};
 end
 DisplayOps.ColorZ = eval(default_Dopts{1}); 
 DisplayOps.Zsteps = eval(default_Dopts{2});
 DisplayOps.DotScale = eval(default_Dopts{3});
 DisplayOps.HidePoor = eval(default_Dopts{4});
+DisplayOps.scalebar = eval(default_Dopts{5});
+DisplayOps.npp = eval(default_Dopts{6});
+DisplayOps.verbose = eval(default_Dopts{7});
+loadim(hObject,eventdata, handles);
+guidata(hObject, handles);
 
 
 
@@ -865,8 +889,6 @@ end
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
 guidata(hObject, handles);
 UpdateSliders(hObject,eventdata,handles);
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat','imaxes','handles');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
 
@@ -926,31 +948,42 @@ end
 disp(['new zoom=',num2str(imaxes.zm)]);
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
 
-axes(handles.axes1);
-hold on;
-hside= imaxes.H*imaxes.scale/imaxes.zm;
-wside = imaxes.W*imaxes.scale/imaxes.zm;
-lower_x = imaxes.scale*imaxes.cx-wside/2;
-lower_y = imaxes.scale*imaxes.cy-hside/2;
-
-rectangle('Position',[lower_x,lower_y,wside,hside],...
-    'EdgeColor','w','linewidth',1); 
-hold off;
-
-guidata(hObject, handles);
 UpdateSliders(hObject,eventdata,handles)
 
- save([ScratchPath,'test.mat']);
-  % load([ScratchPath,'test.mat']);
+%  save([ScratchPath,'test.mat']);
+ % load([ScratchPath,'test.mat']);
 
 % plot box
 axes(handles.axes2); hold on;
+set(gca,'Xtick',[],'Ytick',[]);
 rectangle('Position',[min(x),min(y),abs(x(2)-x(1)),abs(y(2)-y(1))],'EdgeColor','w'); hold off;
-% rectangle('Position',[imaxes.cx-xdiff/2,imaxes.cy-ydiff/2,xdiff,ydiff],'EdgeColor','c');
 guidata(hObject, handles);
 pause(.1); 
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
+
+
+
+
+
+%----------------------------------------------
+function updateNaviagtor(hObject,handles)
+ global imaxes
+    axes(handles.axes1);
+    set(gca,'Xtick',[],'Ytick',[]);
+    hold on;
+    hside= imaxes.H*imaxes.scale/imaxes.zm;
+    wside = imaxes.W*imaxes.scale/imaxes.zm;
+    lower_x = imaxes.scale*imaxes.cx-wside/2;
+    lower_y = imaxes.scale*imaxes.cy-hside/2;
+    prevbox = findobj(gca,'Type','rectangle');
+    delete(prevbox); 
+    rectangle('Position',[lower_x,lower_y,wside,hside],...
+        'EdgeColor','w','linewidth',1); 
+    hold off;
+    guidata(hObject, handles);
+% ------------------------------------------
+
 
 % --------------------------------------------------------------------
 function recenter_ClickedCallback(hObject, eventdata, handles)
@@ -975,6 +1008,7 @@ global imaxes
 handles = guidata(hObject);
 set(handles.Xslider,'Value',imaxes.cx);
 set(handles.Yslider,'Value',imaxes.H-imaxes.cy);
+updateNaviagtor(hObject,handles);
 guidata(hObject, handles);
 
 % --- Executes on slider movement.
@@ -1236,7 +1270,7 @@ function vlist = MolsInView(handles)
 
 % --- Executes on button press in AddOverlay.
 function AddOverlay_Callback(hObject, eventdata, handles)
-global I Ozoom imaxes Overlay_prompt Overlay_opts max_sat min_off fnames
+global I Ozoom imaxes Overlay_prompt Overlay_opts cmax cmin fnames
 
 % ------------- load image
 % open dialog box to decide whether image should be flipped or rotated
@@ -1292,7 +1326,7 @@ It = Ncolor(Ozoom,'');
 figure; clf; imagesc(It); % display contrasted image
 Ic = I; 
 for k=1:Cs
-      Ic(:,:,k) = mycontrast(I(:,:,k),max_sat(k),min_off(k));
+      Ic(:,:,k) = mycontrast(I(:,:,k),cmax(k),cmin(k));
 end
 
 %----------- Combine with Choice colormap
@@ -1453,3 +1487,9 @@ end
 % --- Executes on button press in logscalecolor.
 function logscalecolor_Callback(hObject, eventdata, handles)
 
+    
+
+function [dpath,filename] = extractpath(fullfilename)
+k = strfind(fullfilename,filesep);
+dpath = fullfilename(1:k(end));
+filename = fullfilename(k(end)+1:end);
