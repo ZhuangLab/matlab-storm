@@ -130,6 +130,8 @@ global mlist fnames binfile infofile
 if isempty(binfile)
    [filename,pathname] = uigetfile('*.bin');
    binfile = [pathname,filesep,filename];
+else
+    [pathname,filename] = extractpath(binfile);
 end
 disp('reading binfile...');
 mlist{1} = ReadMasterMoleculeList(binfile);
@@ -248,6 +250,7 @@ infofile = ReadInfoFile([pathname,filesep,filename,'.inf']);
     fnames = froots(hasdata,i); 
     disp(fnames);
     axes(handles.axes2); 
+     set(gca,'XTick',[],'YTick',[]);
     set(handles.imtitle,'String',fnames(:)); % ,'interpreter','none');  
     chns = loadops{8}(hasdata); 
     if sum((logical(1-hasdata))) ~=0
@@ -347,24 +350,13 @@ function SaveData_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global mlist infilter imaxes I Ozoom cmax cmin savepath Io
-chns = find(true - cellfun(@isempty,mlist))';
-Cs = length(chns);
-molist = cell(Cs,1);
-mfilter = cell(Cs,1);
+global I Ozoom cmax cmin fnames savepath Io %#ok<NUSED>
 
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');   
-
-for c=chns
-    inbox = [mlist{c}.xc]>imaxes.xmin & [mlist{c}.xc] < imaxes.xmax & [mlist{c}.yc] >imaxes.ymin & [mlist{c}.yc] <imaxes.ymax;
-    molist{c} = structfun(@(x) x(inbox), mlist{c},'UniformOutput',false);
-    mfilter{c} = infilter{c}(inbox); 
-end
+vlist = MolsInView(handles); %#ok<NASGU>
 
 try
 [savename,savepath] = uiputfile(savepath);
-catch
+catch %#ok<CTCH>
     [savename,savepath] = uiputfile;
 end
 
@@ -382,7 +374,7 @@ if isempty(Ozoom)
 end
 
 if savename ~= 0 % save was not 'canceled'
-    save([savepath,filesep,savename,'.mat'],'molist','mfilter','I','Ozoom','imaxes','cmax','cmin');
+    save([savepath,filesep,savename,'.mat'],'vlist','I','Ozoom','cmax','cmin','fnames');
     disp([savepath,filesep,savename,'.mat' ' saved successfully']);
     imwrite(Io,[savepath,filesep,savename,'.png']); 
     disp(['wrote ', savepath,filesep,savename,'.png']);
@@ -470,7 +462,6 @@ end
 function loadim(hObject,eventdata, handles)
 % load variables
 global mlist imaxes I infilter DisplayOps
-axes(handles.axes2); 
 % if we're zoomed out fully, recenter everything
 if imaxes.zm == 1
   imsetup(hObject,eventdata, handles); % reset to center
@@ -490,9 +481,11 @@ if DisplayOps.ColorZ
         end
     end
     I = plotSTORM_colorZ(mlist, imaxes,'filter',infilter,...
-        'dotsize',DisplayOps.DotScale,'Zsteps',DisplayOps.Zsteps);
+        'dotsize',DisplayOps.DotScale,'Zsteps',DisplayOps.Zsteps,...
+        'scalebar',0);
 else
-    I = plotSTORM(mlist, imaxes,'filter',infilter,'dotsize',DisplayOps.DotScale);
+    I = plotSTORM(mlist, imaxes,'filter',infilter,...
+        'dotsize',DisplayOps.DotScale,'scalebar',0);
 end
 update_imcolor(hObject,handles); % converts I, applys contrast, to RBG
 guidata(hObject, handles);
@@ -636,7 +629,16 @@ end
 % load([ScratchPath,'test.mat']);
 
 Io = Ncolor(Ic,[]); 
+
+[~,~,Cs_out] = size(Io); 
+if DisplayOps.scalebar > 0 
+    scb = round(1:DisplayOps.scalebar/DisplayOps.npp*imaxes.zm*imaxes.scale);
+    h1 = round(imaxes.H*.9*imaxes.scale);
+    Io(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Cs_out,'uint16'); % Add scale bar and labels
+end
+
 axes(handles.axes2); cla; 
+set(gca,'XTick',[],'YTick',[]);
 imagesc(Io); 
 shading interp;
 axes(handles.axes2);
@@ -710,6 +712,7 @@ global cmax cmin
         max_int = max(raw_ints);
         
        axes(handles.axes3); cla reset; 
+        set(gca,'XTick',[],'YTick',[]); 
        if ~logscalecolor
            xs = linspace(0,max_int,1000); 
             hi1 = hist(nonzeros(raw_ints)./max_int,xs);
@@ -920,6 +923,7 @@ global imaxes ScratchPath
 handles = guidata(hObject);
 % user specifies box:
 axes(handles.axes2); 
+set(gca,'XTick',[],'YTick',[]);
 disp(['curr zoom=',num2str(imaxes.zm)]);
 disp(['curr cx=',num2str(imaxes.cx)]);
 disp(['curr cy=',num2str(imaxes.cy)]); 
@@ -1192,8 +1196,13 @@ save([ScratchPath,'testdat.mat']);
 load([ScratchPath,'testdat.mat']);
 
 for c = chns
+    if length(vlist{c}.x) > 2000
+        msize = 1;
+    else
+        msize = 5; 
+    end
     plot3(vlist{c}.x*npp,vlist{c}.y*npp,vlist{c}.z*npp,'.','color',cmap(c,:),...
-        'MarkerSize',5);
+        'MarkerSize',msize);
     lab{c} = ['channel ',num2str(c)', ' # loc:',num2str(length(vlist{c}.x))];
     hold on;
 end
@@ -1248,6 +1257,7 @@ function vlist = MolsInView(handles)
          vlist{c}.inbox = inbox; 
          vlist{c}.infilter = infilter{c};
          vlist{c}.locinfilter = infilter{c}(infilter{c}' & inbox)';
+         vlist{c}.imaxes = imaxes; 
       end
     end  
   
@@ -1348,48 +1358,17 @@ shading interp;
 function ImageContext_Callback(hObject, eventdata, handles)
 % Loads multicolor mosaic created with the Steve application.
 % Marks location of current image on mosaic. 
-global Im fnames stage
+global infofile Mosaicfolder
 
-pathin = get(handles.datapath,'String');
-f = strfind(pathin,filesep); % go up one directory
-pathroot = pathin(1:f(end));
+if isempty(Mosaicfolder)
+    Mosaicfolder = [infofile.localPath,filesep,'..',filesep,'Mosaic'];
+    if ~exist(Mosaicfolder,'dir')
+        Mosaicfolder = uigetdir(infofile.localPath);
+    end
+end    
+position = [infofile.Stage_X,infofile.Stage_Y];
+MosaicViewer(Mosaicfolder,position);
 
-
-% % optional, get position list
-% fname = 'positions.txt';
-% Pfolder = findfile(pathin,fname,1);
-% positionlist = [Pfolder,filesep,fname];  % full directory to positions
-
-Mfolder = 'Mosaic';
-shrk = 1; 
-% Load the mosaic file
-  % This has potential to kill the memory; 
-  if isempty(stage)  % Don't want to rebuild the mosaic everytime.  
-    [Im,stage] = fxn_rebuild_mosaic([pathroot,filesep,Mfolder],'shrink',shrk);
-  end
-   figure; clf; imagesc(Im);
-  
-  % get location of current image on mosaic
-  info = ReadInfoFile('path',[pathin,filesep],'files',[fnames{1},'.inf']);
-  info.Stage_X, info.Stage_Y
-  Stage_Y =(stage.sy*info.Stage_X - stage.ymin + 256)/shrk; 
-  Stage_X =(stage.sx*info.Stage_Y - stage.xmin + 256)/shrk; 
-  
-  % HIGHLIGHT IMAGE LOCATION ON MOSAIC
-    zn = 256*6; % number of pixels to incude on each side (6 more frames eachway)
-    [ih,iw,~] = size(Im);
-      my1 = floor( max(Stage_Y-zn,1) );
-      my2 = floor( min(Stage_Y+zn,ih) );
-      mx1 = floor( max(Stage_X-zn,1) );
-      mx2 = floor( min(Stage_X+zn,iw) );
-      Im_zoom = Im(my1:my2,mx1:mx2,:);
-    Im_zoom(:,:,1) = mycontrast(Im_zoom(:,:,1),.00025,0);
-
-    % Save zoomed in version of mosaic
-    mosaic_zoom = figure; clf; 
-    imagesc(Im_zoom);
-    rectangle('Position',[zn-127,zn-127,256,256],'EdgeColor','c');    
-      
  
 
 
