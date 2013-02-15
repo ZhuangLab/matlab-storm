@@ -473,6 +473,7 @@ UpdateSliders(hObject,eventdata,handles);
 
 tic
 if DisplayOps.ColorZ
+    Zsteps = DisplayOps.Zsteps;
     % In general, not worth excluding these dots from 2d images.
     % if desired, can be done by applying a molecule list filter.  
     if DisplayOps.HidePoor 
@@ -480,13 +481,13 @@ if DisplayOps.ColorZ
             infilter{c}(mlist{c}.c==9) = 0;  
         end
     end
-    I = plotSTORM_colorZ(mlist, imaxes,'filter',infilter,...
-        'dotsize',DisplayOps.DotScale,'Zsteps',DisplayOps.Zsteps,...
-        'scalebar',0);
 else
-    I = plotSTORM(mlist, imaxes,'filter',infilter,...
-        'dotsize',DisplayOps.DotScale,'scalebar',0);
+    Zsteps = 1;
 end
+
+I = plotSTORM_colorZ(mlist, imaxes,'filter',infilter,...
+    'dotsize',DisplayOps.DotScale,'Zsteps',Zsteps,'scalebar',0);
+
 update_imcolor(hObject,handles); % converts I, applys contrast, to RBG
 guidata(hObject, handles);
 plottime = toc;
@@ -612,7 +613,7 @@ if DisplayOps.ColorZ
     for c=active_channels
        for k=1:Zs
            n=n+1;
-            Ic(:,:,n) =  imadjust(I{c}(:,:,k),[cmin(c),cmax(c)],[0,1]);
+            Ic(:,:,n) =  imadjust(I{c}(:,:,k),[cmin(c),cmax(c)],[0,1/Zs]);
        end
    end
 else
@@ -740,7 +741,7 @@ global cmax cmin
        end
         ylim([0,1.2*max(hi1)]);
        set(h2(3),'FaceColor','b','EdgeColor','b');
-       set(h2(4),'FaceColor','r','EdgeColor','r');
+       set(h2(1),'FaceColor','r','EdgeColor','r');
        set(gca,'XTick',[],'YTick',[]);
        alpha .5;
        
@@ -1062,10 +1063,10 @@ function Render3D_ClickedCallback(hObject, eventdata, handles)
 global imaxes I DisplayOps
 
 % currently hard-coded, should be user options 
-npp = 160; 
+npp =DisplayOps.npp; 
 zrange = [-600,600];
 
-if DisplayOps.ColorZ
+if DisplayOps.ColorZ && DisplayOps.Zsteps > 1
 disp('use cell arrays of parameters for multichannel rendering'); 
 disp('see help Im3D for more options'); 
 
@@ -1131,10 +1132,10 @@ function Rotate3Dslices_ClickedCallback(hObject, eventdata, handles)
 global imaxes I DisplayOps
 
 % currently hard-coded, should be user options 
-npp = 160; 
+npp =DisplayOps.npp; % npp 
 zrange = [-600,600];
 
-if DisplayOps.ColorZ
+if DisplayOps.ColorZ && DisplayOps.Zsteps > 1
 dlg_title = 'Render3D';
 num_lines = 1;
 
@@ -1179,7 +1180,7 @@ function plot3Ddots_ClickedCallback(hObject, eventdata, handles)
 global plt3Dfig  ScratchPath
 npp = 160; % should be a global in imageops or something
 vlist = MolsInView(handles);
-chns = find(cellfun(@(x) ~isempty(x),vlist))
+chns = find(cellfun(@(x) ~isempty(x),vlist));
 Cs = length(chns); 
 cmap = hsv(Cs);
 lab = cell(Cs,1);
@@ -1388,18 +1389,13 @@ tiffwrite(Io,[pathname,filesep,filename]);
 
 
 
-
 function datapath_Callback(hObject, eventdata, handles)
-global Im
-clear global Im;
-clear global stage;
-% if source folder is changed, clear mosaic
+
 
 function datapath_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 
 function CustomFilter_Callback(hObject, eventdata, handles)
 
@@ -1416,7 +1412,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
 % --- Executes on button press in fchn2.
 function fchn2_Callback(hObject, eventdata, handles)
 
@@ -1431,14 +1426,11 @@ function fchn1_Callback(hObject, eventdata, handles)
 
 
 
-
-
 % --- Executes during object creation, after setting all properties.
 function MaxIntBox_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1447,14 +1439,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 % --- Executes during object creation, after setting all properties.
 function MaxIntSlider_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
-
 
 % --- Executes during object creation, after setting all properties.
 function MinIntSlider_CreateFcn(hObject, eventdata, handles)
