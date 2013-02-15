@@ -109,12 +109,6 @@ if length(theta) < channels
     theta(2:channels) = theta(1); 
 end
 
-if ~iscell(colr)
-    colr = {colr};
-end
-if length(colr) < channels
-    colr =  mat2cell(hsv(channels),ones(1,channels),3);
-end
 
 
 
