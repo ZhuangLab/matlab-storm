@@ -275,7 +275,10 @@ if sum(hasbin) ~= 0
         end
     else
         disp('skipping these movies...'); 
+        if ~strcmp(method,'DaoSTORM');
+            % DaoSTORM defaults to 'pick up where it left off' analysis
         daxnames(logical(hasbin))=[]; % actually removes from que     
+        end
     end
 end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
