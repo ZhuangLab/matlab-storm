@@ -325,6 +325,9 @@ for n=1:Nmolecules
 end
 
 %% Compute curve fits
+xwindow = .5;
+ywindow = .5;
+
 hasdata =  logical(1-isnan(Wx(:)));
 wxf =  Wx(hasdata);
 wyf = Wy(hasdata);
@@ -335,16 +338,16 @@ wyf = wyf(zi);
 
 % Fit is stupid un-robust, so on bad data we may need a little course
 % filtering
- decent =  wxf > 180 & wyf > 180; % this stuff is not dots and def. screws up the polyfit;  
+ decent =  wxf > 100 & wyf > 100; % this stuff is not dots and def. screws up the polyfit;  
  zz =zz(decent); wxf = wxf(decent); wyf=wyf(decent); 
 decent =polyfilter(zz,wxf,wyf,zwindow*1.5);
 
 
 if PlotsOn
     postshift =  figure;  
-    plot(zz,wxf,'g.',zz,wyf,'b.','MarkerSize',1);
+    plot(zz,wxf,'b.',zz,wyf,'g.','MarkerSize',1);
     figure(postshift); hold on;
-    plot(zz(decent),wxf(decent),'g.',zz(decent),wyf(decent),'b.','MarkerSize',5);
+    plot(zz(decent),wxf(decent),'b.',zz(decent),wyf(decent),'g.','MarkerSize',5);
     xlim([-800,800]); ylim([0,min([max([wxf;wyf]),1200])]);
      saveas(postshift,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_','postshift','.png']);
     if verbose; 
@@ -387,21 +390,30 @@ catch er
     catch er
         disp(er.message); 
         disp('wy_fit applying polynomial data filtering');
+        try
         decent = polyfilter(zz,wxf,wyf,.5*zwindow);
         wy_fit = fit(zz(decent),wyf(decent),ftype,'StartPoint',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0],'Lower',[100 -1000 -1000 -.25 -.25],'Upper',[450,1000,1000,.25,.25]); % 
+        catch er
+            disp(er.message);
+            disp('exluding wy tail');
+            decent = wyf<530;
+            wy_fit = fit(zz(decent),wyf(decent),ftype,'StartPoint',[ wy_fit0.w0  wy_fit0.zr  wy_fit0.g  0 0],'Lower',[100 -1000 -1000 -.01 -.01],'Upper',[450,1000,1000,2,2]); % 
+            ywindow = .25;
+        end
     end
 end
 swx = feval(wx_fit,zz);
 swy = feval(wy_fit,zz);
+        
 
 % Refit, using only data near the curve
 
-gooddots = logical(1- (abs(wyf - swy)>zwindow*.3 | abs(wxf - swx)>zwindow*.3) );
+gooddots = logical(1- (abs(wyf - swy)>zwindow*ywindow | abs(wxf - swx)>zwindow*xwindow) );
 zzg = zz(gooddots);
 wyfg = wyf(gooddots);
 wxfg =wxf(gooddots);
 ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
-wx_fit = fit(zzg,wxfg,ftype,'StartPoint',[ wx_fit.w0  wx_fit.zr  wx_fit.g wx_fit.A wx_fit.B],'Lower',[150 -1000 -1000 -20 -20],'Upper',[450,1000,1000,20,20]); % ADDED use options
+wx_fit = fit(zzg,wxfg,ftype,'StartPoint',[ wx_fit.w0  wx_fit.zr  wx_fit.g wx_fit.A wx_fit.B],'Lower',[150 -1000 -1000 -20 -20],'Upper',[450,1000,1000,20,20]); 
 ftype = fittype('w0*sqrt( B*((z-g)/zr)^4 + A*((z-g)/zr)^3 + ((z-g)/zr)^2 + 1 )','coeff', {'w0','zr','g','A','B'},'ind','z');
 wy_fit = fit(zzg,wyfg,ftype,'start',[ wy_fit.w0  wy_fit.zr  wy_fit.g  wy_fit.A wy_fit.B]); % ADDED use options
 swx = feval(wx_fit,zzg);
