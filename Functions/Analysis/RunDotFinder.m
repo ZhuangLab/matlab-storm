@@ -255,7 +255,7 @@ if sum(hasbin) ~= 0
         disp('these files will be overwritten.  ');
         end
     elseif overwrite == 0
-        overwritefiles = 0; 
+        overwritefiles = 2; 
     else
         disp(overwrite)
         disp('is not a valid value for overwrite'); 
@@ -273,12 +273,15 @@ if sum(hasbin) ~= 0
                 end
             end
         end
-    else
+    elseif overwritefiles == 2
         if ~strcmp(method,'DaoSTORM');
             disp('skipping these movies...'); 
             % DaoSTORM defaults to 'pick up where it left off' analysis
         daxnames(logical(hasbin))=[]; % actually removes from que     
         end
+    elseif overwritefiles == 0
+        disp('RunDaoSTORM canceled');
+        return
     end
 end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%

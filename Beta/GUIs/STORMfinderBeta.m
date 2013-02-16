@@ -100,15 +100,15 @@ function FindDots_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to FindDots (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global impars daxfile mlist  % shared Globals
+global impars daxfile mlist ScratchPath % shared Globals
 global defaultInsightPath inifile ; % for InsightM 
 global defaultDaoSTORM xmlfile  % for DaoSTORM
 global FitPars
 
     FitMethod = get(handles.FitMethod,'Value');
    
-    k = strfind(daxfile,filesep);
-    fpath = daxfile(1:k(end));
+%     k = strfind(daxfile,filesep);
+%     fpath = daxfile(1:k(end));
   %  daxroot = regexprep(daxfile(k(end)+1:end),'.dax','');
     
     if FitMethod == 1 % InsightM  
@@ -130,7 +130,7 @@ global FitPars
         
        % write temp daxfile
         mov_temp = 'mov_temp.dax';
-        daxtemp = [fpath, mov_temp];
+        daxtemp = [ScratchPath, mov_temp];
         ftemp = fopen(daxtemp,'w+');
         fwrite(ftemp,impars.Im(:),'*uint16',0,'b');
         fclose(ftemp);
@@ -139,13 +139,13 @@ global FitPars
         InfoFile_temp = impars.infofile;
         InfoFile_temp.number_of_frames = 1;
         InfoFile_temp.localName = 'mov_temp.inf';
-        InfoFile_temp.localPath = fpath;
+        InfoFile_temp.localPath = ScratchPath;
         WriteInfoFiles(InfoFile_temp,'verbose',false);
         % call insight 
         ccall = ['!', insight,' ',daxtemp,' ',inifile];
         disp(ccall); 
         eval(ccall); 
-        binfile = regexprep([fpath,'mov_temp.dax'],'\.dax','_list.bin');
+        binfile = regexprep([ScratchPath,'mov_temp.dax'],'\.dax','_list.bin');
             
         
 	elseif FitMethod == 2    
@@ -172,11 +172,14 @@ global FitPars
             modify_script(xmlfile,xmlfile_temp,parameters,new_values,'<');             
         % need to delete any existing bin menufile before we overwrite, or
         % DaoSTORM tries to pick up analysis where it left off.  
-         binfile = regexprep([fpath,'mov_temp.dax'],'\.dax','_mlist.bin'); 
+         binfile = regexprep([ScratchPath,'mov_temp.dax'],'\.dax','_mlist.bin'); 
          if exist(binfile,'file')
             delete(binfile);
          end    
-        % Call DaoSTORM.     
+        % Call DaoSTORM.    
+        disp('locating dots by DaoSTORM');
+        disp(daxfile)
+        disp(xmlfile_temp);
         system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',xmlfile_temp]);
         
             
@@ -257,9 +260,9 @@ global daxfile impars
     set(handles.FrameSlider,'Max',TFrames);
     set(handles.FrameSlider,'Value',impars.cframe); 
     set(handles.FrameSlider,'SliderStep',[1/TFrames,50/TFrames]);
-    UpdateFrame(handles);
+    UpdateFrame(hObject, handles);
 
-function UpdateFrame(handles)
+function UpdateFrame(hObject,handles)
     global daxfile impars
     % shorthand, load 
     cframe = impars.cframe; 
@@ -275,6 +278,8 @@ function UpdateFrame(handles)
     imagesc(Im(:,:,1)'); caxis([impars.cmin,impars.cmax]); colormap gray;
      axis off; 
     set(handles.title1,'String',daxfile);
+    set(handles.FrameSlider,'Value',impars.cframe); % update slider
+    guidata(hObject, handles);
     % the transpose here is merely to match insight.  
     impars.Im = Im; 
 
@@ -400,36 +405,29 @@ end
 
 
 function parfile = make_temp_parameters(handles,temp)
-% append 
+% append '_temp' to parameterfile, save in scratch directory
 global xmlfile inifile gpufile
 FitMethod = get(handles.FitMethod,'Value');
 if FitMethod == 1
-    k = strfind(inifile,'.ini');
-    if isempty(strfind(inifile,temp))
-        parfile = [inifile(1:k-1),'_',temp,'.ini'];
-    else
-        parfile = inifile;
-    end
+    parflag = '.ini';
+   parfile = scratch_parameters(inifile,temp,parflag); 
 elseif FitMethod == 2
-    k = strfind(xmlfile,'.xml');
-    if isempty(strfind(xmlfile,temp))
-        parfile = [xmlfile(1:k-1),'_',temp,'.xml'];
-    else
-        parfile = xmlfile;
-    end
+    parflag = '.xml';
+   parfile = scratch_parameters(xmlfile,temp,parflag);
 elseif FitMethod == 3
-     k = strfind(gpufile,'.mat');
-    if isempty(strfind(gpufile,temp))
-        parfile = [gpufile(1:k-1),'_temp','.mat'];
-    else
-        parfile = gpufile;
-    end
+    parflag = '.mat';
+   parfile = scratch_parameters(gpufile,temp,parflag);
 end
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
     
-    
-    
+function parfile = scratch_parameters(parfile,temp,parflag)
+global ScratchPath
+ [currpath,currpar] = extractpath(parfile);
+    if isempty(strfind(currpar,temp)) || isempty(strfind(ScratchPath,currpath))
+        parfile = [ScratchPath,currpar(1:end-4),'_',temp,parflag];
+    else
+        % no change needed 
+    end
+
 
 
 % --- Executes on button press in FitParameters.
@@ -437,12 +435,12 @@ function FitParameters_Callback(hObject, eventdata, handles)
 % hObject    handle to FitParameters (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global FitPars inifile xmlfile gpufile
+global FitPars inifile xmlfile gpufile ScratchPath
 % disp('loading inifile');
 % disp(inifile);
  FitMethod = get(handles.FitMethod,'Value');
- [FitPars,parameters] = ReadParameterFile(FitMethod,handles); 
- parfile = make_temp_parameters(handles,'temp'); % if _temp.ini / .xml parameter files have not been made, make them.
+[FitPars,parameters] = ReadParameterFile(FitMethod,handles); 
+parfile = make_temp_parameters(handles,'temp'); % if _temp.ini / .xml parameter files have not been made, make them.
 FitPars.OK = false;
 
  if FitMethod == 1 % InsightM
@@ -472,8 +470,8 @@ FitPars.OK = false;
     end
  end
     set(handles.CurrentPars,'String',parfile);
-
-
+% save([ScratchPath 'test10.mat']);
+% load([ScratchPath 'test10.mat']);
 
 
 % --- Executes on selection change in FitMethod.
@@ -497,7 +495,7 @@ function FrameSlider_Callback(hObject, eventdata, handles)
 global impars
 impars.cframe = round(get(handles.FrameSlider,'Value'));
 set(handles.currframe,'String',num2str(impars.cframe));
-UpdateFrame(handles);
+UpdateFrame(hObject, handles);
 
 
 % --------------------------------------------------------------------
@@ -520,7 +518,7 @@ default_opts = {
 default_opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
 impars.cmin = str2double(default_opts{1});
 impars.cmax = str2double(default_opts{2});
-UpdateFrame(handles);
+UpdateFrame(hObject, handles);
 
 % --------------------------------------------------------------------
 function AutoContrast_ClickedCallback(hObject, eventdata, handles)
@@ -530,7 +528,7 @@ function AutoContrast_ClickedCallback(hObject, eventdata, handles)
 global impars
 impars.cmax = max(impars.Im(:));
 impars.cmin = min(impars.Im(:));
-UpdateFrame(handles);
+UpdateFrame(hObject, handles);
 
 
 
@@ -540,7 +538,7 @@ function currframe_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global impars;
 impars.cframe = str2double(get(handles.currframe,'String'));
-UpdateFrame(handles);
+UpdateFrame(hObject, handles);
 
 
 
@@ -895,6 +893,9 @@ function zcalini2xml_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSD>
 
 global inifile xmlfile i2xopts
 
+inifile = string(inifile);
+xmlfile = string(xmlfile);
+
 [dpath,filename] = extractpath(inifile);
 xmlout = [dpath,filename(1:end-4),'.xml'];
 
@@ -914,6 +915,6 @@ catch er %#ok<NASGU>
         xmlout}; 
     i2xopts = inputdlg(prompt,dlg_title,num_lines,i2xopts);
 end
-zcal_ini2xml(i2xopts{1},i2xopts{2},i2xopts{3})
+zcal_ini2xml(i2xopts{1},i2xopts{2},i2xopts{3});
 
 
