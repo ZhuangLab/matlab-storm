@@ -29,7 +29,7 @@ Updates in this repository may introduce bugs that didnt exist before (it is a B
 		### In Development / To Do
 		* Add option to render mlist channels as different colors
 		* Add manual specification of which bin files to group
-		* Add MosaicView support
+		* Add overlay dax files
 		* Add Fiji 3D viewer option (use matlab embedded fiji?) 
 		* Multi-instance support within the same Matlab instance?  -- requires changing all globals to a structure element passed around
 

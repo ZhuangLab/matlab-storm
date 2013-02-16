@@ -28,7 +28,7 @@ function varargout = STORMfinderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMfinderBeta
 
-% Last Modified by GUIDE v2.5 08-Feb-2013 12:33:16
+% Last Modified by GUIDE v2.5 15-Feb-2013 22:47:11
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -72,8 +72,7 @@ guidata(hObject, handles);
 % If any daxfile has been loaded, open it along with opening the GUI.  
 try
 LoadFile_Callback(hObject, eventdata, handles)
-catch er
-    % disp(er.message);
+catch 
     disp('please load a dax file into matlab');
     disp('drag and drop to command window, then press Update Dax File');
 end
@@ -110,9 +109,9 @@ global FitPars
    
     k = strfind(daxfile,filesep);
     fpath = daxfile(1:k(end));
-    daxroot = regexprep(daxfile(k(end)+1:end),'.dax','');
+  %  daxroot = regexprep(daxfile(k(end)+1:end),'.dax','');
     
-	if FitMethod == 1 % InsightM  
+    if FitMethod == 1 % InsightM  
         if isempty(defaultInsightPath)
             error(['defaultInsightPath not found.  ',...
                 'Please set the global variable defaultInsightPath ',...
@@ -142,8 +141,7 @@ global FitPars
         InfoFile_temp.localName = 'mov_temp.inf';
         InfoFile_temp.localPath = fpath;
         WriteInfoFiles(InfoFile_temp,'verbose',false);
-         
-        
+        % call insight 
         ccall = ['!', insight,' ',daxtemp,' ',inifile];
         disp(ccall); 
         eval(ccall); 
@@ -161,8 +159,7 @@ global FitPars
                 'to specify the location of mufit_analysis.py in the ',...
                 'DaoSTORM folder on your computer and its dll paths.',...
                 'See startup_example in \Templates folder']);
-        end
-          
+        end          
         % update xmlfile to current frame 
             % save a new xmlfile which has 1frame appended onto the default one.
             xmlfile_temp = make_temp_parameters(handles,'1frame');
@@ -172,20 +169,18 @@ global FitPars
             new_values = {num2str(impars.cframe-1),...
                           num2str(impars.cframe),...
                           '0'}; 
-            modify_script(xmlfile,xmlfile_temp,parameters,new_values,'<');     
-         
+            modify_script(xmlfile,xmlfile_temp,parameters,new_values,'<');             
         % need to delete any existing bin menufile before we overwrite, or
         % DaoSTORM tries to pick up analysis where it left off.  
          binfile = regexprep([fpath,'mov_temp.dax'],'\.dax','_mlist.bin'); 
          if exist(binfile,'file')
             delete(binfile);
-         end
-         
+         end    
         % Call DaoSTORM.     
         system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',xmlfile_temp]);
         
             
-    elseif FitMethod == 3
+	elseif FitMethod == 3
         TempPars = FitPars;
         TempPars.startFrame = mat2str(impars.cframe);
         TempPars.endFrame = mat2str(impars.cframe+1); 
@@ -195,7 +190,7 @@ global FitPars
     if FitMethod~=3
         try
         mlist = ReadMasterMoleculeList(binfile,'verbose',false);
-        catch er
+        catch
             disp('no molecules found to display!');
             disp('Try changing fit pars');  
             clear mlist;
@@ -471,7 +466,7 @@ FitPars.OK = false;
     f = GUIgpuParameters;
     waitfor(f);
     if FitPars.OK
-        GPUmultiPars = FitPars;
+        GPUmultiPars = FitPars; %#ok<NASGU>
         gpufile = parfile; 
         save(gpufile,'GPUmultiPars');
     end
@@ -486,7 +481,7 @@ function FitMethod_Callback(hObject, eventdata, handles)
 % hObject    handle to FitMethod (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global FitPars xmlfile inifile
+global FitPars 
  FitMethod = get(handles.FitMethod,'Value');
  FitPars = ReadParameterFile(FitMethod,handles);
 % Important that FitPars matches the current Fitting method.  
@@ -576,7 +571,7 @@ global inifile xmlfile gpufile
         k = strfind(gpufile,filesep);
         startfolder = gpufile(1:k(end));
     end
-    catch
+    catch %#ok<*CTCH>
         startfolder = pwd;
     end
     
@@ -597,7 +592,7 @@ modify_script(inifile,[savepath,savename],parameters,struct2cell(FitPars),'');
 modify_script(xmlfile,[savepath,savename],parameters,struct2cell(FitPars),'<'); 
     elseif FitMethod == 3
         savename = [savename,'.mat'];
-        GPUmultiPars = FitPars; 
+        GPUmultiPars = FitPars;  %#ok<NASGU>
         save([savepath,savename],'GPUmultiPars');
     end
 
@@ -693,7 +688,7 @@ dlg_title = 'Run all dax files in folder';
 num_lines = 1;
 try
 Dopts = inputdlg(Dprompt,dlg_title,num_lines,Dopts);
-catch er
+catch 
     disp('...menu built.  select again to run');
     Dprompt = {
         'batch size';
@@ -704,7 +699,7 @@ catch er
         '3',...
         '',...
         parsfile,...
-        'true'}; 
+        'false'}; 
     Dopts = inputdlg(Dprompt,dlg_title,num_lines,Dopts);
 end
 
@@ -793,7 +788,7 @@ function MenuComputeZcal_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global daxfile inifile xmlfile Zopts Zprompt
+global daxfile inifile xmlfile Zopts 
 FitMethod = get(handles.FitMethod,'Value');
 if FitMethod == 1
     parsfile = inifile;
@@ -811,18 +806,18 @@ end
 
 dlg_title = 'Compute Z-calibration';
 num_lines = 1;
+Zprompt = {
+    'NewParsRoot'; % 
+    'Run in Matlab?';
+    'Run Silently?';
+    'overwrite? (1=y,0=n,2=ask me)';
+    'Show plots?';
+    'Z window to estimate stage tilt';
+    'string to append in saveplots'};
+
 try
-Zopts = inputdlg(Zprompt,dlg_title,num_lines,Zopts);
-catch er
-    disp('...menu built.  select again to run');
-    Zprompt = {
-        'NewParsRoot'; % 
-        'Run in Matlab?';
-        'Run Silently?';
-        'overwrite? (1=y,0=n,2=ask me)';
-        'Show plots?';
-        'Z window to estimate stage tilt';
-        'string to append in saveplots'};
+    Zopts = inputdlg(Zprompt,dlg_title,num_lines,Zopts);
+catch
     Zopts = {
         '_zpars',...
         'true',...
@@ -843,7 +838,7 @@ end
 
 
 % --------------------------------------------------------------------
-function MenuChromeWarp_Callback(hObject, eventdata, handles)
+function MenuChromeWarp_Callback(hObject, eventdata, handles) %#ok<*INUSL>
 % hObject    handle to MenuChromeWarp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -890,3 +885,35 @@ function [dpath,filename] = extractpath(fullfilename)
 k = strfind(fullfilename,filesep);
 dpath = fullfilename(1:k(end));
 filename = fullfilename(k(end)+1:end);
+
+
+% --------------------------------------------------------------------
+function zcalini2xml_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSD>
+% hObject    handle to zcalini2xml (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+global inifile xmlfile i2xopts
+
+[dpath,filename] = extractpath(inifile);
+xmlout = [dpath,filename(1:end-4),'.xml'];
+
+dlg_title = 'convert ini z-calibration to xml file';
+num_lines = 1;
+prompt = {
+    'inifile',...
+    'xml reference file',...
+    'xml save file'};
+
+try
+    i2xopts = inputdlg(prompt,dlg_title,num_lines,i2xopts);
+catch er %#ok<NASGU>
+    i2xopts = {
+        inifile,...
+        xmlfile,...
+        xmlout}; 
+    i2xopts = inputdlg(prompt,dlg_title,num_lines,i2xopts);
+end
+zcal_ini2xml(i2xopts{1},i2xopts{2},i2xopts{3})
+
+

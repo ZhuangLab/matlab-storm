@@ -613,7 +613,11 @@ if DisplayOps.ColorZ
     for c=active_channels
        for k=1:Zs
            n=n+1;
-            Ic(:,:,n) =  imadjust(I{c}(:,:,k),[cmin(c),cmax(c)],[0,1/Zs]);
+           % znorm = 1/sqrt(Zs); % fast, quick adjust
+           thisz = double(I{c}(:,:,k));
+           allz = double(I{c}(:)); 
+           znorm = min(1,mean(thisz(:))./mean(allz(:))/(.5*Zs));
+           Ic(:,:,n) =  imadjust(I{c}(:,:,k),[cmin(c),cmax(c)],[0,znorm]);
        end
    end
 else
@@ -740,7 +744,7 @@ global cmax cmin
            h2 = findobj('type','patch'); 
        end
         ylim([0,1.2*max(hi1)]);
-       set(h2(3),'FaceColor','b','EdgeColor','b');
+       set(h2(2),'FaceColor','b','EdgeColor','b');
        set(h2(1),'FaceColor','r','EdgeColor','r');
        set(gca,'XTick',[],'YTick',[]);
        alpha .5;

@@ -12,8 +12,8 @@ function infoFile = ReadInfoFile(varargin)
 % fileName/string or cell array of strings ([]): A path to a .dax or .ini
 %   file
 % Field: explanation
-%                  localName: what matlab will save this as 
-%                  localPath: where matlab will save this file
+%                  localName: inf filename matlab found / should save as 
+%                  localPath: where matlab found / should save this file
 %                   uniqueID: ?
 %                       file: full path to daxfile. 
 %               machine_name: e.g. 'storm2'
