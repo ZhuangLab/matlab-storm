@@ -155,7 +155,7 @@ offset_start = mean(stage{2}(1:Zmaxoffset-5));
 nm_per_offsetunit = zrange/(maxoffset - offset_start);
 
 zst = -stage{2}*nm_per_offsetunit; 
-zst = zst -zst(1);
+zst = zst - zst(1);
 if PlotsOn
     stageplot = figure; plot(zst); 
     set(gcf,'color','w');
@@ -169,6 +169,11 @@ if PlotsOn
 end
 [~,fstart] = min(zst);
 [~,fend] = max(zst);
+if fstart > fend
+    zst = -zst;
+    [~,fstart] = min(zst);
+    [~,fend] = max(zst);
+end
 
 % Only use the molecules which we can still track at zmin.  
 Molecule_Positions = [x(frame==1),y(frame==1)];
