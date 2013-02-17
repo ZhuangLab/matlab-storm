@@ -15,7 +15,9 @@ Updates in this repository may introduce bugs that didnt exist before (it is a B
 		* automated, iterative computation of z-calibration curves from bead data.
 		* automated computation of 2D and 3D chromatic field correction.  
 		* chromatic correction accepts arbitrary number of sample movies, with and without quadview
-
+		* Multi-instance support within the same Matlab instance?  -- requires changing all globals to a structure element passed around
+		* uiopen globals (filenames) should just create new elements in cell arrays.  Other globals should become locals.  
+		
 		### In Development
 		* Add dualView support to CalcChromeWarp 
 		* split CalcChromeWarp into subfunctions?
@@ -32,6 +34,8 @@ Updates in this repository may introduce bugs that didnt exist before (it is a B
 		* Add overlay dax files
 		* Add Fiji 3D viewer option (use matlab embedded fiji?) 
 		* Multi-instance support within the same Matlab instance?  -- requires changing all globals to a structure element passed around
+		* uiopen globals (filenames) should just create new elements in cell arrays.  Other globals should become locals.  
+		
 
 	## Tifviewer
 	Simple matlab GUI for playing with TIF files 
