@@ -604,28 +604,24 @@ channels(3) = get(handles.chn3,'Value');
 channels(4) = get(handles.chn4,'Value');
 active_channels = find(channels);
 
+Cs = length(I); 
+[h,w,Zs] = size(I{1});
+Ic = zeros(h,w,Zs*length(active_channels),'uint16'); 
+
 if DisplayOps.ColorZ  
-    n=0;
-    Cs = length(I); 
-    [h,w,Zs] = size(I{1});
-    Ic = zeros(h,w,Zs*length(active_channels),'uint16'); 
+    n=0;  
     active_channels(active_channels>Cs) = []; 
     for c=active_channels
        for k=1:Zs
            n=n+1;
-           % znorm = 1/sqrt(Zs); % fast, quick adjust
-           thisz = double(I{c}(:,:,k));
-           allz = double(I{c}(:)); 
-           znorm = min(1,mean(thisz(:))./mean(allz(:))/(.5*Zs));
-           Ic(:,:,n) =  imadjust(I{c}(:,:,k),[cmin(c),cmax(c)],[0,znorm]);
+           Ic(:,:,n) =  imadjust(I{c}(:,:,k),[cmin(c),cmax(c)],[0,1]);
        end
    end
 else
-    [~,~,Cs] = size(I);
+
     Zs =1;
     for c=1:Cs
-          Ic = I; % incase Ic doesn't exist.  
-          Ic(:,:,c) = imadjust(I(:,:,c),[cmin(c),cmax(c)],[0,1]);
+          Ic(:,:,c) = imadjust(I{c},[cmin(c),cmax(c)],[0,1]);
     end
     Ic(:,:,logical(1-channels)) = cast(0,'uint16'); 
 end
@@ -707,12 +703,8 @@ global cmax cmin
    cmax(c) = maxin;
    cmin(c) = minin;
     
-        if DisplayOps.ColorZ 
+ 
             raw_ints  = double(I{c}(:));     
-        else
-            raw_ints = double(I(:,:,c));
-            
-        end
         raw_ints = raw_ints(:);
         max_int = max(raw_ints);
         

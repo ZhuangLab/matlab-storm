@@ -17,7 +17,7 @@
 % std                   -- width of of all molecules 
 %--------------------------------------------------------------------------
 % Outputs:
-% image matrix (uint16) with all molecules as Gaussian Blobs
+% image matrix (single) with all molecules as Gaussian Blobs
 %--------------------------------------------------------------------------
 % Optional Inputs:
 % 'zoom' / double / 16 
@@ -140,13 +140,13 @@ else
     SR_GaussianImage=GPUgenerateBlobs0507122(xsize,ysize,x,y,mints,x_std,y_std,cov,1);
 end
             
-SR_GaussianImage = makeuint(SR_GaussianImage,16); % convert to uint16
-
-
-function Io = makeuint(I,n)
- I = double(I) - min(double(I(:)));
- I = I./max(I(:));   % figure(2); clf; imagesc(I);
- Io = eval(['uint',num2str(n),'(2^n*I)']); 
+% SR_GaussianImage = makeuint(SR_GaussianImage,16); % convert to uint16
+% 
+% 
+% function Io = makeuint(I,n)
+%  I = double(I) - min(double(I(:)));
+%  I = I./max(I(:));   % figure(2); clf; imagesc(I);
+%  Io = eval(['uint',num2str(n),'(2^n*I)']); 
   
 
         
