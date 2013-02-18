@@ -132,9 +132,6 @@ if length(colr) < channels
     colr =  mat2cell(hsv(channels),ones(1,channels),3);
 end
 
- % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
-
 %-------------------------------------------------------------------------
 %% Main Analysis Script
 %-------------------------------------------------------------------------
@@ -145,7 +142,7 @@ for c=1:channels
        theta{c} = 2*nanmean(double(Iin(:)));
     end
 
-    disp(theta{c});
+    % disp(theta{c});
 
     [hs,ws,Zs] = size(Iin);
     x = (1:stp:ws)*xyp;

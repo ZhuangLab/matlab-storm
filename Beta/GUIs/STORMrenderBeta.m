@@ -1198,7 +1198,7 @@ for c = chns
     else
         msize = 5; 
     end
-    plot3(vlist{c}.x*npp,vlist{c}.y*npp,vlist{c}.z*npp,'.','color',cmap(c,:),...
+    plot3(vlist{c}.xc*npp,vlist{c}.yc*npp,vlist{c}.zc*npp,'.','color',cmap(c,:),...
         'MarkerSize',msize);
     lab{c} = ['channel ',num2str(c)', ' # loc:',num2str(length(vlist{c}.x))];
     hold on;
@@ -1221,40 +1221,19 @@ function vlist = MolsInView(handles)
     channels(1) = get(handles.chn1,'Value');
     channels(2) = get(handles.chn2,'Value');
     channels(3) = get(handles.chn3,'Value');
-    channels(4) = get(handles.chn4,'Value');
-    
+    channels(4) = get(handles.chn4,'Value');  
     
     all_channels = 1:4;
     active_channels = intersect(all_channels(logical(channels)),1:length(mlist));
     Cs = length(mlist); 
-    
-    % initialize variables
     vlist = cell(Cs,1);
-    x = cell(Cs,1); 
-    y = cell(Cs,1); 
     
     for c=active_channels;
-        x{c} = mlist{c}.xc;
-        y{c} = mlist{c}.yc;
-      if length(x{c}) >1
-         inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax;
-         vlist{c}.x = (x{c}(inbox & infilter{c}')-imaxes.xmin);
-         vlist{c}.y = (y{c}(inbox & infilter{c}')-imaxes.ymin);
-         vlist{c}.z = (mlist{c}.z(inbox & infilter{c}'));
-         vlist{c}.a= (mlist{c}.a(inbox & infilter{c}'));
-         vlist{c}.i= (mlist{c}.i(inbox & infilter{c}'));
-         vlist{c}.h= (mlist{c}.h(inbox & infilter{c}'));
-         vlist{c}.frame= (mlist{c}.frame(inbox & infilter{c}'));
-         vlist{c}.length= (mlist{c}.length(inbox & infilter{c}'));
-         vlist{c}.w= (mlist{c}.w(inbox & infilter{c}'));
-         vlist{c}.xc = vlist{c}.x;
-         vlist{c}.yc = vlist{c}.y;
-         vlist{c}.zc = vlist{c}.z;
+      if length(mlist{c}.x) >1
+         vlist{c} = msublist(mlist{c},imaxes,'filter',infilter{c});
          vlist{c}.channel = c; 
-         vlist{c}.inbox = inbox; 
          vlist{c}.infilter = infilter{c};
-         vlist{c}.locinfilter = infilter{c}(infilter{c}' & inbox)';
-         vlist{c}.imaxes = imaxes; 
+         vlist{c}.locinfilter = infilter{c}(infilter{c}' & vlist{c}.inbox)';
       end
     end  
   

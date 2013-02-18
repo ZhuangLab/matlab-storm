@@ -122,7 +122,7 @@ fpZ = 5; % frames per z
 overwrite = 0;  % needs to overwrite files to apply different parameters
 method ='insight'; %  'DaoSTORM';
 hideterminal = true;
-Noclass9 = false;
+Noclass9 = true;
 verbose = true;
 
 % Defaults for beadmovie:
