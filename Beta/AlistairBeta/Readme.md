@@ -28,23 +28,25 @@ zcal_ini2xml.m (port the zcalibration from an ini file into an xmlfile)
 ----
 automatch_files.m (matches names based on common file root and common number)
 findfile.m  (goes looking for chromatic warp maps)
-applyfilter.m   
-MultiChnDriftCorrect.m
-MosaicViewer.m
-chromewarp.m 			(Needs update to new chromewarp format)
-fxn_AddOverlay.m 			(Needs update or new fxn to add dax files)
-plotSTORM.m 			(now obsolete 02/16/13).  schedule to delete.
+applyfilter.m   (filter on molecule list properties or custom combos thereof)
+MultiChnDriftCorrect.m  (Load files, apply global drift correction)
+MosaicViewer.m    (load N tiles around this position from the Steve Mosaic)
+chromewarp.m 		(apply chromatic warp) 										(Needs update to new chromewarp format)
+fxn_AddOverlay.m 	add an overlay image 										(Needs update or new fxn to add dax files)
+plotSTORM.m 																    (now obsolete 02/16/13).  schedule to delete.
 plotSTORM_colorZ.m
 GenGaussianSRImage.m
 GPUgenerateBlobs0507122.mex % compiled mex to GPU from Fang Huang
-Im3D.m
-Im3Dslices.m
+Im3D.m     (3D iso-surface plot)
+Im3Dslices.m   (transparent 3D density map slices)
+msublist.m  (return mlist for just a local image)
 imreadfast.m 		(speed things up by assuming tif)
 
 
-## Analysis Beta
+## General Analysis Beta
 ---
 findclusters.m
+fit2Dgauss.m 
 
 
 ## Other Maybe useful
