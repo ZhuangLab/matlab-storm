@@ -1,23 +1,20 @@
-
 function sf = fit2Dgauss(xdata,ydata,varargin)
+%--------------------------------------------------------------------------
 % sf = fit2Dgauss(xdata,ydata)
 % sf - fit2Dgauss(xdata,ydata,'bin',value,'showmap',value)
-%-------------------------------------------------------------------------
-%% inputs
-%-------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% Inputs:
 % xdata        -- vector of x-coordinates to fit
 % ydata        -- vector of y-coordinates to fit
-%-------------------------------------------------------------------------
-%% Outputs
-%-------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% Outputs:
 % sf / sfit    -- basically a structure.  sf.a1 is the height of the
 %              gaussian, sf.sigmax/sigmay are the widths, [x0,y0] the 
 %              centerrelative to the box defined by min and max of the x,y 
 %              data.  entering sf will give back the model and the
 %              confidence intervals.  see sfit for more info.
-%-------------------------------------------------------------------------
-%% Optional inputs
-%-------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% Optional inputs:
 % 'bin' / scalar / 10
 %                           -- bin size to use in fitting 
 % 'showmap' / logical / true
@@ -37,11 +34,11 @@ function sf = fit2Dgauss(xdata,ydata,varargin)
 
 
 %-------------------------------------------------------------------------
-% default inputs
+%% default inputs
 %-------------------------------------------------------------------------
 sc = 10; % resolution for binning positions prior to Gaussian fit
 showmap = true; % 
-%
+
 %--------------------------------------------------------------------------
 %% Parse variable input
 %--------------------------------------------------------------------------
@@ -55,14 +52,9 @@ if nargin > 3
         parameterValue = varargin{parameterIndex*2};
         switch parameterName
             case 'bin'
-                sc = parameterValue;
-                         
+                sc = parameterValue;                   
             case 'showmap'
                 showmap = parameterValue;
-                if ~islogical(parameterValue)
-                    error(['Not a valid value for ' parameterName,' must be logical']);
-                end
-                
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end

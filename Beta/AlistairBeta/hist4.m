@@ -1,8 +1,37 @@
 
 function M = hist4(x,y,z,varargin)
+% M = hist4(x,y,z)
 % create a 3D density plot (3d histogram) from 3D data (x,y,z).  
 % bins 
-% M is a HxWxN matrix
+%-------------------------------------------------------------------------
+% Required Inputs:
+% x,y,z -- vector coordinates of the 3D data.  
+%
+%-------------------------------------------------------------------------
+% Outputs:
+%  M is a HxWxN matrix, where each voxel contains the number of points in x
+%  y,z which fall into it.  
+%
+%-------------------------------------------------------------------------
+% Optional inputs: ('name' / datatype / default)
+% 'bins' / scalar or vector / [100,100,100]
+%                      -- number of bins in each dimension.  If a scalar,
+%                      all dimensions will have the given number of bins.
+% 'datarange' / cell / min to max of data
+%                       -- cell of two dimensional vectors [xi-min,xi-max].
+%                       Changes the min and max range to include in the
+%                       3D histogram for any dimension. 
+%
+%--------------------------------------------------------------------------
+% Alistair Boettiger
+% boettiger.alistair@gmail.com
+% February 19th, 2013
+%
+% Version 1.0
+%--------------------------------------------------------------------------
+% Creative Commons License 3.0 CC BY  
+%--------------------------------------------------------------------------
+
 
 %-------------------------------------------------------------------------
 % Default Parameters
@@ -42,11 +71,11 @@ end
 
 %-------------------------------------------------------------------------
 %% Main Function
-%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------   
 
-% bins = [128,128,30]
-% datarange = {xrange,yrange,zrange}
-% x = vlist.xc*npp; y=vlist.yc*npp; z=vlist.z;         
+if length(bins) == 1
+    bins = repmat(bins,1,3);
+end
 
 [rx,ry,rz] = datarange{:};
 

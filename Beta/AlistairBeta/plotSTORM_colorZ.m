@@ -2,8 +2,7 @@ function I = plotSTORM_colorZ(mlist, imaxes, varargin)
 % I = plotSTORM_colorZ(mlist, imaxes, infilter)
 % routine from the STORMrender GUI
 %--------------------------------------------------------------------------
-%% Necessary inputs
-%--------------------------------------------------------------------------
+% Necessary inputs:
 % mlist / cell
 %               -- cell of length N-channels, containing the molecule list
 %               strctures for each color channel.  The fields mlist.xc,
@@ -17,14 +16,13 @@ function I = plotSTORM_colorZ(mlist, imaxes, varargin)
 %               scaling factor to increase the size by. sc=2 on a 256x256
 %               input gives an output image 512x512.  
 %--------------------------------------------------------------------------
-%% Outputs
+% Outputs:
 % I / cell of HxWxZn matrices
 %               -- each color channel is given a different element in the
 %               cell.  
 % 
 %--------------------------------------------------------------------------
-%% Optional inputs
-%--------------------------------------------------------------------------
+% Optional inputs:
 % 'filter' / cell / keep all dots
 %               -- cell of length N-channels, each element is a vector of
 %               length N-molecules in the corresponging m-list.  This
