@@ -45,7 +45,8 @@ imreadfast.m 				speed things up by assuming tif
 
 ## General Analysis Beta
 ------------------------------------------------------------------------------
-findclusters.m  				basic 2D clustering algorithm
+findclusters.m  				basic 2D dot clustering algorithm (distance based)
+findclusters3D.m				In progress: 3D clustering algorithm (distance based)
 fit2Dgauss.m    				fit x,y data to an elliptical gaussian
 fit3Dgauss.m 					fit x,y,z data to a non-isotropic 3D gaussian sphere
 hist4.m 						extends hist3 2-dimensional sample binning to 3-dimensions
