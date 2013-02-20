@@ -1,129 +1,250 @@
-  %%    % Bin data in 3D, 
-       % xcm = imaxes.cx - imaxes.xmin;
-       % ycm = imaxes.cy - imaxes.ymin;
-        xrange =  [0,16]*npp ;  % [xcm-8,xcm+8]*npp; % <- centers histogram but not scatterplot 
-        yrange = [0,16]*npp ; %  [ycm-8,ycm+8]*npp; %   
-        bins = [128,128,40];
-        voxel = [xrange(2)/bins(1),yrange(2)/bins(2),(zrange(2)-zrange(1))/bins(3)];
-        M4 = hist4(vlist.xc(filt)*npp,vlist.yc(filt)*npp,vlist.z(filt),...
-         'bins',bins,'datarange',{xrange,yrange,zrange});
-       % figure(4); clf; Ncolor(1000*M4); 
-         
-    %    M5 = M4>6; % 10
-    %    M5 = bwareaopen(M5,50); % 50
-   %     R3 = regionprops(M5,M4,'PixelValues','WeightedCentroid','BoundingBox','PixelList');
-%%        
-   
-       
-   % smoothe and find local maxima
-       gaussblur = fspecial3('gaussian',[6,6,3]);
-       M4s = imfilter(M4,gaussblur,'replicate');
-       
-       bw = imregionalmax(M4s);
-       R3 = regionprops(bw,M4s,'PixelValues','WeightedCentroid','BoundingBox','PixelList');
-       maxpvs = cellfun(@max, {R3.PixelValues});
-       R3 = R3(maxpvs>5);  
-       figure(3); clf; hist(double(maxpvs(maxpvs>4)));
-  
-       gaussblur2 = fspecial3('gaussian',[3,3,1.5]);
-       Ms2 = imfilter(M4,gaussblur2,'replicate');
-        localmin = imregionalmin(Ms2);
-        Rmin = regionprops(localmin,Ms2,'PixelValues','Centroid','BoundingBox','PixelList');
-       
-       fig3d = figure(15); clf; 
-       xp = vlist.xc;
-       yp = vlist.yc;
-       zp = vlist.z; 
-       plot3(xp(filt)*npp,yp(filt)*npp,vlist.z(filt),'.','color',[.8,.8,.8],'MarkerSize',1);
-       hold on;
-       
+function [subcluster,fig3d] = findclusters3D(x,y,z,varargin) 
+%--------------------------------------------------------------------------
+% subcluster = findclusters3D(x,y,z)
+%  data is binned into a 3d 'image', a gaussian smoothing is applied,
+%  followed by a watershed algorithm.  Add more smoothing if there are too
+%  many clusters (small local maximum), and or shrink bin sizes.  
+%
+%  It is recommend that large images are first parsed into 2D clusters and
+%  subcluster be run only on subsets of the images to see if any of these
+%  can be broken apart in 3D.  
+%  
+%--------------------------------------------------------------------------
+% Required Inputs:
+% x,y,z  -- 3 vectors containing the positions of data
+% 
+%-------------------------------------------------------------------------- 
+% Outputs:
+% subcluster / struct
+%     -- structure contains the following: fields (size) explanation
+%           subcluster.Nsubclusters = (1,1)      Number of subclusters 
+%           subcluster.sigma  (Nsubclusters,3)   Gauss-fit: sigX,sigY,sigZ
+%           subcluster.counts  (Nsubclusters,1)  total points in subcluster
+%           subcluster.Nvoxels (Nsubclusters,1)  total voxels in subcluster
+%           subcluster.maxvox  (Nsubclusters,1)  points in densist voxel
+%           subcluster.medianvox (Nsubclusters,1)median points per voxel
+%           subcluster.meanvox  (Nsubclusters,1) mean points per voxel
+% 
+%--------------------------------------------------------------------------
+% Optional Inputs: 
+% 'name' / datatype / default-value
+% 'bins' / 3-vector / [128,128,40]
+%                   -- number of bins in x, y, and z. 
+% 'minvoxels' / double / 0.25% of total bins
+%                   -- min number of voxels in a region for it to be kept. 
+% 'sigmablur' / 3-vector / [6,6,3]
+%                   -- amount of gaussian blurring of 3D image prior to
+%                   applying watershed.  see help fspecial3 for more
+%                   details.  This is its second argument.
+% 'datarange' / cell / 
+%                   -- {xrange,yrange,zrange} determines min and max to
+%                   plot.  
+% 'plotson' / logical / true
+%                   -- 3D colored plot of clustering
+%--------------------------------------------------------------------------
+% Required custom functions
+% hist4.m           (essential)
+% fspecial3.m       (essential)
+% CheckParameter.m (replace x = CheckParameter with x=parameterValue
+%                   to remove dependency).  
+% rectangle3d.m    (only for boxplot)
+%
+%--------------------------------------------------------------------------
+% Alistair Boettiger
+% boettiger.alistair@gmail.com
+% February 19th, 2013
+%
+% Version 1.0
+%--------------------------------------------------------------------------
+% Creative Commons License 3.0 CC BY  
+%--------------------------------------------------------------------------
+
+%--------------------------------------------------------------------------
+%% Default Parameters
+%--------------------------------------------------------------------------
+npp = 160;
+xrange = [0,16]*npp; %   could be determined by min(x) etc, 
+yrange = [0,16]*npp; % 
+zrange = [-500,500];
+datarange = {xrange,yrange,zrange};
+bins = [128,128,40];
+sigmablur=[6,6,3];
+minvoxels = [];      
+plotson = true;
+plotboundingbox = false;
+
+% % some testing parameters
+% x = vlist.xc(filt)*npp;
+% y = vlist.yc(filt)*npp;
+% z = vlist.zc(filt);
+
+%--------------------------------------------------------------------------
+%% Parse Variable Input Parameters
+%--------------------------------------------------------------------------
+if nargin > 3
+    if (mod(length(varargin), 2) ~= 0 ),
+        error(['Extra Parameters passed to the function ''' mfilename ''' must be passed in pairs.']);
+    end
+    parameterCount = length(varargin)/2;
+
+    for parameterIndex = 1:parameterCount,
+        parameterName = varargin{parameterIndex*2 - 1};
+        parameterValue = varargin{parameterIndex*2};
+        switch parameterName
+            case 'bins'
+                bins = CheckParameter(parameterValue, 'positive', 'bins');
+            case 'minvoxels'
+                minvoxels = CheckParameter(parameterValue, 'positive', 'minvoxels');
+            case 'datarange'
+                datarange = CheckParameter(parameterValue, 'cell', 'datarange');
+            case 'sigmablur'
+                sigmablur = CheckParameter(parameterValue, 'positive', 'sigmablur');
+            otherwise
+                error(['The parameter ''', parameterName,...
+                    ''' is not recognized by the function, ''',...
+                    mfilename '''.' '  See help ' mfilename]);
+        end
+    end
+end
+
+% autocalc for optional parameters
+[rx,ry,rz] = datarange{:};
+if isempty(rz)
+    zrange = [min(z),max(z)]; 
+end
+if isempty(ry)
+    yrange = [min(y),max(y)];
+end
+if isempty(rx)
+    xrange = [min(x),max(x)];
+end
+
+
+if isempty(minvoxels)
+    minvoxels = .0025*prod(bins);
+end
+
+
+%--------------------------------------------------------------------------
+%% Main Function
+%--------------------------------------------------------------------------
+
+if plotson
+   fig3d = figure; clf; 
+   plot3(x,y,z,'.','color',[.8,.8,.8],'MarkerSize',1);
+   axis square;
+   hold on;
+end
+
+% Bin data in 3D, 
+%--------------------------------------------------------------------------
+voxel = [xrange(2)/bins(1),yrange(2)/bins(2),(zrange(2)-zrange(1))/bins(3)];
+M4 = hist4(x,y,z,'bins',bins,'datarange',{xrange,yrange,zrange});
+% % for troubleshooting
+% figure(4); clf; Ncolor(1000*M4); 
+    
+%   %  Old way -- threshold the map, reject small clusters
+%     M5 = M4>6; % 10
+%     M5 = bwareaopen(M5,50); % 50
+%     R3 = regionprops(M5,M4,'PixelValues','WeightedCentroid','BoundingBox','PixelList');
+ 
+
+% smooth data and apply watershed filter   
+%-----------------------------------------------------------
+gaussblur = fspecial3('gaussian',sigmablur);
+M4s = imfilter(M4,gaussblur,'replicate');
+ 
+ % classic watershed filter
  W = max(M4s(:)); 
- L = watershed(double(W-M4s));  %  figure(2); clf; imagesc(L); colormap lines; shading flat;
+ L = watershed(double(W-M4s));  
  M4seg = M4s;
  M4seg(L==0) = 0;
- 
- %         % Just for troubleshooting
-        [h,w,zs] = size(M4);
-        figure(10);
-        k=0;
-        for j=1:zs
-            k=k+1;
-            subplot(8,5,k); imagesc(M4seg(:,:,j)); colormap gray;
-        end
-bw = M4seg>0;
+       
+%       %   Just for troubleshooting
+%         [h,w,zs] = size(M4);
+%         figure(10);
+%         k=0;
+%         for j=1:zs
+%             k=k+1;
+%             subplot(8,5,k); imagesc(M4seg(:,:,j)); colormap gray;
+%         end
+
+% threshold and get region props (just the big ones); 
+bw = M4seg>0; 
 R3 = regionprops(bw,M4,'PixelValues','WeightedCentroid','BoundingBox','PixelList');
 lengths = cellfun(@length, {R3.PixelValues});
- %figure(3); clf; hist(double(lengths(lengths>minvoxels)));
-  
-minvoxels = 1500;     
 R3 = R3(lengths>minvoxels);
 Nsubclusters = length(R3);
 
-%        centmin = cat(1,Rmin.Centroid);
-%        for s=1:length(Rmin);
-%            plot3(voxel(1)*centmin(s,1),voxel(2)*centmin(s,2),...
-%                voxel(3)*centmin(s,3)+zrange(1),'r.','MarkerSize',20); hold on;
-%        end
-%        
-       cent = cat(1,R3.WeightedCentroid);
-       for s=1:length(R3);
-           plot3(voxel(1)*cent(s,1),voxel(2)*cent(s,2),...
-               voxel(3)*cent(s,3)+zrange(1),'k.','MarkerSize',100); hold on;
-       end
+cmap = hsv(Nsubclusters+1);
+cent = cat(1,R3.WeightedCentroid);
+if plotson
+    for s=1:Nsubclusters;
+        figure(fig3d);
+        plot3(voxel(1)*cent(s,1),voxel(2)*cent(s,2),...
+           voxel(3)*cent(s,3)+zrange(1),'k.','MarkerSize',100); hold on;
+    end
+end
    %%    
-       % Plot bounding boxes
-       cmap = hsv(length(R3)+1);
-       for nn = 1:length(R3);
-           mins = [voxel(1)*R3(nn).BoundingBox(1);
-               voxel(2)*R3(nn).BoundingBox(2);
-               voxel(3)*R3(nn).BoundingBox(3)+zrange(1)];
-           lengths = [voxel(1)*R3(nn).BoundingBox(4);
-               voxel(2)*R3(nn).BoundingBox(5);
-               voxel(3)*R3(nn).BoundingBox(6)];
-           rectangle3d(mins,lengths,'color',cmap(nn,:),'linewidth',3);
-       end
-       axis square;
-       
-%        figure(16); clf;
-%        plot3(rX,rY,rZ,'k.');
- %     
-  % get just the pixels that are in the regions. 
+   
+% Plot bounding boxes
+if plotson && plotboundingbox
+    for nn = 1:Nsubclusters;
+      figure(fig3d); 
+       mins = [voxel(1)*R3(nn).BoundingBox(1);
+           voxel(2)*R3(nn).BoundingBox(2);
+           voxel(3)*R3(nn).BoundingBox(3)+zrange(1)];
+       lengths = [voxel(1)*R3(nn).BoundingBox(4);
+           voxel(2)*R3(nn).BoundingBox(5);
+           voxel(3)*R3(nn).BoundingBox(6)];
+       rectangle3d(mins,lengths,'color',cmap(nn,:),'linewidth',3);
+    end
+end
+    
+     
+% get just the pixels that are in the regions. 
+%--------------------------------------------------------------------
+  
+  % initialize some variables
   vi =cell(Nsubclusters,1); 
-  Im(d,b).subcluster(n).Nsubclusters = Nsubclusters; 
-  Im(d,b).subcluster(n).sigma = zeros(Nsubclusters,3);
-  Im(d,b).subcluster(n).counts = zeros(Nsubclusters,1);
-  Im(d,b).subcluster(n).voxels = zeros(Nsubclusters,1);
-  Im(d,b).subcluster(n).maxvox = zeros(Nsubclusters,1);
-  Im(d,b).subcluster(n).medianvox = zeros(Nsubclusters,1);
-  Im(d,b).subcluster(n).meanvox = zeros(Nsubclusters,1);
-   for nn=1:Nsubclusters % nn=1;
-       % color pixels in each subcluster (manual check on segmentation). 
+  subcluster.Nsubclusters = Nsubclusters; 
+  subcluster.sigma = zeros(Nsubclusters,3);
+  subcluster.counts = zeros(Nsubclusters,1);
+  subcluster.Nvoxels = zeros(Nsubclusters,1);
+  subcluster.maxvox = zeros(Nsubclusters,1);
+  subcluster.medianvox = zeros(Nsubclusters,1);
+  subcluster.meanvox = zeros(Nsubclusters,1);
+    
+  % color pixels in each subcluster 
+  % (good visual/manual check on segmentation). 
+   for nn=1:Nsubclusters 
       rX = voxel(1)*R3(nn).PixelList(:,1);
       rY = voxel(2)*R3(nn).PixelList(:,2);
       rZ = voxel(3)*R3(nn).PixelList(:,3);
-      vX = voxel(1)*round(vlist.xc*npp/voxel(1));
-      vY = voxel(2)*round(vlist.yc*npp/voxel(2));
-      vZ = voxel(3)*round((vlist.z-zrange(1))/(voxel(3)));
-      vi{nn} = ismember([vX,vY,vZ],[rX,rY,rZ],'rows'); %vi = vii(:,1) & vii(:,2) & vii(:,3);
-      xp = vlist.xc(vi{nn})*npp;
-      yp = vlist.yc(vi{nn})*npp;
-      zp = vlist.z(vi{nn});
-      figure(fig3d);    hold on;
-      plot3(xp,yp,zp,'o','color',cmap(nn,:),'MarkerSize',1);
-      
+      vX = voxel(1)*round(x/voxel(1));
+      vY = voxel(2)*round(y/voxel(2));
+      vZ = voxel(3)*round((z-zrange(1))/(voxel(3)));
+      vi{nn} = ismember([vX,vY,vZ],[rX,rY,rZ],'rows'); 
+      xp = x(vi{nn});
+      yp = y(vi{nn});
+      zp = z(vi{nn});
       % Gaussian fit to each subcluster
       Gfxn = fit3Dgauss(xp,yp,zp,'showplot',false);
-      figure(fig3d);
-      plot3(Gfxn(1),Gfxn(2),Gfxn(3),'b+','MarkerSize',30);
       
-      % Save some data
-      Im(d,b).subcluster(n).sigma(nn,:) = [Gfxn(4),Gfxn(5),Gfxn(6)];
-      Im(d,b).subcluster(n).counts(nn) = length(xp);
-      Im(d,b).subcluster(n).voxels = length(rX);
+      if plotson
+          figure(fig3d);    hold on;
+          plot3(xp,yp,zp,'o','color',cmap(nn,:),'MarkerSize',1);
+          plot3(Gfxn(1),Gfxn(2),Gfxn(3),'b+','MarkerSize',30);
+      end
+        
+      % Save some stats on clusters
+      subcluster.sigma(nn,:) = [Gfxn(4),Gfxn(5),Gfxn(6)];
+      subcluster.counts(nn) = length(xp);
+      subcluster.Nvoxels = length(rX);
       allpix = single(R3(nn).PixelValues);
-      Im(d,b).subcluster(n).maxvox = max(allpix);
-      Im(d,b).subcluster(n).medianvox = median(allpix(allpix>0));
-      Im(d,b).subcluster(n).meanvox = mean(allpix(allpix>0)); 
+      subcluster.maxvox = max(allpix);
+      subcluster.medianvox = median(allpix(allpix>0));
+      subcluster.meanvox = mean(allpix(allpix>0)); 
    end
-   axis square
+   axis square;
    xlabel('x (nm)'); ylabel('y (nm)'); zlabel('z (nm)');
