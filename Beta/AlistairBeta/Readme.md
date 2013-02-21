@@ -13,7 +13,7 @@ Many of these functions are written to perform all the image rendering and analy
 To use those GUIs you will need these functions.  You can also see the help file for any of these functions for information on how to call them directly from your own scripts or functions to write new batch processes.
 
 
-## Rere required for STORMfinderBeta GUI
+## Required for STORMfinderBeta GUI
 ---------------------------------------------------------------------
 CompZcal.m  		| (for z-calibration)
 AutoZcal.m  		| (for z-calibration)
