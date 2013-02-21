@@ -15,13 +15,13 @@ To use those GUIs you will need these functions.  You can also see the help file
 
 ## Rere required for STORMfinderBeta GUI
 ---------------------------------------------------------------------
-- CompZcal.m  		| (for z-calibration)
-- AutoZcal.m  		| (for z-calibration)
-- CalcChromeWarp.m 	| (for chromatic calibration)
-- lib\polyfitn.m  	| (for z-calibration)
-- lib\corr_mols.m  	| (for chromatic correction calibration)
-- lib\cp2tform3D.m 	| (for chromatic correction calibration)
-- zcal_ini2xml.m 	| (port the zcalibration from an ini file into an xmlfile)
+CompZcal.m  		| (for z-calibration)
+AutoZcal.m  		| (for z-calibration)
+CalcChromeWarp.m 	| (for chromatic calibration)
+lib\polyfitn.m  	| (for z-calibration)
+lib\corr_mols.m  	| (for chromatic correction calibration)
+lib\cp2tform3D.m 	| (for chromatic correction calibration)
+zcal_ini2xml.m 		| (port the zcalibration from an ini file into an xmlfile)
 
 
 ## Required for STORMrenderBeta GUI
