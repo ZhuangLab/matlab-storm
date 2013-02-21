@@ -59,24 +59,17 @@ function [subcluster,fig3d] = findclusters3D(x,y,z,varargin)
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
 
+
+
 %--------------------------------------------------------------------------
 %% Default Parameters
 %--------------------------------------------------------------------------
-npp = 160;
-xrange = [0,16]*npp; %   could be determined by min(x) etc, 
-yrange = [0,16]*npp; % 
-zrange = [-500,500];
-datarange = {xrange,yrange,zrange};
+datarange = cell(1,3);
 bins = [128,128,40];
 sigmablur=[6,6,3];
 minvoxels = [];      
 plotson = true;
 plotboundingbox = false;
-
-% % some testing parameters
-% x = vlist.xc(filt)*npp;
-% y = vlist.yc(filt)*npp;
-% z = vlist.zc(filt);
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Parameters
@@ -99,6 +92,8 @@ if nargin > 3
                 datarange = CheckParameter(parameterValue, 'cell', 'datarange');
             case 'sigmablur'
                 sigmablur = CheckParameter(parameterValue, 'positive', 'sigmablur');
+            case 'fighandle'
+                fighandle = CheckParameter(parameterValue, 'nonnegative', 'fighandle');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -108,14 +103,14 @@ if nargin > 3
 end
 
 % autocalc for optional parameters
-[rx,ry,rz] = datarange{:};
-if isempty(rz)
+[xrange,yrange,zrange] = datarange{:};
+if isempty(zrange)
     zrange = [min(z),max(z)]; 
 end
-if isempty(ry)
+if isempty(yrange)
     yrange = [min(y),max(y)];
 end
-if isempty(rx)
+if isempty(xrange)
     xrange = [min(x),max(x)];
 end
 
@@ -125,12 +120,20 @@ if isempty(minvoxels)
 end
 
 
+if ~isempty(fighandle)
+    fig3d = fighandle;
+else
+    if plotson
+        fig3d = figure; 
+    end
+end
+
 %--------------------------------------------------------------------------
 %% Main Function
 %--------------------------------------------------------------------------
 
 if plotson
-   fig3d = figure; clf; 
+   figure(fig3d);  clf;
    plot3(x,y,z,'.','color',[.8,.8,.8],'MarkerSize',1);
    axis square;
    hold on;
@@ -182,7 +185,7 @@ if plotson
     for s=1:Nsubclusters;
         figure(fig3d);
         plot3(voxel(1)*cent(s,1),voxel(2)*cent(s,2),...
-           voxel(3)*cent(s,3)+zrange(1),'k.','MarkerSize',100); hold on;
+           voxel(3)*cent(s,3)+zrange(1),'k.','MarkerSize',20); hold on;
     end
 end
    %%    

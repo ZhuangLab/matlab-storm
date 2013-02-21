@@ -81,9 +81,9 @@ xint = linspace(min(xdata),max(xdata),sc);
     end
     
     [X,Y] = meshgrid(xint,yint);
-    X = X(:); Y=Y(:); Z = Z(:); 
+    X = double(X(:)); Y=double(Y(:)); Z = double(Z(:)); 
     gauss2 = fittype( @(a1, sigmax, sigmay, x0,y0, x, y) a1*exp(-(x-x0).^2/(2*sigmax^2)-(y-y0).^2/(2*sigmay^2)),'independent', {'x', 'y'},'dependent', 'z' );
-    sf = fit([X,Y],double(Z),gauss2,'StartPoint',[max(Z), std(xdata), std(ydata), mean(X), mean(Y)]); 
+    sf = fit([X,Y],Z,gauss2,'StartPoint',[max(Z), std(xdata), std(ydata), mean(X), mean(Y)]); 
     
     if showmap
         xc_norm = (sf.x0 -min(xdata))*xscale_fact*sc+.5;
