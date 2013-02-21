@@ -15,6 +15,9 @@ To use those GUIs you will need these functions.  You can also see the help file
 
 ## Required for STORMfinderBeta GUI
 ---------------------------------------------------------------------
+
+	filename 		| 		description
+--------------------|----------------------
 CompZcal.m  		| (for z-calibration)
 AutoZcal.m  		| (for z-calibration)
 CalcChromeWarp.m 	| (for chromatic calibration)
