@@ -15,7 +15,7 @@ function MosaicView = MosaicViewer(folder,position,varargin)
 % MosaicView / handle to figure created. 
 %--------------------------------------------------------------------------
 % Optional Inputs:
-% N / double / 30
+% 'Ntiles' / double / 30
 %                   -- number of images from the mosaic file nearest to the
 %                   seed point to inculde in the output image
 % 'multicolor' / logical / string
@@ -30,6 +30,8 @@ function MosaicView = MosaicViewer(folder,position,varargin)
 %                   advisable.  If only low res images, shrink should be at
 %                   least the ratio of 100x to the mag used (i.e. 5 for
 %                   20x images) 
+% 'verbose' / logical / true
+%                   -- print progress and warnings to command line. 
 %--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
@@ -41,6 +43,7 @@ function MosaicView = MosaicViewer(folder,position,varargin)
 %--------------------------------------------------------------------------
 
 
+global ScratchPath
 
 %--------------------------------------------------------------------------
 %% Default Parameters
@@ -48,6 +51,8 @@ function MosaicView = MosaicViewer(folder,position,varargin)
 multicolor = true;
 shrk = 1; 
 N = 30; 
+verbose = true; 
+MosaicView = [];
 
 % % some test parameters:
 % folder = 'I:\2013-02-02_BXCemb\Mosaic';
@@ -81,6 +86,10 @@ if nargin > 1
                 multicolor = CheckParameter(parameterValue,'boolean','multicolor');
             case 'Ntiles'
                 N = CheckParameter(parameterValue,'positive','Ntiles');
+            case 'fighandle'
+                MosaicView = CheckParameter(parameterValue,'nonnegative','fighandle');
+            case 'verbose';
+                verbose = CheckParameter(parameterValue,'boolean','verbose');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -164,12 +173,15 @@ for k = 1:length(frames);
 
 % for plotting the 4x images, need to scale up:
  if mag(i) == .04
-     im = imresize(im,1/.04);
+      if verbose
+          disp('skipping 4x mag image');
+      end
+      continue;
+     % im = imresize(im,1/.04);
  end
- % 
-     im = imresize(im,1/shrk); 
-     [h,w,~] = size(im);
-  
+ % rescale image if requested
+      im = imresize(im,1/shrk); 
+      [h,w,~] = size(im);
     % color channels
     try
         if strfind(M{i,8},'488');
@@ -193,13 +205,30 @@ for k = 1:length(frames);
     if k==1
         chn=1;
     end
-    
-  Im(Y(i)+1-h2:Y(i)+h2,X(i)+1-w2:X(i)+w2,chn) = im(:,:,1);
-  if rem(k,100) == 0
-      disp(['rebuilding mosaic ', num2str(100*k/length(frames),3), '% done']);
+  y1 = Y(i)+1-h2;
+  y2 = Y(i)+h2;
+  x1 = X(i)+1-w2;
+  x2 = X(i)+w2;
+  try
+  Im(y1:y2,x1:x2,chn) = im(:,:,1);
+  catch er
+      disp(er.message);
+      save([ScratchPath,'errdat.mat']);
+      Im(y1:y2,x1:x2,chn) = im(:,:,1);
+      % load([ScratchPath,'errdat.mat']);
+  end
+  
+  if verbose
+      if rem(k,50) == 0
+          disp(['rebuilding mosaic ', num2str(100*k/length(frames),3), '% done']);
+      end
   end
 end
 
-  MosaicView = figure; 
+if isempty(MosaicView)
+    MosaicView = figure; clf;
+else
+    figure(MosaicView); 
+end
   image(imresize(Im,1)); 
 
