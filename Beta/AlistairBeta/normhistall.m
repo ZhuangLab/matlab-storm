@@ -1,17 +1,43 @@
 
-function fighand = normhistall(data,x,varargin)
+function fighand = normhistall(data,varargin)
+
+% normhistall(data)      -- histograms of the data in each cell of data
+% normhistall(data,bins)  -- histograms of the data in each cell of data
+% normhistall(data,x)
 
 %--------------------------------------------------------------------------
 %% Default Parameters
 %--------------------------------------------------------------------------
-groupnames = cell(length(data),1); 
+groupnames = repmat({''},length(data),1); 
 clrmap = 'hsv';
 fighand = [];
-
+xlab = '';
+alphavalue = .15;
 %--------------------------------------------------------------------------
 %% Parse Variable Input Parameters
 %--------------------------------------------------------------------------
-if nargin > 1
+
+% normhistall(data) 
+% normhistall(data,'option',value);
+if nargin == 1  || (nargin > 1 && ischar(varargin{1})) 
+    alldat = cat(1,data{:});
+    x = linspace(min(alldat),max(alldat),10);
+    
+% normhistall(data,bins)   
+% normhistall(data,bins,'option',value)
+elseif nargin > 1 && length(varargin{1}) == 1  
+    alldat = cat(1,data{:});
+    x = linspace(min(alldat),max(alldat),varargin{1}); 
+    varargin(1) = [];
+    
+% normhistall(data,x)
+% normhistall(data,x,'option',value); 
+elseif nargin > 1 && ~ischar(varargin{1}) == 1  
+    x = varargin{1}; 
+    varargin(1) = [];
+end
+
+if nargin > 2 
     if (mod(length(varargin), 2) ~= 0 ),
         error(['Extra Parameters passed to the function ''' mfilename ''' must be passed in pairs.']);
     end
@@ -28,7 +54,9 @@ if nargin > 1
             case 'colormap'
                 clrmap = CheckParameter(parameterValue,'string','colormap'); 
             case 'fighandle'
-                fighand= CheckParameter(parameterValue, 'positive', 'fighandle');
+                fighand = CheckParameter(parameterValue, 'positive', 'fighandle');
+            case 'alpha'
+                alphavalue = CheckParameter(parameterValue, 'nonnegative', 'alpha');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -47,6 +75,12 @@ end
 %% Main function
 %--------------------------------------------------------------------------
 
+if alphavalue == 0
+    face = 0;
+else
+    face = 1;
+end
+
 D = length(data);
 for d=1:D
     h1 = hist(data{d},x);
@@ -55,16 +89,26 @@ for d=1:D
     hold on;
 end
  legend_hand = legend(groupnames);
- lh = findobj(legend_hand,'Type','patch');
  h = findobj(gca,'Type','patch');
+ lh = findobj(legend_hand,'Type','patch');
 
 cmap =eval([clrmap,'(D+1)']);
 for d=1:D
+    if face ==1 
     set(h(D-d+1),'FaceColor',cmap(d,:),'EdgeColor',cmap(d,:),'LineWidth',2);
     set(lh(D-d+1),'FaceColor',cmap(d,:),'EdgeColor',cmap(d,:));
+    else 
+    set(h(D-d+1),'FaceColor','none','EdgeColor',cmap(d,:),'LineWidth',2);
+    set(lh(D-d+1),'FaceColor','none','EdgeColor',cmap(d,:));
+    end
 end
-xlim([min(x),max(x)]);
-xlabel(xlab);
-alpha .15;
-PresentationPlot('LineWidth',0);
+xrange = max(x)-min(x);
+xlim([min(x)-.1*xrange,max(x)+.1*xrange]);
+xlabel(xlab,'FontSize',14);
+% set(gca,'FontSize',14);
+set(gcf,'color','w');
+if alphavalue < 1 && alphavalue > 0
+alpha(alphavalue);
+end
+% PresentationPlot('LineWidth',0);
 

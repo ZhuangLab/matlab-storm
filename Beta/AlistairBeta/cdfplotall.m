@@ -3,9 +3,10 @@ function fighand = cdfplotall(data,varargin)
 %--------------------------------------------------------------------------
 %% Default Parameters
 %--------------------------------------------------------------------------
-groupnames = cell(length(data),1); 
+groupnames = repmat({''},length(data),1); 
 clrmap = 'hsv';
 fighand = [];
+xlab = '';
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Parameters
@@ -59,7 +60,11 @@ for g=1:N
     end
     hold on;
 end
+try
 legend(gnames,'Location','Best');
+catch er
+    disp(er.message);
+end
 xlabel(xlab);
 PresentationPlot('LineWidth',0);
 
