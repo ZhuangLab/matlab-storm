@@ -243,11 +243,11 @@ end
       % Save some stats on clusters
       subcluster.sigma(nn,:) = [Gfxn(4),Gfxn(5),Gfxn(6)];
       subcluster.counts(nn) = length(xp);
-      subcluster.Nvoxels = length(rX);
+      subcluster.Nvoxels(nn) = length(rX);
       allpix = single(R3(nn).PixelValues);
-      subcluster.maxvox = max(allpix);
-      subcluster.medianvox = median(allpix(allpix>0));
-      subcluster.meanvox = mean(allpix(allpix>0)); 
+      subcluster.maxvox(nn) = max(allpix);
+      subcluster.medianvox(nn) = median(allpix(allpix>0));
+      subcluster.meanvox(nn) = mean(allpix(allpix>0)); 
    end
    axis square;
    xlabel('x (nm)'); ylabel('y (nm)'); zlabel('z (nm)');
