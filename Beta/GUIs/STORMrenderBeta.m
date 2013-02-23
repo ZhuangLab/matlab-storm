@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 13-Feb-2013 17:59:18
+% Last Modified by GUIDE v2.5 22-Feb-2013 15:41:51
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -60,6 +60,7 @@ DisplayOps.HidePoor = false;
 DisplayOps.scalebar = 500;
 DisplayOps.npp = 160;
 DisplayOps.verbose = true;
+DisplayOps.zrange = [-500,500];
 
 cmin = [0,0,0,0];
 cmax = [.7,.7,.7,.7]; % fixed 4 channel
@@ -485,7 +486,7 @@ else
     Zsteps = 1;
 end
 
-I = plotSTORM_colorZ(mlist, imaxes,'filter',infilter,...
+I = plotSTORM_colorZ(mlist, imaxes,'filter',infilter,'Zrange',DisplayOps.zrange,...
     'dotsize',DisplayOps.DotScale,'Zsteps',Zsteps,'scalebar',0);
 
 update_imcolor(hObject,handles); % converts I, applys contrast, to RBG
@@ -804,15 +805,20 @@ num_lines = 1;
 Dprompt = {
     'Display Z as color',...
     'Number of Z-steps',...
-    'Dot scale',...
+    'Z range (nm)',...
     'hide poor z-fits',...
+    'Dot scale',...
     'scalebar (0 for off)',...
     'nm per pixel',...
     'verbose'};
 default_Dopts{1} = num2str(DisplayOps.ColorZ);
 default_Dopts{2} = num2str(DisplayOps.Zsteps);
-default_Dopts{3} = num2str(DisplayOps.DotScale);
+default_Dopts{3} = strcat('[',num2str(DisplayOps.zrange),']');
 default_Dopts{4} = num2str(DisplayOps.HidePoor);
+default_Dopts{5} = num2str(DisplayOps.DotScale);
+default_Dopts{6} = num2str(DisplayOps.scalebar);
+default_Dopts{7} = num2str(DisplayOps.npp);
+default_Dopts{8} = num2str(DisplayOps.verbose); 
 
 % if the menu is screwed up, reset 
 try
@@ -821,20 +827,22 @@ catch er
     disp(er.message)
     default_Dopts = {
     'false',...
-    '3',...
-    '4',...
+    '8',...
+    '[-500,500]',...
     'false',...
+    '4',...
     '500',...
     '160',...
     'true'};
 end
 DisplayOps.ColorZ = eval(default_Dopts{1}); 
 DisplayOps.Zsteps = eval(default_Dopts{2});
-DisplayOps.DotScale = eval(default_Dopts{3});
+DisplayOps.zrange = eval(default_Dopts{3});
 DisplayOps.HidePoor = eval(default_Dopts{4});
-DisplayOps.scalebar = eval(default_Dopts{5});
-DisplayOps.npp = eval(default_Dopts{6});
-DisplayOps.verbose = eval(default_Dopts{7});
+DisplayOps.DotScale = eval(default_Dopts{5});
+DisplayOps.scalebar = eval(default_Dopts{6});
+DisplayOps.npp = eval(default_Dopts{7});
+DisplayOps.verbose = eval(default_Dopts{8});
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
 
@@ -1060,7 +1068,7 @@ global imaxes I DisplayOps
 
 % currently hard-coded, should be user options 
 npp =DisplayOps.npp; 
-zrange = [-600,600];
+zrange = DisplayOps.zrange; % = [-600,600];
 
 if DisplayOps.ColorZ && DisplayOps.Zsteps > 1
 disp('use cell arrays of parameters for multichannel rendering'); 
@@ -1129,7 +1137,7 @@ global imaxes I DisplayOps
 
 % currently hard-coded, should be user options 
 npp =DisplayOps.npp; % npp 
-zrange = [-600,600];
+zrange = DisplayOps.zrange; %  [-600,600];
 
 if DisplayOps.ColorZ && DisplayOps.Zsteps > 1
 dlg_title = 'Render3D';
@@ -1436,3 +1444,24 @@ function [dpath,filename] = extractpath(fullfilename)
 k = strfind(fullfilename,filesep);
 dpath = fullfilename(1:k(end));
 filename = fullfilename(k(end)+1:end);
+
+
+% --------------------------------------------------------------------
+function MenuOpenBin_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuOpenBin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuOpenMulti_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuOpenMulti (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuChangeFolder_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuChangeFolder (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

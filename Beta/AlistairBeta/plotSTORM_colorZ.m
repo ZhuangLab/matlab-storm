@@ -39,6 +39,8 @@ function I = plotSTORM_colorZ(mlist, imaxes, varargin)
 %              from trying to make massive blobs. 
 % 'Zsteps' / double / 3
 %              -- Number of different z-levels to render
+% 'Zrange' / double / [-500,500] 
+%              -- range in nm for color axis
 %--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
@@ -74,7 +76,7 @@ dotsize = 4;
 maxblobs = 2E4; %
 maxdotsize = .05; 
 Zs = 20;
-Zrange = [-600,600]; % range in nm 
+Zrange = [-500,500]; % range in nm 
 npp = 160; 
 scalebar = 500;
 %--------------------------------------------------------------------------
@@ -96,17 +98,17 @@ if nargin > 2
             case 'filter'
                 infilter = parameterValue;
             case 'dotsize'
-                dotsize = parameterValue;
+                dotsize = CheckParameter(parameterValue,'positive','dotsize');
             case 'maxblobs'
-                maxblobs = parameterValue;
+                maxblobs = CheckParameter(parameterValue,'positive','maxblobs');
             case 'maxdotsize'
-                maxdotsize = parameterValue;
+                maxdotsize = CheckParameter(parameterValue,'positive','maxdotsize');
             case 'Zsteps'
-                Zs = parameterValue; 
+                Zs = CheckParameter(parameterValue,'positive','Zsteps');
             case 'Zrange'
-                Zrange = parameterValue;
+                Zrange = CheckParameter(parameterValue,'array','Zrange');
             case 'nm per pixel'
-                npp = parameterValue;
+                npp = CheckParameter(parameterValue,'positive','nm per pixel');
             case 'scalebar'
                 scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
             otherwise
