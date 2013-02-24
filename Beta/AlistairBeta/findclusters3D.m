@@ -45,6 +45,7 @@ function [subcluster,fig3d] = findclusters3D(x,y,z,varargin)
 % Required custom functions
 % hist4.m           (essential)
 % fspecial3.m       (essential)
+% fitgauss3D.m      (only to get data for subcluster.sigma)
 % CheckParameter.m (replace x = CheckParameter with x=parameterValue
 %                   to remove dependency).  
 % rectangle3d.m    (only for boxplot)
