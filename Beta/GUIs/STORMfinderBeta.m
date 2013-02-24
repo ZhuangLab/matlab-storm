@@ -605,14 +605,11 @@ function MenuLoadPars_Callback(hObject, eventdata, handles)
     % setup starting folder for uigetfile
     try
     if FitMethod == 1
-        k = strfind(inifile,filesep);
-        startfolder = inifile(1:k(end));
+        startfolder = extractpath(inifile); 
     elseif FitMethod == 2 
-        k = strfind(xmlfile,filesep);
-        startfolder = xmlfile(1:k(end));
+        startfolder = extractpath(xmlfile);
     elseif FitMethod == 3
-        k = strfind(gpufile,filesep);
-        startfolder = gpufile(1:k(end));
+        startfolder = extractpath(gpufile);
     end
     catch
         startfolder = pwd;
@@ -875,14 +872,6 @@ CalcChromeWarp(pathin,'beadset',beadset,'method',method,...
     'frames per Z',Zcalpars.FramesPerZ); 
 end
 
-
-
-
-
-function [dpath,filename] = extractpath(fullfilename)
-k = strfind(fullfilename,filesep);
-dpath = fullfilename(1:k(end));
-filename = fullfilename(k(end)+1:end);
 
 
 % --------------------------------------------------------------------
