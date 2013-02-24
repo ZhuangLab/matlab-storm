@@ -76,11 +76,11 @@ if nargin > 1
         parameterValue = varargin{parameterIndex*2};
         switch parameterName    
             case 'correctDrift'
-                correctDrift = checkParameter(parameterValue,'boolean','correctDrift'); 
+                correctDrift = CheckParameter(parameterValue,'boolean','correctDrift'); 
             case 'saveGobalDrift'
-                saveGlobalDrift = checkParameter(parameterValue,'boolean','saveGlobalDrift');
+                saveGlobalDrift = CheckParameter(parameterValue,'boolean','saveGlobalDrift');
             case 'verbose'
-                verbose = checkParameter(parameterValue,'string','verbose');                
+                verbose = CheckParameter(parameterValue,'string','verbose');                
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end

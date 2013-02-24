@@ -1,6 +1,5 @@
 function molist = chromewarp(chn,molist,Bead_folder,varargin)
 % mlist = chromewarp(chn,mlist,Bead_folder,warpD)
-% A subfunction of fxn_vectorSTORM. 
 % applies chromatic warp to .xc .yc .zc and overwrites those values with
 %   the new values. Should consider overwiting .x .y .z instead, chromatic
 %   warp differences are usually bigger than drift. 
@@ -62,7 +61,7 @@ if nargin > 1
         parameterValue = varargin{parameterIndex*2};
         switch parameterName    
             case 'warpD'
-                warpD = CheckParameter(parameterValue,'positive','warpD'); 
+                warpD = CheckParameter(parameterValue,'nonnegative','warpD'); 
             case 'verbose'
                 verbose = CheckParameter(parameterValue,'string','verbose');                
             otherwise
@@ -75,6 +74,8 @@ end
 % Maing Function
 %--------------------------------------------------------------------------
 
+if warpD ~= 0 % Don't apply chromewarp;
+    
 x = double(molist.xc); % shorthand.  TFORMINV can't handle singles (?!)
 y = double(molist.yc);
 z = double(molist.zc);
@@ -160,3 +161,5 @@ end
 molist.xc = single(x);
 molist.yc = single(y);
 molist.zc = single(z);
+
+end

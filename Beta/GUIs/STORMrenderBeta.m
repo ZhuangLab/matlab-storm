@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 22-Feb-2013 15:41:51
+% Last Modified by GUIDE v2.5 24-Feb-2013 14:50:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -52,18 +52,27 @@ function STORMrenderBeta_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to STORMrenderBeta (see VARARGIN)
 
-global DisplayOps binfile cmin cmax
-DisplayOps.ColorZ = false; 
-DisplayOps.Zsteps = 5;
-DisplayOps.DotScale = 4;
-DisplayOps.HidePoor = false;
-DisplayOps.scalebar = 500;
-DisplayOps.npp = 160;
-DisplayOps.verbose = true;
-DisplayOps.zrange = [-500,500];
+global DisplayOps LoadOps binfile cmin cmax
+% Default Display Options
+    DisplayOps.ColorZ = false; 
+    DisplayOps.Zsteps = 5;
+    DisplayOps.DotScale = 4;
+    DisplayOps.HidePoor = false;
+    DisplayOps.scalebar = 500;
+    DisplayOps.npp = 160;
+    DisplayOps.verbose = true;
+    DisplayOps.zrange = [-500,500];
 
-cmin = [0,0,0,0];
-cmax = [.7,.7,.7,.7]; % fixed 4 channel
+% Default MultiBinFile Load Options
+    LoadOps.warpD = 3; % set to 0 for no chromatic warp
+    LoadOps.warpfile = ''; % can leave blank if no chromatic warp
+    LoadOps.chns = {''};% {'750','647','561','488'};
+    LoadOps.pathin = '';
+    LoadOps.correctDrift = true;
+    LoadOps.chnOrder = 1:4; 
+
+    cmin = [0,0,0,0];
+    cmax = [.7,.7,.7,.7]; % fixed 4 channel
 
 % Choose default command line output for STORMrenderBeta
 handles.output = hObject;
@@ -126,27 +135,12 @@ varargout{1} = handles.output;
 %========================================================================%
 % --- Executes on button press in QuickLoad.
 function QuickLoad_Callback(hObject, eventdata, handles)
-clear global mlist bins fnames froots infofile;
-global mlist fnames binfile infofile
+global binfile
 if isempty(binfile)
    [filename,pathname] = uigetfile('*.bin');
    binfile = [pathname,filesep,filename];
-else
-    [pathname,filename] = extractpath(binfile);
 end
-disp('reading binfile...');
-mlist{1} = ReadMasterMoleculeList(binfile);
-fnames{1} = binfile; 
-disp('file loaded'); 
-
-k = strfind(filename,'_');
-infofile = ReadInfoFile([pathname,filesep,filename(1:k(end)-1),'.inf']);
-disp('setting up image options...');
-imsetup(hObject,eventdata, handles);
-disp('drawing data...');
-ClearFilters_Callback(hObject, eventdata, handles); 
-guidata(hObject, handles);
-
+SingleBinLoad(hObject,eventdata,handles);
 
 % --- Executes on button press in SetLoadOps.-----------------------------
 function SetLoadOps_Callback(hObject, eventdata, handles)
@@ -212,7 +206,7 @@ loadops{8} = parseCSL(loadops{8});
 
 % --- Executes on button press in MultiColorLoad.
 function MultiColorLoad_Callback(hObject, eventdata, handles)
-clear global mlist bins fnames froots infofile;
+clear mlist bins fnames froots infofile;
 global loadops mlist fnames froots bins infofile
     
 i = loadops{2}; % im number
@@ -243,57 +237,16 @@ infofile = ReadInfoFile([pathname,filesep,filename,'.inf']);
         Bead_folder = [];
     end 
 
-
     
   % Figure out which channels are really in data set  
     hasdata = logical(1-cellfun(@isempty, bins(:,i)));
     binnames =  bins(hasdata,i); % length cls must equal length binnames
     fnames = froots(hasdata,i); 
-    disp(fnames);
-    axes(handles.axes2); 
-     set(gca,'XTick',[],'YTick',[]);
-    set(handles.imtitle,'String',fnames(:)); % ,'interpreter','none');  
-    chns = loadops{8}(hasdata); 
-    if sum((logical(1-hasdata))) ~=0
-        disp('no data found for in channels:');
-        disp(loadops{8}(logical(1-hasdata)))
-    end
-  % combine folder with binnames in order to call DriftCorrect / binload
-    [Tchns,~] = size(binnames);
-    allbins = cell(Tchns,1); 
-    for c=1:Tchns
-            allbins{c} = strcat(pathin,filesep,binnames{c});
-    end
-
-% Apply global drift correction, then return loaded mlist file.
-% Then apply chromewarp.  
-    mlist = MultiChnDriftCorrect(allbins);
-if loadops{4}
-    for c=1:length(mlist)
-        mlist{c} = chromewarp(chns(c),mlist{c},Bead_folder,'warpD',loadops{5});
-    end
-end
-    % Cleanup settings from any previous data and render image:
-    imsetup(hObject,eventdata, handles);
-    ClearFilters_Callback(hObject, eventdata, handles); 
-    guidata(hObject, handles);
-    % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-    % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-
-
-
-% --------------------------------------------------------------------
-function openfile_ClickedCallback(hObject, eventdata, handles)
-    sourcepath = uigetdir;
-    set(handles.datapath,'String',sourcepath);
-    clear global Im; % clear mosaic if path has changed
-    clear global stage;
-    guidata(hObject, handles);
     
-    % % to set file instead of path, use: 
-    %  [filename,pathname] = uigetfile('*.bin'); % prompts user to select directory 
-    %  sourcename = [pathname,filesep,filename];
-    % set(handles.datapath,'String',sourcename);
+ 
+
+
+
 
 
 % Setup defaults
@@ -332,17 +285,10 @@ function imsetup(hObject,eventdata, handles)
 %% Toolbar Functions
 %=========================================================================%
 
-function openfile_1_Callback(hObject, eventdata, handles)
+function FileMenu_Callback(hObject, eventdata, handles)
 % hObject    handle to SaveData (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% this is the toolbar open icon 
-sourcepath = uigetdir;
-set(handles.datapath,'String',sourcepath);
-clear global Im; % clear mosaic if path has changed
-clear global stage;
-guidata(hObject, handles);
 
 
 % --------------------------------------------------------------------
@@ -645,7 +591,7 @@ imagesc(Io);
 shading interp;
 axes(handles.axes2);
 set(handles.imtitle,'String',fnames(:)); % interpreter, none
-colorbar; colormap(hsv(Zs*Cs));
+% colorbar; colormap(hsv(Zs*Cs));
 set(gca,'XTick',[],'YTick',[]);
 
 if imaxes.updatemini
@@ -1451,17 +1397,182 @@ function MenuOpenBin_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuOpenBin (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
+multiselect = 'off';
+LoadBin(hObject,eventdata,handles,multiselect);
+   
 % --------------------------------------------------------------------
 function MenuOpenMulti_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuOpenMulti (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+multiselect = 'on';
+LoadBin(hObject,eventdata,handles,multiselect);
 
 
 % --------------------------------------------------------------------
-function MenuChangeFolder_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuChangeFolder (see GCBO)
+function MenuLoadOptions_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuLoadOptions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+global LoadOps ScratchPath
+
+dlg_title = 'Update Load Options';
+num_lines = 1;
+
+    default_opts = ...
+        {LoadOps.pathin,...
+        CSL2str(LoadOps.chns),...
+        LoadOps.warpfile,...
+        num2str(LoadOps.warpD),...
+        num2str(LoadOps.correctDrift),...
+        num2str(LoadOps.chnOrder),...
+        }';
+    prompt = ...
+        {'Data Folder',...
+        'Channel Names (must match names in chromewarp)',...
+        'warpfile',...
+        'warp dimension',...
+        'Correct global drift (files must be loaded in order acquired)',...
+        'Order acquired (see display channels box for order listed)',...
+        };
+    
+opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
+LoadOps.pathin = opts{1};
+LoadOps.chns = parseCSL(opts{2});
+LoadOps.warpfile = opts{3};
+LoadOps.warpD = str2double(opts{4});
+LoadOps.correctDrift = logical(str2double(opts{5}));
+LoadOps.chnOrder = 1:4; 
+
+
+function LoadBin(hObject,eventdata,handles,multiselect)
+% Brings up dialogue box to select bin file(s) to load;     
+clear mlist bins fnames froots infofile;
+global binfile LoadOps;
+if ~isempty(LoadOps.pathin)
+    startfolder = LoadOps.pathin;
+elseif ~isempty(binfile)
+    startfolder = extractpath(binfile);
+else
+    startfolder = pwd;
+end
+[FileName,PathName,FilterIndex] = uigetfile({'*.bin','Bin file (*.bin)';...
+    '*.*','All Files (*.*)'},'Select molecule list',startfolder,...
+    'MultiSelect',multiselect);
+if FilterIndex ~=0
+    if ~iscell(FileName)
+        binfile = [PathName,filesep,FileName];
+        SingleBinLoad(hObject,eventdata,handles);
+    else
+        binnames = fliplr(FileName);
+        LoadOps.pathin = PathName;
+        % update channel names in viewer
+        for c=1:length(binnames)
+            updatelabel = ['set(handles.chn',num2str(c),',',...
+                '''String'',binnames{',num2str(c),'})'];
+            eval(updatelabel)
+            % set(handles.chn1,'String',binnames{1})
+        end
+        guidata(hObject, handles);
+        MultiBinLoad(hObject,eventdata,handles,binnames);
+    end       
+end
+
+    function SingleBinLoad(hObject,eventdata,handles)
+        % Loads single bin files
+        global binfile mlist fnames infofile
+        disp('reading binfile...');
+        mlist{1} = ReadMasterMoleculeList(binfile);
+        fnames{1} = binfile; 
+        disp('file loaded'); 
+        [pathname,filename] = extractpath(binfile); 
+        k = strfind(filename,'_');
+        infofile = ReadInfoFile([pathname,filesep,filename(1:k(end)-1),'.inf']);
+        disp('setting up image options...');
+        imsetup(hObject,eventdata, handles);
+        disp('drawing data...');
+        ClearFilters_Callback(hObject, eventdata, handles); 
+        guidata(hObject, handles);
+
+
+
+        
+ function MultiBinLoad(hObject,eventdata,handles,binnames)
+     global LoadOps fnames mlist infofile ScratchPath
+     % ----------------------------------------------------
+     % Passed Inputs:
+     % binnames
+     % ----------------------------------------------------
+     % % Global Inputs:
+     % LoadOps: structure
+     % fnames: cell array of names of current data files in display 
+     %          (used for display only).
+     % mlist:  cell array of all molecule lists loaded for display
+     % infofile: InfoFile structure for dataset (contains stage position,
+     %          needed for MosaicView reconstruction).  
+   
+  % Set up title field in display   
+%     fnames = binnames; % display name for the files
+%     axes(handles.axes2); 
+%     set(gca,'XTick',[],'YTick',[]);
+%     set(handles.imtitle,'String',binnames(:)); % ,'interpreter','none');  
+
+    % Get infofile #1 for position information
+    k = strfind(binnames{1},'_');
+    infofile = ReadInfoFile([LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf']);
+    
+  % combine folder with binnames in order to call DriftCorrect / binload
+    Tchns = length(binnames);
+    allbins = cell(Tchns,1); 
+    for c=1:Tchns
+            allbins{c} = strcat(LoadOps.pathin,filesep,binnames{c});
+    end
+
+% Apply global drift correction, then return loaded mlist file.
+% Then apply chromewarp.  
+    mlist = MultiChnDriftCorrect(allbins,'correctDrift',LoadOps.correctDrift);
+    
+    % Need a warp map.  
+    if isempty(LoadOps.warpfile)
+        [FileName,PathName] = uigetfile({'*.mat','Matlab data (*.mat)';...
+    '*.*','All Files (*.*)'},'Select warpfile',LoadOps.pathin);
+    LoadOps.warpfile = [PathName,FileName];
+    end
+
+    % Need to know channel names so we can apply the appropriate warp
+    if isempty(LoadOps.chns{:})
+        chns = inputdlg({'Channel Names (must match names in warpmap)'},...
+    '',1,{'750,647,561,488'});
+        LoadOps.chns = parseCSL(chns{1}); 
+    end
+    
+    % Automatically dealing with old vs. new style chromewarp format
+    [warppath,warpname] = extractpath(LoadOps.warpfile); % detect old style
+    if ~isempty(strfind(warpname,'tform'))
+    for c=1:length(mlist)
+        mlist{c} = chromewarp(LoadOps.chns(c),mlist{c},warppath,'warpD',LoadOps.warpD);
+    end        
+    else  % Run new style
+        mlist = ApplyChromeWarp(mlist,LoadOps.chns,LoadOps.warpfile,'warpD',LoadOps.warpD);    
+    end
+    % Cleanup settings from any previous data and render image:
+    imsetup(hObject,eventdata, handles);
+    ClearFilters_Callback(hObject, eventdata, handles); 
+    guidata(hObject, handles);
+
+    save([ScratchPath,'test.mat']);
+% load([ScratchPath,'test.mat']);
+    
+     
+     function AutoMatchBin                
+   chns = LoadOps.chns(hasdata); 
+    if sum((logical(1-hasdata))) ~=0
+        disp('no data found for in channels:');
+        disp(chnlist(logical(1-hasdata)))
+    end
+    
+    
+    % --------------------------------------------------------------------
+function ToolbarOpenFile_ClickedCallback(hObject, eventdata, handles)
+
+

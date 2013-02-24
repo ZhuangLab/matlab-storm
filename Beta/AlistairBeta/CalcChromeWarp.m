@@ -824,10 +824,16 @@ saveas(fig_xzerr,[pathin,filesep,saveroot,'fig_xyzerr.png']);
 saveas(fig_xyerr_all,[pathin,filesep,saveroot,'fig_xyerr_all.png']);
 saveas(fig_warperr_2d,[pathin,filesep,saveroot,'fig_warperr_2d.png']);
 
+chn_warp_names = cell(Nsamples,2);
+for s=1:Nsamples
+    chn_warp_names{s,1} = data(s).sample(1).chn;
+    chn_warp_names{s,1} = data(s).refchn(1).chn;
+end
+
 
 % SAVE transforms
 save([pathin,filesep,'chromewarps.mat'],'tform_1','tform','tform2D',...
-    'cdf','cdf2D','cdf_thresh','cdf2D_thresh','thr');
+    'cdf','cdf2D','cdf_thresh','cdf2D_thresh','thr','chn_warp_names');
 disp(['wrote ',pathin,filesep,'chromewarps.mat']);    
 
 disp('3D bead fitting complete');
