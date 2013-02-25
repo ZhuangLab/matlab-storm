@@ -1,6 +1,6 @@
-function Ozoom = fxn_AddOverlay(O,I,imaxes,varargin)
-% Ozoom = fxn_AddOverlay(O,I,imaxes);
-% Ozoom = fxn_AddOverlay(O,I,'flipV',value,'flipH',value,'theta',value'...
+function Ozoom = fxn_AddOverlay(O,imaxes,varargin)
+% Ozoom = fxn_AddOverlay(O,imaxes);
+% Ozoom = fxn_AddOverlay(O,'flipV',value,'flipH',value,'theta',value'...
 %          'chns',value,'xshift',value,'yshift',value);
 % overlay a portion of the image O onto I.  The original images O and I may
 % be different sizes, and I generally corresponds only to a particular
@@ -11,29 +11,23 @@ function Ozoom = fxn_AddOverlay(O,I,imaxes,varargin)
 % O / matrix 
 %                   -- overlay to add to image I (e.g. a conventional
 %                   image)
-% I / matrix 
-%                   -- image on which to add overlay (e.g. a zoom in region
-%                   on STORM image)
 % imaxes / struct 
-%                   -- contains fields .xmin .xmax, .ymin .ymax, .zm and
-%                   .scale which portions of image O to add to I. .zm is
-%                   the magnification factor of O to get to I.  I may be
-%                   additionally upscaled by a factor of .scale.  (i.e.
-%                   imresize(O,imaxes.scale*imaxes.zm) makes O the same
-%                   size as the full image which I is a fragment of.)
+%                   -- contains fields .xmin .xmax, .ymin .ymax, .zm, .H,
+%                   .W and .scale.  These define which portions of image O 
+%                   to add to the image;
 %
 %--------------------------------------------------------------------------
 %% Outputs
 %--------------------------------------------------------------------------
 % Ozoom / matrix 
-%                   -- image of size I corresponding to the section of
-%                   image O specified by imaxes
+%                   -- image of size of origional image corresponding to 
+%                   the section of image O specified by imaxes
 %
 %--------------------------------------------------------------------------
 %% Optional Inputs
 %--------------------------------------------------------------------------
 % flipV / logical / false   -- does O need to be vertically flipped
-% flipH / logical / falise  -- does O need to be horizontal flipped
+% flipH / logical / false   -- does O need to be horizontal flipped
 % theta / double / 0        -- O will be rotated CW by this angle
 % chns / vector / []        -- only these channels in O will be used.
 %                           leave empty to use all channels
@@ -67,8 +61,8 @@ yshift = 0;
 %--------------------------------------------------------------------------
 %% Parse mustHave variables
 %--------------------------------------------------------------------------
-if nargin < 3
-   error([mfilename,' expects 2 inputs, filename to overlay, bead_folder and binnames']);
+if nargin < 4
+   error([mfilename,' expects 3 inputs, filename to overlay, bead_folder and binnames']);
 end
 
 
@@ -85,32 +79,17 @@ if nargin > 3
         parameterValue = varargin{parameterIndex*2};
         switch parameterName
             case 'flipV'
-                flipV = parameterValue;
-                if ~islogical(parameterValue)
-                    error(['Not a valid value for ' parameterName,' must be logical']);
-                end
-                         
+                flipV = CheckParameter(parameterValue,'boolean','flipV');
             case 'flipH'
-                flipH = parameterValue;
-                if ~islogical(parameterValue)
-                    error(['Not a valid value for ' parameterName,' must be logical']);
-                end
-                
+                flipH = CheckParameter(parameterValue,'boolean','flipH');                
             case 'rotate'
                 theta = parameterValue;
-                if length(theta)>1
-                    error(['Not a valid value for ' parameterName]);
-                end     
-                
             case 'channels'
                 chns = parameterValue;
-                
             case 'xshift'
-                xshift = parameterValue;
-                
+                xshift = parameterValue;       
             case 'yshift'
-                yshift = parameterValue;
-                
+                yshift = parameterValue;    
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -137,7 +116,9 @@ end
 O2 = imrotate(imflip(imflip(O,hflip),vflip),theta);
 
 [hin,~,~] = size(O2);
-[Hfull,Wfull,~] = size(I);
+% [Hfull,Wfull,~] = size(I);
+Hfull = imaxes.H*imaxes.scale;
+Wfull = imaxes.W*imaxes.scale;
 
 % Display the reoriented full image (i.e. full conventional image)
 figure(3); clf; 

@@ -26,11 +26,14 @@ Updates in this repository may introduce bugs that didnt exist before (it is a B
 	## STORMrenderBeta
 	This GUI displays navigates and explores bin files in multi color with a collection of 3D viewers. 
 
-		### Features
+		### New Features
+		* Select multiple binfiles to load through GUI menu
+		* Integrated new form of chromatic warping
 
 		### In Development / To Do
+		* Change contrast control to default to log and make log-based steps using slider. 
+		* Rewrite automatic paring of files (part of rewrite of load commands)
 		* Add option to render mlist channels as different colors
-		* Add manual specification of which bin files to group
 		* Add overlay dax files
 		* Add Fiji 3D viewer option (use matlab embedded fiji?) 
 		* Multi-instance support within the same Matlab instance?  -- requires changing all globals to a structure element passed around
