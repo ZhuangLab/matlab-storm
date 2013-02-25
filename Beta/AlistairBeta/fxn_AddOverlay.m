@@ -57,6 +57,7 @@ theta = 0;
 chns = [];
 xshift = 0;
 yshift = 0; 
+showLoadedImage = true; 
 
 %--------------------------------------------------------------------------
 %% Parse mustHave variables
@@ -90,6 +91,8 @@ if nargin > 3
                 xshift = parameterValue;       
             case 'yshift'
                 yshift = parameterValue;    
+            case 'showLoadedImage'
+                showLoadedImage = parameterValue;
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -121,16 +124,17 @@ Hfull = imaxes.H*imaxes.scale;
 Wfull = imaxes.W*imaxes.scale;
 
 % Display the reoriented full image (i.e. full conventional image)
-figure(3); clf; 
+if showLoadedImage
+Oimage = figure; clf; 
 It = Ncolor(O2,''); imagesc(It); 
 title('image loaded for overlay');
-
+end
 % if specific channels are selected, display only those channels
 if ~isempty(chns)
    O2 = O2(:,:,chns); 
-   It = Ncolor(O2,'');
-   figure(2); clf; imagesc(It);
-   title('channels selected for overlay');
+%    It = Ncolor(O2,'');
+%    figure(2); clf; imagesc(It);
+%    title('channels selected for overlay');
 end
 
 
@@ -142,8 +146,10 @@ end
 O = imresize(O2,hin/imaxes.H);
 
 % highlight region on full color version (i.e. full color conventional image)
+if showLoadedImage
 figure(3); hold on;
 rectangle('position',[imaxes.xmin,imaxes.ymin,imaxes.xmax-imaxes.xmin,imaxes.ymax-imaxes.ymin],'EdgeColor','w');
+end
 
 % scale and then cut (more precise but more memory)
 sc = imaxes.zm*imaxes.scale;

@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 24-Feb-2013 19:34:58
+% Last Modified by GUIDE v2.5 25-Feb-2013 17:11:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -1281,8 +1281,8 @@ if ~isempty(plt3Dfig)
     end
 end
 plt3Dfig = figure; 
-save([ScratchPath,'testdat.mat']);
-load([ScratchPath,'testdat.mat']);
+% save([ScratchPath,'testdat.mat']);
+% load([ScratchPath,'testdat.mat']);
 
 for c = chns
     if length(vlist{c}.x) > 2000
@@ -1546,3 +1546,24 @@ function logscalecolor_Callback(hObject, eventdata, handles)
   
 
     
+
+
+% --------------------------------------------------------------------
+function OptionsMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to OptionsMenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuOverlay_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuOverlay (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuDisplayOps_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuDisplayOps (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
