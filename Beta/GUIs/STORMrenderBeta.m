@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 25-Feb-2013 17:11:29
+% Last Modified by GUIDE v2.5 25-Feb-2013 18:00:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -877,73 +877,6 @@ guidata(hObject, handles);
 
 
 
-% --- Executes on button press in MoreDisplayOps.
-function MoreDisplayOps_Callback(hObject, eventdata, handles)
-% hObject    handle to MoreDisplayOps (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global default_Dopts Dprompt DisplayOps
-
-dlg_title = 'More Display Options';
-num_lines = 1;
-Dprompt = {
-    'Display Z as color',...
-    'Number of Z-steps',...
-    'Z range (nm)',...
-    'hide poor z-fits',...
-    'Dot scale',...
-    'scalebar (0 for off)',...
-    'nm per pixel',...
-    'verbose'};
-default_Dopts{1} = num2str(DisplayOps.ColorZ);
-default_Dopts{2} = num2str(DisplayOps.Zsteps);
-default_Dopts{3} = strcat('[',num2str(DisplayOps.zrange),']');
-default_Dopts{4} = num2str(DisplayOps.HidePoor);
-default_Dopts{5} = num2str(DisplayOps.DotScale);
-default_Dopts{6} = num2str(DisplayOps.scalebar);
-default_Dopts{7} = num2str(DisplayOps.npp);
-default_Dopts{8} = num2str(DisplayOps.verbose); 
-
-% if the menu is screwed up, reset 
-try
-default_Dopts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
-catch er
-    disp(er.message)
-    default_Dopts = {
-    'false',...
-    '8',...
-    '[-500,500]',...
-    'false',...
-    '4',...
-    '500',...
-    '160',...
-    'true'};
-end
-DisplayOps.ColorZ = eval(default_Dopts{1}); 
-DisplayOps.Zsteps = eval(default_Dopts{2});
-DisplayOps.zrange = eval(default_Dopts{3});
-DisplayOps.HidePoor = eval(default_Dopts{4});
-DisplayOps.DotScale = eval(default_Dopts{5});
-DisplayOps.scalebar = eval(default_Dopts{6});
-DisplayOps.npp = eval(default_Dopts{7});
-DisplayOps.verbose = eval(default_Dopts{8});
-loadim(hObject,eventdata, handles);
-guidata(hObject, handles);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1057,8 +990,6 @@ guidata(hObject, handles);
 
 
 
-
-
 %----------------------------------------------
 function updateNaviagtor(hObject,handles)
  global imaxes
@@ -1073,6 +1004,7 @@ function updateNaviagtor(hObject,handles)
     delete(prevbox); 
     rectangle('Position',[lower_x,lower_y,wside,hside],...
         'EdgeColor','w','linewidth',1); 
+    set(gca,'Xtick',[],'Ytick',[]);
     hold off;
     guidata(hObject, handles);
 % ------------------------------------------
@@ -1141,7 +1073,6 @@ end
 
 
 %% 3D Plotting Options
-
 % --------------------------------------------------------------------
 function Render3D_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to Render3D (see GCBO)
@@ -1208,9 +1139,6 @@ else
     disp('Go to "More Display Ops" and set first field as "true"');
 end
 
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
-
 
 % --------------------------------------------------------------------
 function Rotate3Dslices_ClickedCallback(hObject, eventdata, handles)
@@ -1264,7 +1192,6 @@ end
 
 % --------------------------------------------------------------------
 function plot3Ddots_ClickedCallback(hObject, eventdata, handles)
-
 global plt3Dfig  ScratchPath
 npp = 160; % should be a global in imageops or something
 vlist = MolsInView(handles);
@@ -1272,7 +1199,6 @@ chns = find(cellfun(@(x) ~isempty(x),vlist));
 Cs = length(chns); 
 cmap = hsv(Cs);
 lab = cell(Cs,1);
-
 if ~isempty(plt3Dfig)
     try
     close(plt3Dfig);
@@ -1283,7 +1209,6 @@ end
 plt3Dfig = figure; 
 % save([ScratchPath,'testdat.mat']);
 % load([ScratchPath,'testdat.mat']);
-
 for c = chns
     if length(vlist{c}.x) > 2000
         msize = 1;
@@ -1299,6 +1224,9 @@ xlabel('x (nm)'); ylabel('y (nm)'); zlabel('z (nm)');
 title(lab); 
 
 save([ScratchPath,'testdat.mat']);
+
+
+
 
 % --------------------------------------------------------------------
 function plot2Ddots_ClickedCallback(hObject, eventdata, handles) %#ok<*INUSD,*DEFNU>
@@ -1339,121 +1267,10 @@ function vlist = MolsInView(handles)
 
 
 
-%==========================================================================
-%% Overlays / Image Context 
-%==========================================================================
+%% Other
 
 
 
-
-% --- Executes on button press in AddOverlay.
-function AddOverlay_Callback(hObject, eventdata, handles)
-global LoadOps Overlay_prompt Overlay_opts cmin cmax O
-
-% ------------- load image
-% open dialog box to decide whether image should be flipped or rotated
-dlg_title = 'Set Load Options';
-num_lines = 1;
-try
-Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
-catch er 
-    % reset 
-    disp(er.message)
-    Overlay_prompt = {
-    'Image selected (leave blank to select with getfile prompt)',...
-    'Flip Vertical',...
-    'Flip Horizontal',...
-    'Rotate by N degrees'...
-    'horizontal shift'...
-    'vertical shift'...
-    'channels'...
-    'Max frames (for Daxfiles)',...
-    'Layer',...
-    'Contrast'};
-    Overlay_opts = {
-    '',...
-    'false',...
-    'false',...
-    '0',...
-    '0',...
-    '0',...
-    '[]',...
-    '5',...
-    num2str(length(I)+1),...
-    '[0,.3]'};
-    Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
-end
-
-if isempty(Overlay_opts{1})
-[filename,pathname] = uigetfile({'*.dax;*.jpg;*.png;*.tif',...
-    'Image files (*.dax, *.jpg, *.png, *.tif)';
-    '*.dax','DAX (*.dax)';
-    '*.jpg', 'JPEGS (*.jpg)';
-    '*.tif', 'TIFF (*.tif)';
-    '*.png', 'PNG (*.png)';
-    '*.*', 'All Files (*.*)'},'Choose an image file to overlay',...
-    LoadOps.pathin); % prompts user to select directory 
-sourcename = [pathname,filesep,filename];
-Overlay_opts{1} = sourcename;
-end
-k = strfind(Overlay_opts{1},'.dax');
-if isempty(k)
-    O = imread(Overlay_opts{1}); % load image file;
-else
-    O = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
-    O = uint16(mean(O,3));  % might cause problems
-end
-imlayer = eval(Overlay_opts{9});
- 
-IntegrateOverlay(hObject,handles);
-
-[~,filename] = extractpath(Overlay_opts{1});
-updatebuttonname = ['set(handles.chn',num2str(imlayer),',','''String'',','''',filename,'''',')'];
-updatebuttonvalue = ['set(handles.chn',num2str(imlayer),',','''Value'',',num2str(1),')'];
-eval(updatebuttonname);
-eval(updatebuttonvalue); 
-
-
-
-
-
-function IntegrateOverlay(hObject,handles)
-global I O imaxes Overlay_opts cmin cmax ScratchPath
-if ~isempty(O)
-Ozoom = fxn_AddOverlay(O,imaxes,'flipV',eval(Overlay_opts{2}),'flipH',eval(Overlay_opts{3}),...
-    'rotate',eval(Overlay_opts{4}),'xshift',eval(Overlay_opts{5}),'yshift',eval(Overlay_opts{6}),...
-    'channels',eval(Overlay_opts{7}) );
-imlayer = eval(Overlay_opts{9});
-imcaxis = eval(Overlay_opts{10});
-cmin = [cmin; zeros(1,imlayer-length(cmin))];
-cmax = [cmax; zeros(1,imlayer-length(cmax))];
-cmin(imlayer) = imcaxis(1);
-cmax(imlayer) = imcaxis(2);
-I{imlayer} = imadjust(Ozoom,[cmin(imlayer),cmax(imlayer)],[0,1]);
-figure(4); clf; imagesc(I{imlayer});
-update_imcolor(hObject,handles);
-end
-
-
-
-
-
-% --- Executes on button press in ImageContext.
-function ImageContext_Callback(hObject, eventdata, handles)
-% Loads multicolor mosaic created with the Steve application.
-% Marks location of current image on mosaic. 
-global infofile Mosaicfolder
-
-if isempty(Mosaicfolder)
-    Mosaicfolder = [infofile.localPath,filesep,'..',filesep,'Mosaic'];
-    if ~exist(Mosaicfolder,'dir')
-        Mosaicfolder = uigetdir(infofile.localPath);
-    end
-end    
-position = [infofile.Stage_X,infofile.Stage_Y];
-MosaicViewer(Mosaicfolder,position);
-
- 
 
 
 
@@ -1510,6 +1327,8 @@ function fchn3_Callback(hObject, eventdata, handles)
 function fchn1_Callback(hObject, eventdata, handles)
 
 
+% --- Executes during object creation, after setting all properties.
+function chn4_CreateFcn(hObject, eventdata, handles)
 
 % --- Executes during object creation, after setting all properties.
 function MaxIntBox_CreateFcn(hObject, eventdata, handles)
@@ -1546,8 +1365,13 @@ function logscalecolor_Callback(hObject, eventdata, handles)
   
 
     
-
-
+%% 
+%==========================================================================
+%% Options Menu 
+%==========================================================================
+% *Overlays*
+% *Image Context*
+% 
 % --------------------------------------------------------------------
 function OptionsMenu_Callback(hObject, eventdata, handles)
 % hObject    handle to OptionsMenu (see GCBO)
@@ -1560,6 +1384,90 @@ function MenuOverlay_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuOverlay (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+global LoadOps Overlay_prompt Overlay_opts cmin cmax O
+
+% ------------- load image
+% open dialog box to decide whether image should be flipped or rotated
+dlg_title = 'Set Load Options';
+num_lines = 1;
+try
+Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
+catch er 
+    % reset 
+    disp(er.message)
+    Overlay_prompt = {
+    'Image selected (leave blank to select with getfile prompt)',...
+    'Flip Vertical',...
+    'Flip Horizontal',...
+    'Rotate by N degrees'...
+    'horizontal shift'...
+    'vertical shift'...
+    'channels'...
+    'Max frames (for Daxfiles)',...
+    'Layer',...
+    'Contrast'};
+    Overlay_opts = {
+    '',...
+    'false',...
+    'false',...
+    '0',...
+    '0',...
+    '0',...
+    '[]',...
+    '5',...
+    num2str(length(I)+1),...
+    '[0,.3]'};
+    Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
+end
+
+if isempty(Overlay_opts{1})
+[filename,pathname] = uigetfile({'*.dax;*.jpg;*.png;*.tif',...
+    'Image files (*.dax, *.jpg, *.png, *.tif)';
+    '*.dax','DAX (*.dax)';
+    '*.jpg', 'JPEGS (*.jpg)';
+    '*.tif', 'TIFF (*.tif)';
+    '*.png', 'PNG (*.png)';
+    '*.*', 'All Files (*.*)'},'Choose an image file to overlay',...
+    LoadOps.pathin); % prompts user to select directory 
+sourcename = [pathname,filesep,filename];
+Overlay_opts{1} = sourcename;
+end
+k = strfind(Overlay_opts{1},'.dax');
+if isempty(k)
+    O = imread(Overlay_opts{1}); % load image file;
+else
+    O = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
+    O = uint16(mean(O,3));  % might cause problems
+end
+imlayer = eval(Overlay_opts{9});
+IntegrateOverlay(hObject,handles);
+
+[~,filename] = extractpath(Overlay_opts{1});
+updatebuttonname = ['set(handles.chn',num2str(imlayer),',','''String'',','''',filename,'''',')'];
+updatebuttonvalue = ['set(handles.chn',num2str(imlayer),',','''Value'',',num2str(1),')'];
+eval(updatebuttonname);
+eval(updatebuttonvalue); 
+
+    %---------------------------------------------------------------------
+    % IntegrateOverlay 
+    %    - subfunction of MenuOverlay, also called each time image resizes
+    %    in order to maintain overlay display.  
+    function IntegrateOverlay(hObject,handles)
+    global I O imaxes Overlay_opts cmin cmax ScratchPath
+    if ~isempty(O)
+    Ozoom = fxn_AddOverlay(O,imaxes,'flipV',eval(Overlay_opts{2}),'flipH',eval(Overlay_opts{3}),...
+        'rotate',eval(Overlay_opts{4}),'xshift',eval(Overlay_opts{5}),'yshift',eval(Overlay_opts{6}),...
+        'channels',eval(Overlay_opts{7}) );
+    imlayer = eval(Overlay_opts{9});
+    imcaxis = eval(Overlay_opts{10});
+    cmin = [cmin; zeros(1,imlayer-length(cmin))];
+    cmax = [cmax; zeros(1,imlayer-length(cmax))];
+    cmin(imlayer) = imcaxis(1);
+    cmax(imlayer) = imcaxis(2);
+    I{imlayer} = imadjust(Ozoom,[cmin(imlayer),cmax(imlayer)],[0,1]);
+   % figure(4); clf; imagesc(I{imlayer});
+    update_imcolor(hObject,handles);
+    end
 
 
 % --------------------------------------------------------------------
@@ -1567,3 +1475,100 @@ function MenuDisplayOps_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuDisplayOps (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+global default_Dopts Dprompt DisplayOps
+
+dlg_title = 'More Display Options';
+num_lines = 1;
+Dprompt = {
+    'Display Z as color',...
+    'Number of Z-steps',...
+    'Z range (nm)',...
+    'hide poor z-fits',...
+    'Dot scale',...
+    'scalebar (0 for off)',...
+    'nm per pixel',...
+    'verbose'};
+default_Dopts{1} = num2str(DisplayOps.ColorZ);
+default_Dopts{2} = num2str(DisplayOps.Zsteps);
+default_Dopts{3} = strcat('[',num2str(DisplayOps.zrange),']');
+default_Dopts{4} = num2str(DisplayOps.HidePoor);
+default_Dopts{5} = num2str(DisplayOps.DotScale);
+default_Dopts{6} = num2str(DisplayOps.scalebar);
+default_Dopts{7} = num2str(DisplayOps.npp);
+default_Dopts{8} = num2str(DisplayOps.verbose); 
+
+% if the menu is screwed up, reset 
+try
+default_Dopts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
+catch er
+    disp(er.message)
+    default_Dopts = {
+    'false',...
+    '8',...
+    '[-500,500]',...
+    'false',...
+    '4',...
+    '500',...
+    '160',...
+    'true'};
+end
+DisplayOps.ColorZ = eval(default_Dopts{1}); 
+DisplayOps.Zsteps = eval(default_Dopts{2});
+DisplayOps.zrange = eval(default_Dopts{3});
+DisplayOps.HidePoor = eval(default_Dopts{4});
+DisplayOps.DotScale = eval(default_Dopts{5});
+DisplayOps.scalebar = eval(default_Dopts{6});
+DisplayOps.npp = eval(default_Dopts{7});
+DisplayOps.verbose = eval(default_Dopts{8});
+loadim(hObject,eventdata, handles);
+guidata(hObject, handles);
+
+
+
+% --------------------------------------------------------------------
+function MenuViewMosaic_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuViewMosaic (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global infofile Mosaicfolder
+
+if isempty(Mosaicfolder)
+    Mosaicfolder = [infofile.localPath,filesep,'..',filesep,'Mosaic'];
+    if ~exist(Mosaicfolder,'dir')
+        Mosaicfolder = uigetdir(infofile.localPath);
+    end
+end    
+position = [infofile.Stage_X,infofile.Stage_Y];
+MosaicViewer(Mosaicfolder,position);
+
+
+% --------------------------------------------------------------------
+function MenuColors_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuColors (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.LayersPanel
+% rp1 = [943,421,80,20]; % [169 30 17 1.77]; % [1.66 1.769, 15, 1.846]
+p4 = get(handles.chn4,'Position');
+Units = get(handles.chn4,'Units');
+pn = [p4(1),p4(2)-20)
+handles.radio = uicontrol( 'Parent', handles.LayerPanel,...
+                           'Style', 'radiobutton', ...
+                           'Callback', @myRadio, ...
+                           'Units',    'pixels', ...
+                           'Position', rp1, ...
+                           'String',   ['radio ',num2str(1)], ...
+                           'Value',    0);
+                 guidata(hObject, handles);
+
+function myRadio(hObject, EventData)
+disp('new button called!');
+
+% 
+ panel = guidata(hObject);
+panel.LayersPanel
+% panel
+% get(panel.chn1,'Parent')
+% get(panel.radio,'Parent')
+% 
