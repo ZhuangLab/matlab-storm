@@ -57,7 +57,7 @@ theta = 0;
 chns = [];
 xshift = 0;
 yshift = 0; 
-showLoadedImage = true; 
+showLoadedImage = false; 
 
 %--------------------------------------------------------------------------
 %% Parse mustHave variables
@@ -147,7 +147,7 @@ O = imresize(O2,hin/imaxes.H);
 
 % highlight region on full color version (i.e. full color conventional image)
 if showLoadedImage
-figure(3); hold on;
+figure(Oimage); hold on;
 rectangle('position',[imaxes.xmin,imaxes.ymin,imaxes.xmax-imaxes.xmin,imaxes.ymax-imaxes.ymin],'EdgeColor','w');
 end
 
