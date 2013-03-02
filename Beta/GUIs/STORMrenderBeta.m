@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 25-Feb-2013 18:00:10
+% Last Modified by GUIDE v2.5 02-Mar-2013 17:15:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -52,7 +52,10 @@ function STORMrenderBeta_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to STORMrenderBeta (see VARARGIN)
 
-global DisplayOps LoadOps binfile cmin cmax
+global DisplayOps LoadOps binfile cmin cmax 
+
+clear global O I Ic mlist
+
 % Default Display Options
     DisplayOps.ColorZ = false; 
     DisplayOps.Zsteps = 5;
@@ -204,7 +207,7 @@ set(handles.datapath,'String',LoadOps.pathin);
 
 function LoadBin(hObject,eventdata,handles,multiselect)
 % Brings up dialogue box to select bin file(s) to load;     
-clear mlist bins fnames froots infofile;
+clear global mlist bins fnames froots infofile;
 global binfile LoadOps;
 if ~isempty(LoadOps.pathin)
     startfolder = LoadOps.pathin;
@@ -571,7 +574,7 @@ I = plotSTORM_colorZ(mlist, imaxes,'filter',infilter,'Zrange',DisplayOps.zrange,
 
 IntegrateOverlay(hObject,handles); % Integrate the Overlay, if it exists
 
-update_imcolor(hObject,handles); % converts I, applys contrast, to RBG
+update_maindisplay(hObject,handles); % converts I, applys contrast, to RBG
 guidata(hObject, handles);
 plottime = toc;
 disp(['total time to render image: ',num2str(plottime)]);
@@ -678,8 +681,14 @@ disp('this function still under development');
 
  
  
-function update_imcolor(hObject,handles)
-global I Ic Io cmax cmin fnames DisplayOps imaxes ScratchPath
+function update_maindisplay(hObject,handles)
+global I Oz Ic Io  cmax cmin fnames DisplayOps imaxes ScratchPath
+% I cell containing current STORM image
+% Oz cell containing appropriately rescaled overlay image
+% Ic N layer colored matrix, fed into Ncolor
+% Io 3-color output image. Global only to pass to export/save image calls.
+
+
 guidata(hObject, handles);
 channels(1) = get(handles.chn1,'Value');
 channels(2) = get(handles.chn2,'Value');
@@ -689,7 +698,9 @@ active_channels = find(channels);
 
 Cs = length(I); 
 [h,w,Zs] = size(I{1});
-Ic = zeros(h,w,Zs*length(active_channels),'uint16'); 
+
+Noverlays = length(Oz);
+Ic = zeros(h,w,Zs*length(active_channels)+Noverlays,'uint16'); 
 
 
   save([ScratchPath,'test.mat'],'Ic','handles','I','DisplayOps','cmax','cmin','active_channels','channels');
@@ -706,11 +717,16 @@ if DisplayOps.ColorZ
        end
    end
 else
-    Zs =1;
     for c=1:Cs
+        disp(Cs)
           Ic(:,:,c) = imadjust(I{c},[cmin(c),cmax(c)],[0,1]);
     end
-    Ic(:,:,logical(1-channels)) = cast(0,'uint16'); 
+    % Ic(:,:,logical(1-channels)) = cast(0,'uint16'); % should be unnecessary, Ic initialized as zeros
+end
+
+% add overlays, if they exist
+for n=1:Noverlays
+    Ic(:,:,c+n) = imadjust(Oz{n},[cmin(c+n),cmax(c+n)]);
 end
 
 
@@ -737,6 +753,7 @@ if imaxes.updatemini
     set(gca,'XTick',[],'YTick',[]);
     imagesc(Io); 
     imaxes.updatemini = false;
+    set(gca,'XTick',[],'YTick',[]);
 end
 guidata(hObject, handles);
 
@@ -750,7 +767,7 @@ function ManualContrastTool_ClickedCallback(hObject, eventdata, handles)
 global cmax cmin 
 cmax = input('enter a vector for max intensity for each channel: ');
 cmin = input('enter a vector for min intensity for each channel: ');
- update_imcolor(hObject,handles);
+ update_maindisplay(hObject,handles);
  guidata(hObject, handles);
  
 % --------------------------------------------------------------------
@@ -761,7 +778,7 @@ function AutoContrastTool_ClickedCallback(hObject, eventdata, handles)
 global cmax cmin
     cmax = [.9,.9,.9,.9];
     cmin = [.0,.0,.0,.0];
- update_imcolor(hObject,handles);
+ update_maindisplay(hObject,handles);
  guidata(hObject, handles);
 
 % ------
@@ -830,7 +847,7 @@ global cmax cmin
      % load([ScratchPath,'test.mat']);  figure(3); clf;
        
        clear raw_ints;        
-      update_imcolor(hObject,handles);
+      update_maindisplay(hObject,handles);
       guidata(hObject, handles);
 
 function MinIntBox_Callback(hObject, eventdata, handles) %#ok<*INUSL>
@@ -859,20 +876,20 @@ function MinIntSlider_Callback(hObject, eventdata, handles)
 
 % color controls
 function chn1_Callback(hObject, eventdata, handles)
-update_imcolor(hObject,handles);
+update_maindisplay(hObject,handles);
 guidata(hObject, handles);
 
 function chn2_Callback(hObject, eventdata, handles)
-update_imcolor(hObject,handles);
+update_maindisplay(hObject,handles);
 guidata(hObject, handles);
 
 
 function chn3_Callback(hObject, eventdata, handles)
-update_imcolor(hObject,handles);
+update_maindisplay(hObject,handles);
 guidata(hObject, handles);
 
 function chn4_Callback(hObject, eventdata, handles)
-update_imcolor(hObject,handles);
+update_maindisplay(hObject,handles);
 guidata(hObject, handles);
 
 
@@ -1415,7 +1432,7 @@ catch er
     '0',...
     '[]',...
     '5',...
-    num2str(length(I)+1),...
+    num2str(length(cmin)+1),...
     '[0,.3]'};
     Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
 end
@@ -1434,41 +1451,74 @@ Overlay_opts{1} = sourcename;
 end
 k = strfind(Overlay_opts{1},'.dax');
 if isempty(k)
-    O = imread(Overlay_opts{1}); % load image file;
+    Otemp = imread(Overlay_opts{1}); % load image file;
 else
-    O = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
-    O = uint16(mean(O,3));  % might cause problems
+    Otemp = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
+    Otemp = uint16(mean(Otemp,3));  % might cause problems
 end
-imlayer = eval(Overlay_opts{9});
-IntegrateOverlay(hObject,handles);
+Noverlays = length(O);
+O{Noverlays+1} = Otemp; 
+
+overlay_number = length(O);%  eval(Overlay_opts{9});
+
+imlayers = length(cmin);
+imcaxis = eval(Overlay_opts{10});
+cmin = [cmin; 0];
+cmax = [cmax; 0];
+cmin(imlayers+1) = imcaxis(1);
+cmax(imlayers+1) = imcaxis(2);
 
 [~,filename] = extractpath(Overlay_opts{1});
-updatebuttonname = ['set(handles.chn',num2str(imlayer),',','''String'',','''',filename,'''',')'];
-updatebuttonvalue = ['set(handles.chn',num2str(imlayer),',','''Value'',',num2str(1),')'];
-eval(updatebuttonname);
-eval(updatebuttonvalue); 
+AddOverlayLayer(hObject,handles,overlay_number,filename)
 
+IntegrateOverlay(hObject,handles);
+
+
+% updatebuttonname = ['set(handles.chn',num2str(imlayer),',','''String'',','''',filename,'''',')'];
+% updatebuttonvalue = ['set(handles.chn',num2str(imlayer),',','''Value'',',num2str(1),')'];
+% eval(updatebuttonname);
+% eval(updatebuttonvalue); 
+
+
+%~~~~~~~
+    function AddOverlayLayer(hObject,handles,overlay_number,oname)
+button_position = [.6, 8.15-2*(overlay_number-1), 15, 1.85];
+handles.overlaybutton(overlay_number) = ...
+                uicontrol( 'Parent', handles.OverlayPanel,...
+                           'Style', 'radiobutton', ...
+                           'Callback', @OverlayButtonToggle, ...
+                           'Units',    'characters', ...
+                           'Position', button_position, ...
+                           'String',   oname, ...
+                           'Value',    1);
+                 guidata(hObject, handles);
+
+function OverlayButtonToggle(hObject, EventData)
+disp('new button called!');
+% 
+% % 
+%  panel = guidata(hObject);
+% panel.LayersPanel
+% % panel
+% % get(panel.chn1,'Parent')
+% % get(panel.radio,'Parent')
+                 
+                 
     %---------------------------------------------------------------------
     % IntegrateOverlay 
     %    - subfunction of MenuOverlay, also called each time image resizes
     %    in order to maintain overlay display.  
     function IntegrateOverlay(hObject,handles)
-    global I O imaxes Overlay_opts cmin cmax ScratchPath
-    if ~isempty(O)
-    Ozoom = fxn_AddOverlay(O,imaxes,'flipV',eval(Overlay_opts{2}),'flipH',eval(Overlay_opts{3}),...
-        'rotate',eval(Overlay_opts{4}),'xshift',eval(Overlay_opts{5}),'yshift',eval(Overlay_opts{6}),...
-        'channels',eval(Overlay_opts{7}) );
-    imlayer = eval(Overlay_opts{9});
-    imcaxis = eval(Overlay_opts{10});
-    cmin = [cmin; zeros(1,imlayer-length(cmin))];
-    cmax = [cmax; zeros(1,imlayer-length(cmax))];
-    cmin(imlayer) = imcaxis(1);
-    cmax(imlayer) = imcaxis(2);
-    I{imlayer} = imadjust(Ozoom,[cmin(imlayer),cmax(imlayer)],[0,1]);
-   % figure(4); clf; imagesc(I{imlayer});
-    update_imcolor(hObject,handles);
+    global Oz O imaxes Overlay_opts cmin cmax ScratchPath
+    for n=1:length(O);
+        if ~isempty(O{n})
+        Oz{n} = fxn_AddOverlay(O{n},imaxes,'flipV',eval(Overlay_opts{2}),'flipH',eval(Overlay_opts{3}),...
+            'rotate',eval(Overlay_opts{4}),'xshift',eval(Overlay_opts{5}),'yshift',eval(Overlay_opts{6}),...
+            'channels',eval(Overlay_opts{7}) ); 
+       % figure(4); clf; imagesc(I{imlayer});
+        update_maindisplay(hObject,handles);
+        end
     end
-
 
 % --------------------------------------------------------------------
 function MenuDisplayOps_Callback(hObject, eventdata, handles)
@@ -1547,28 +1597,53 @@ function MenuColors_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuColors (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-handles.LayersPanel
-% rp1 = [943,421,80,20]; % [169 30 17 1.77]; % [1.66 1.769, 15, 1.846]
-p4 = get(handles.chn4,'Position');
-Units = get(handles.chn4,'Units');
-pn = [p4(1),p4(2)-20)
-handles.radio = uicontrol( 'Parent', handles.LayerPanel,...
-                           'Style', 'radiobutton', ...
-                           'Callback', @myRadio, ...
-                           'Units',    'pixels', ...
-                           'Position', rp1, ...
-                           'String',   ['radio ',num2str(1)], ...
-                           'Value',    0);
-                 guidata(hObject, handles);
-
-function myRadio(hObject, EventData)
-disp('new button called!');
-
 % 
- panel = guidata(hObject);
-panel.LayersPanel
-% panel
-% get(panel.chn1,'Parent')
-% get(panel.radio,'Parent')
+% handles.LayersPanel
+% % rp1 = [943,421,80,20]; % [169 30 17 1.77]; % [1.66 1.769, 15, 1.846]
+% p4 = get(handles.chn4,'Position');
+% Units = get(handles.chn4,'Units');
+% pn = [p4(1),p4(2)-20]
+% handles.radio = uicontrol( 'Parent', handles.LayerPanel,...
+%                            'Style', 'radiobutton', ...
+%                            'Callback', @myRadio, ...
+%                            'Units',    'pixels', ...
+%                            'Position', rp1, ...
+%                            'String',   ['radio ',num2str(1)], ...
+%                            'Value',    0);
+%                  guidata(hObject, handles);
 % 
+
+% % 
+
+
+% --- Executes on button press in radiobutton11.
+function radiobutton11_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton11 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton11
+
+
+
+% --- Executes on selection change in LevelsChannel.
+function LevelsChannel_Callback(hObject, eventdata, handles)
+% hObject    handle to LevelsChannel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns LevelsChannel contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from LevelsChannel
+
+
+% --- Executes during object creation, after setting all properties.
+function LevelsChannel_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to LevelsChannel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
