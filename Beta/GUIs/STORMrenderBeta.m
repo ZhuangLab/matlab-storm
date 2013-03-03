@@ -60,6 +60,8 @@ else
 end
 
 handles.gui_number = length(SR);
+set(handles.SRinstance,'String',['inst id',num2str(handles.gui_number)]);
+
 
 % Initialize a few blank fields
 SR{handles.gui_number}.Oz = {};  
@@ -174,41 +176,6 @@ multiselect = 'on';
 LoadBin(hObject,eventdata,handles,multiselect);
 
 
-% --------------------------------------------------------------------
-function MenuLoadOptions_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuLoadOptions (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global ScratchPath
-
-    dlg_title = 'Update Load Options';
-    num_lines = 1;
-
-    default_opts = ...
-        {SR{handles.gui_number}.LoadOps.pathin,...
-        CSL2str(SR{handles.gui_number}.LoadOps.chns),...
-        SR{handles.gui_number}.LoadOps.warpfile,...
-        num2str(SR{handles.gui_number}.LoadOps.warpD),...
-        num2str(SR{handles.gui_number}.LoadOps.correctDrift),...
-        SR{handles.gui_number}.LoadOps.chnOrder,...
-        }';
-    prompt = ...
-        {'Data Folder',...
-        'Channel Names (must match names in chromewarp)',...
-        'warpfile',...
-        'warp dimension',...
-        'Correct global drift (files must be loaded in order acquired)',...
-        'Order acquired (see display channels box for order listed)',...
-        };
-    
-opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
-SR{handles.gui_number}.LoadOps.pathin = opts{1};
-SR{handles.gui_number}.LoadOps.chns = parseCSL(opts{2});
-SR{handles.gui_number}.LoadOps.warpfile = opts{3};
-SR{handles.gui_number}.LoadOps.warpD = str2double(opts{4});
-SR{handles.gui_number}.LoadOps.correctDrift = logical(str2double(opts{5}));
-SR{handles.gui_number}.LoadOps.chnOrder = opts{6}; 
-set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin); 
 
 
         
@@ -245,12 +212,91 @@ if FilterIndex ~=0
         sortednames = ['FileName(',SR{handles.gui_number}.LoadOps.chnOrder,')'];
         binnames = eval(sortednames); 
         for c=1:length(FileName)
-        handles = AddStormLayer(hObject,handles,FileName{c},[]);
-        guidata(hObject, handles);
+            handles = AddStormLayer(hObject,handles,FileName{c},[]);
+            guidata(hObject, handles);
         end
         MultiBinLoad(hObject,eventdata,handles,binnames);
     end       
 end
+
+
+
+
+% --------------------------------------------------------------------
+function MenuAutoMultiLoad_Callback(hObject, eventdata, handles)
+% Automatically group bin files and load the one indicated by the Load
+% options (default = # 1).  
+% 
+% hObject    handle to MenuAutoMultiLoad (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SR ScratchPath
+
+% confirm auto-load options
+dlg_title = 'Bin file names must begin with unique channel flag';
+num_lines = 1;
+prompt = ...
+    {'files containing string',...
+    'bin type',...
+    'channel flag',...
+    'Match set to load (0 to print matches)'...
+    };
+default_opts = ...
+    {SR{handles.gui_number}.LoadOps.sourceroot,...
+    SR{handles.gui_number}.LoadOps.bintype,...
+    CSL2str(SR{handles.gui_number}.LoadOps.chnFlag),...
+    num2str(SR{handles.gui_number}.LoadOps.dataset),...
+    };   
+opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
+SR{handles.gui_number}.LoadOps.sourceroot = opts{1};
+SR{handles.gui_number}.LoadOps.bintype = opts{2};
+SR{handles.gui_number}.LoadOps.chnFlag = parseCSL(opts{3}); 
+SR{handles.gui_number}.LoadOps.dataset = str2double(opts{4});
+%  if we don't have a file path, prompt user to find one. 
+if isempty(SR{handles.gui_number}.LoadOps.pathin)
+    SR{handles.gui_number}.LoadOps.pathin = uigetdir(pwd,'select data folder');
+end
+
+% Automatically group all bin files of same section in different colors
+  %   based on image number, if it has not already been done
+  if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
+    [SR{handles.gui_number}.bins,SR{handles.gui_number}.fnames] = ...
+        automatch_files(SR{handles.gui_number}.LoadOps.pathin,...
+           'sourceroot',SR{handles.gui_number}.LoadOps.sourceroot,...
+           'filetype',SR{handles.gui_number}.LoadOps.bintype,...
+           'chns',SR{handles.gui_number}.LoadOps.chnFlag);
+    disp('files found and grouped:'); 
+    disp(SR{handles.gui_number}.bins(:));
+  end
+  
+ % Figure out which channels are really in data set  
+ if SR{handles.gui_number}.LoadOps.dataset == 0
+     i=1;
+ else
+     i=SR{handles.gui_number}.LoadOps.dataset;
+ end
+    hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
+    binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
+    if sum((logical(1-hasdata))) ~=0
+        disp('no data found for in channels:');
+        disp(SR{handles.gui_number}.LoadOps.chnFlag(logical(1-hasdata)))
+    end
+  
+    SR{handles.gui_number}.fnames = SR{handles.gui_number}.fnames(hasdata,i);
+    disp('will load:');
+    disp(SR{handles.gui_number}.fnames);   
+    for c=1:length(SR{handles.gui_number}.fnames)
+        handles = AddStormLayer(hObject,handles,SR{handles.gui_number}.fnames{c},[]);
+        guidata(hObject, handles);
+    end
+    
+    MultiBinLoad(hObject,eventdata,handles,binnames);    
+
+
+
+
+
+
 
  %~~~~~~~
     function handles = AddStormLayer(hObject,handles,Sname,layer_number)
@@ -279,7 +325,7 @@ end
     SR{handles.gui_number}.cmax(layer_number) = .7; 
     
     % create button
-    button_position = [.6, 8.05-1.25*(layer_number-1), 17, 1.85];
+    button_position = [.6, 7.4-1.5*(layer_number-1), 17, 1.85];
     handles.stormbutton(layer_number) = ...
                     uicontrol( 'Parent', handles.StormPanel,...
                                'Style', 'radiobutton', ...
@@ -296,7 +342,9 @@ end
             update_maindisplay(hObject,handles);
 
         
-        
+   
+            
+          
 
 
     function SingleBinLoad(hObject,eventdata,handles)
@@ -370,7 +418,7 @@ end
         mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
     end        
     else  % Run new style
-        mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,SR{handles.gui_number}.LoadOps.warpfile,'warpD',SR{handles.gui_number}.LoadOps.warpD);    
+        mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,SR{handles.gui_number}.LoadOps.warpfile,'warpD',SR{handles.gui_number}.LoadOps.warpD,'names',SR{handles.gui_number}.fnames);    
     end
     % Cleanup settings from any previous data and render image:
     SR{handles.gui_number}.mlist = mlist; 
@@ -379,70 +427,48 @@ end
     guidata(hObject, handles);
 
 
+    
+
+% --------------------------------------------------------------------
+function MenuLoadOptions_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuLoadOptions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SR ScratchPath
+
+    dlg_title = 'Update Load Options';
+    num_lines = 1;
+
+    default_opts = ...
+        {SR{handles.gui_number}.LoadOps.pathin,...
+        CSL2str(SR{handles.gui_number}.LoadOps.chns),...
+        SR{handles.gui_number}.LoadOps.warpfile,...
+        num2str(SR{handles.gui_number}.LoadOps.warpD),...
+        num2str(SR{handles.gui_number}.LoadOps.correctDrift),...
+        SR{handles.gui_number}.LoadOps.chnOrder,...
+        }';
+    prompt = ...
+        {'Data Folder',...
+        'Channel Names (must match names in chromewarp)',...
+        'warpfile',...
+        'warp dimension',...
+        'Correct global drift (files must be loaded in order acquired)',...
+        'Order acquired (see display channels box for order listed)',...
+        };
+    
+opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
+SR{handles.gui_number}.LoadOps.pathin = opts{1};
+SR{handles.gui_number}.LoadOps.chns = parseCSL(opts{2});
+SR{handles.gui_number}.LoadOps.warpfile = opts{3};
+SR{handles.gui_number}.LoadOps.warpD = str2double(opts{4});
+SR{handles.gui_number}.LoadOps.correctDrift = logical(str2double(opts{5}));
+SR{handles.gui_number}.LoadOps.chnOrder = opts{6}; 
+set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin);     
+    
 
 % --------------------------------------------------------------------
 function ToolbarOpenFile_ClickedCallback(hObject, eventdata, handles)
 LoadBin(hObject,eventdata,handles,'off')
-
-
-% --------------------------------------------------------------------
-function MenuAutoMultiLoad_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuAutoMultiLoad (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global SR
-
-% confirm auto-load options
-dlg_title = 'Bin file names must begin with unique channel flag';
-num_lines = 1;
-prompt = ...
-    {'files containing string',...
-    'bin type',...
-    'channel flag',...
-    'Match set to load (0 to print matches)'...
-    };
-default_opts = ...
-    {SR{handles.gui_number}.LoadOps.sourceroot,...
-    SR{handles.gui_number}.LoadOps.bintype,...
-    CSL2str(SR{handles.gui_number}.LoadOps.chnFlag),...
-    num2str(SR{handles.gui_number}.LoadOps.dataset),...
-    };   
-opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
-SR{handles.gui_number}.LoadOps.sourceroot = opts{1};
-SR{handles.gui_number}.LoadOps.bintype = opts{2};
-SR{handles.gui_number}.LoadOps.chnFlag = parseCSL(opts{3}); 
-SR{handles.gui_number}.LoadOps.dataset = str2double(opts{4});
-
-% Automatically group all bin files of same section in different colors
-  %   based on image number, if it has not already been done
-  if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
-    [SR{handles.gui_number}.bins,SR{handles.gui_number}.fnames] = automatch_files(SR{handles.gui_number}.LoadOps.pathin,'sourceroot',...
-        SR{handles.gui_number}.LoadOps.sourceroot,'filetype',SR{handles.gui_number}.LoadOps.bintype,'chns',SR{handles.gui_number}.LoadOps.chnFlag);
-    disp('files found and grouped:'); 
-    disp(SR{handles.gui_number}.bins(:));
-  end
-  
- % Figure out which channels are really in data set  
- if SR{handles.gui_number}.LoadOps.dataset == 0
-     i=1;
- else
-     i=SR{handles.gui_number}.LoadOps.dataset;
- end
-    hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
-    binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
-    if sum((logical(1-hasdata))) ~=0
-        disp('no data found for in channels:');
-        disp(SR{handles.gui_number}.LoadOps.chnFlag(logical(1-hasdata)))
-    end
-  
-    fname = SR{handles.gui_number}.fnames(:,i);
-    disp('will load:');
-    disp(fname);
-    MultiBinLoad(hObject,eventdata,handles,binnames);    
-
-
-
- 
 
 
 
@@ -1596,7 +1622,7 @@ IntegrateOverlay(hObject,handles);
     end
     
     SR{handles.gui_number}.OverlayNames{overlay_number} = oname;  
-    button_position = [.6, 8.05-1.25*(overlay_number-1), 17, 1.85];
+    button_position = [.6, 7.4-1.5*(overlay_number-1), 17, 1.85];
     handles.overlaybutton(overlay_number) = ...
                     uicontrol( 'Parent', handles.OverlayPanel,...
                                'Style', 'radiobutton', ...
