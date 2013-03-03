@@ -56,6 +56,7 @@ global ScratchPath
 %--------------------------------------------------------------------------
 verbose = true; 
 warpD = 3;
+fnames = {};
 % warpfile = 'I:\2013-02-09_fab7Pc\Beads\3DBeads1\chromewarps.mat';
 
 %--------------------------------------------------------------------------
@@ -75,6 +76,8 @@ if nargin > 1
         switch parameterName    
             case 'warpD'
                 warpD = CheckParameter(parameterValue,'nonnegative','warpD'); 
+            case 'names'
+                fnames = CheckParameter(parameterValue,'cell','names'); 
             case 'verbose'
                 verbose = CheckParameter(parameterValue,'string','verbose');                
             otherwise
@@ -98,6 +101,12 @@ if ~exist('chn_warp_names','var')
     chn_warp_names = {'750','647';'561','647';'488','647'};
 end
 
+% if no filenames are given, use channel match names
+if isempty(fnames)
+    fnames = chns;
+end
+
+
 if warpD == 2 
     tform = tform2D;
 end
@@ -116,13 +125,15 @@ for c=1:length(mlist) % c =2
             mlist{c}.zc = single(z);
         end
         if verbose
-            disp([chns{c},' data mapped using ',chn_warp_names{k,1},...
-                ' to ',chn_warp_names{k,2},' bead warp map.']);
-            disp(['Warp accuracy: ',num2str(cdf_thresh(k),2),' nm']); 
+            disp([fnames{c},' data mapped in',num2str(warpD),'D using ',...
+                chn_warp_names{k,1},' to ',chn_warp_names{k,2},...
+                ' bead warp map.']);
+            disp(['3D Warp accuracy: ',num2str(cdf_thresh(k),2),' nm']); 
+            disp(['xy Warp accuracy: ',num2str(cdf2D_thresh(k),2),' nm']);
         end
     else
         if verbose
-            disp([chns{c},' used as reference channel. Not warped.']); 
+            disp([fnames{c},' used as reference channel. Not warped.']); 
         end
     end       
 end
