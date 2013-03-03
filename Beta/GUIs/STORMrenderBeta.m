@@ -52,34 +52,42 @@ function STORMrenderBeta_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to STORMrenderBeta (see VARARGIN)
 
-global DisplayOps LoadOps binfile cmin cmax 
+global binfile SR
+if isempty(SR)
+    SR = cell(1,1);
+else
+    SR = [SR;cell(1,1)];
+end
 
-clear global O I Ic mlist
+handles.gui_number = length(SR);
+
+% Initialize a few blank fields
+SR{handles.gui_number}.Oz = {};  
 
 % Default Display Options
-    DisplayOps.ColorZ = false; 
-    DisplayOps.Zsteps = 5;
-    DisplayOps.DotScale = 4;
-    DisplayOps.HidePoor = false;
-    DisplayOps.scalebar = 500;
-    DisplayOps.npp = 160;
-    DisplayOps.verbose = true;
-    DisplayOps.zrange = [-500,500];
+    SR{handles.gui_number}.DisplayOps.ColorZ = false; 
+    SR{handles.gui_number}.DisplayOps.Zsteps = 5;
+    SR{handles.gui_number}.DisplayOps.DotScale = 4;
+    SR{handles.gui_number}.DisplayOps.HidePoor = false;
+    SR{handles.gui_number}.DisplayOps.scalebar = 500;
+    SR{handles.gui_number}.DisplayOps.npp = 160;
+    SR{handles.gui_number}.DisplayOps.verbose = true;
+    SR{handles.gui_number}.DisplayOps.zrange = [-500,500];
 
 % Default MultiBinFile Load Options
-    LoadOps.warpD = 3; % set to 0 for no chromatic warp
-    LoadOps.warpfile = ''; % can leave blank if no chromatic warp
-    LoadOps.chns = {''};% {'750','647','561','488'};
-    LoadOps.pathin = '';
-    LoadOps.correctDrift = true;
-    LoadOps.chnOrder = '[1:end]'; 
-    LoadOps.sourceroot = '';
-    LoadOps.bintype = '_alist.bin';
-    LoadOps.chnFlag = {'750','647','561','488'};  
-    LoadOps.dataset = 0;
+    SR{handles.gui_number}.LoadOps.warpD = 3; % set to 0 for no chromatic warp
+    SR{handles.gui_number}.LoadOps.warpfile = ''; % can leave blank if no chromatic warp
+    SR{handles.gui_number}.LoadOps.chns = {''};% {'750','647','561','488'};
+    SR{handles.gui_number}.LoadOps.pathin = '';
+    SR{handles.gui_number}.LoadOps.correctDrift = true;
+    SR{handles.gui_number}.LoadOps.chnOrder = '[1:end]'; 
+    SR{handles.gui_number}.LoadOps.sourceroot = '';
+    SR{handles.gui_number}.LoadOps.bintype = '_alist.bin';
+    SR{handles.gui_number}.LoadOps.chnFlag = {'750','647','561','488'};  
+    SR{handles.gui_number}.LoadOps.dataset = 0;
 
-    cmin = [0,0,0,0];
-    cmax = [.7,.7,.7,.7]; % fixed 4 channel
+    SR{handles.gui_number}.cmin = [0,0,0,0];
+    SR{handles.gui_number}.cmax = [.7,.7,.7,.7]; % fixed 4 channel
 
 % Choose default command line output for STORMrenderBeta
 handles.output = hObject;
@@ -112,10 +120,12 @@ set(handles.MinIntSlider,'Max',1);
 set(handles.MinIntSlider,'Min',0);
 set(handles.MinIntSlider,'Value',0); 
 set(handles.MinIntSlider,'SliderStep',[1/2^12,1/2^4])
+guidata(hObject, handles);
 
-if ~isempty(binfile)
-    QuickLoad_Callback(hObject, eventdata, handles);
-end
+
+% if ~isempty(binfile)
+%     QuickLoad_Callback(hObject, eventdata, handles);
+% end
 
 % Update handles structure
 guidata(hObject, handles);
@@ -174,18 +184,18 @@ function MenuLoadOptions_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuLoadOptions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global LoadOps ScratchPath
+global ScratchPath
 
     dlg_title = 'Update Load Options';
     num_lines = 1;
 
     default_opts = ...
-        {LoadOps.pathin,...
-        CSL2str(LoadOps.chns),...
-        LoadOps.warpfile,...
-        num2str(LoadOps.warpD),...
-        num2str(LoadOps.correctDrift),...
-        LoadOps.chnOrder,...
+        {SR{handles.gui_number}.LoadOps.pathin,...
+        CSL2str(SR{handles.gui_number}.LoadOps.chns),...
+        SR{handles.gui_number}.LoadOps.warpfile,...
+        num2str(SR{handles.gui_number}.LoadOps.warpD),...
+        num2str(SR{handles.gui_number}.LoadOps.correctDrift),...
+        SR{handles.gui_number}.LoadOps.chnOrder,...
         }';
     prompt = ...
         {'Data Folder',...
@@ -197,20 +207,29 @@ global LoadOps ScratchPath
         };
     
 opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
-LoadOps.pathin = opts{1};
-LoadOps.chns = parseCSL(opts{2});
-LoadOps.warpfile = opts{3};
-LoadOps.warpD = str2double(opts{4});
-LoadOps.correctDrift = logical(str2double(opts{5}));
-LoadOps.chnOrder = opts{6}; 
-set(handles.datapath,'String',LoadOps.pathin); 
+SR{handles.gui_number}.LoadOps.pathin = opts{1};
+SR{handles.gui_number}.LoadOps.chns = parseCSL(opts{2});
+SR{handles.gui_number}.LoadOps.warpfile = opts{3};
+SR{handles.gui_number}.LoadOps.warpD = str2double(opts{4});
+SR{handles.gui_number}.LoadOps.correctDrift = logical(str2double(opts{5}));
+SR{handles.gui_number}.LoadOps.chnOrder = opts{6}; 
+set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin); 
 
+
+        
 function LoadBin(hObject,eventdata,handles,multiselect)
 % Brings up dialogue box to select bin file(s) to load;     
-clear global mlist bins fnames froots infofile;
-global binfile LoadOps;
-if ~isempty(LoadOps.pathin)
-    startfolder = LoadOps.pathin;
+global binfile SR
+
+% clear existing fields for these variables
+SR{handles.gui_number}.mlist = [];
+SR{handles.gui_number}.bins = [];
+SR{handles.gui_number}.fnames = [];
+SR{handles.gui_number}.froots = [];
+SR{handles.gui_number}.infofile = [];
+
+if ~isempty(SR{handles.gui_number}.LoadOps.pathin)
+    startfolder = SR{handles.gui_number}.LoadOps.pathin;
 elseif ~isempty(binfile)
     startfolder = extractpath(binfile);
 else
@@ -220,13 +239,13 @@ end
     '*.*','All Files (*.*)'},'Select molecule list',startfolder,...
     'MultiSelect',multiselect);
 if FilterIndex ~=0
-    LoadOps.pathin = PathName;
-    set(handles.datapath,'String',LoadOps.pathin); 
+    SR{handles.gui_number}.LoadOps.pathin = PathName;
+    set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin); 
     if ~iscell(FileName)
         binfile = [PathName,filesep,FileName];
         SingleBinLoad(hObject,eventdata,handles);
     else
-        sortednames = ['FileName(',LoadOps.chnOrder,')'];
+        sortednames = ['FileName(',SR{handles.gui_number}.LoadOps.chnOrder,')'];
         binnames = eval(sortednames); 
         MultiBinLoad(hObject,eventdata,handles,binnames);
     end       
@@ -234,14 +253,14 @@ end
 
     function SingleBinLoad(hObject,eventdata,handles)
         % Loads single bin files
-        global binfile mlist fnames infofile
+        global binfile SR 
         disp('reading binfile...');
-        mlist{1} = ReadMasterMoleculeList(binfile);
-        fnames{1} = binfile; 
+        SR{handles.gui_number}.mlist{1} = ReadMasterMoleculeList(binfile);
+        SR{handles.gui_number}.fnames{1} = binfile; 
         disp('file loaded'); 
         [pathname,filename] = extractpath(binfile); 
         k = strfind(filename,'_');
-        infofile = ReadInfoFile([pathname,filesep,filename(1:k(end)-1),'.inf']);
+        SR{handles.gui_number}.infofile = ReadInfoFile([pathname,filesep,filename(1:k(end)-1),'.inf']);
         disp('setting up image options...');
         imsetup(hObject,eventdata, handles);
         disp('drawing data...');
@@ -252,19 +271,21 @@ end
 
         
  function MultiBinLoad(hObject,eventdata,handles,binnames)
-     global LoadOps fnames mlist infofile ScratchPath
+     global SR ScratchPath
      % ----------------------------------------------------
      % Passed Inputs:
      % binnames
      % ----------------------------------------------------
      % % Global Inputs:
-     % LoadOps: structure
+     % SR{handles.gui_number}.LoadOps: structure
      % fnames: cell array of names of current data files in display 
      %          (used for display only).
      % mlist:  cell array of all molecule lists loaded for display
      % infofile: InfoFile structure for dataset (contains stage position,
      %          needed for MosaicView reconstruction).  
    
+     mlist = SR{handles.gui_number}.mlist; % short hand; 
+     
 % Extract some useful info for later:
         % update channel names in viewer
         for c=1:length(binnames)
@@ -274,44 +295,45 @@ end
         end
         guidata(hObject, handles);
     %  Set up title field in display   
-    fnames = binnames; % display name for the files
+    SR{handles.gui_number}.fnames = binnames; % display name for the files
     % Get infofile #1 for position information
     k = strfind(binnames{1},'_'); 
-    infofile = ReadInfoFile([LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf']);
+    SR{handles.gui_number}.infofile = ReadInfoFile([SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf']);
     
 % Combine folder with binnames in order to call DriftCorrect / binload
     Tchns = length(binnames);
     allbins = cell(Tchns,1); 
     for c=1:Tchns
-            allbins{c} = strcat(LoadOps.pathin,filesep,binnames{c});
+            allbins{c} = strcat(SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{c});
     end
 
 % Apply global drift correction, then return loaded mlist file.
 % Then apply chromewarp.  
-    mlist = MultiChnDriftCorrect(allbins,'correctDrift',LoadOps.correctDrift);
+    mlist = MultiChnDriftCorrect(allbins,'correctDrift',SR{handles.gui_number}.LoadOps.correctDrift);
     
   % Need a warp map.  
-    if isempty(LoadOps.warpfile)
+    if isempty(SR{handles.gui_number}.LoadOps.warpfile)
         [FileName,PathName] = uigetfile({'*.mat','Matlab data (*.mat)';...
-    '*.*','All Files (*.*)'},'Select warpfile',LoadOps.pathin);
-    LoadOps.warpfile = [PathName,FileName];
+    '*.*','All Files (*.*)'},'Select warpfile',SR{handles.gui_number}.LoadOps.pathin);
+    SR{handles.gui_number}.LoadOps.warpfile = [PathName,FileName];
     end
  % Need to know channel names so we can apply the appropriate warp
-    if isempty([LoadOps.chns{:}])
+    if isempty([SR{handles.gui_number}.LoadOps.chns{:}])
         chns = inputdlg({'Channel Names (must match names in warpmap)'},...
     '',1,{'750,647,561,488'});
-        LoadOps.chns = parseCSL(chns{1}); 
+        SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1}); 
     end
  % Automatically dealing with old vs. new style chromewarp format
-    [warppath,warpname] = extractpath(LoadOps.warpfile); % detect old style
+    [warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
     if ~isempty(strfind(warpname,'tform'))
     for c=1:length(mlist)
-        mlist{c} = chromewarp(LoadOps.chns(c),mlist{c},warppath,'warpD',LoadOps.warpD);
+        mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
     end        
     else  % Run new style
-        mlist = ApplyChromeWarp(mlist,LoadOps.chns,LoadOps.warpfile,'warpD',LoadOps.warpD);    
+        mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,SR{handles.gui_number}.LoadOps.warpfile,'warpD',SR{handles.gui_number}.LoadOps.warpD);    
     end
     % Cleanup settings from any previous data and render image:
+    SR{handles.gui_number}.mlist = mlist; 
     imsetup(hObject,eventdata, handles);
     ClearFilters_Callback(hObject, eventdata, handles); 
     guidata(hObject, handles);
@@ -328,7 +350,7 @@ function MenuAutoMultiLoad_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuAutoMultiLoad (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global LoadOps froots bins
+global SR
 
 % confirm auto-load options
 dlg_title = 'Bin file names must begin with unique channel flag';
@@ -340,40 +362,40 @@ prompt = ...
     'Match set to load (0 to print matches)'...
     };
 default_opts = ...
-    {LoadOps.sourceroot,...
-    LoadOps.bintype,...
-    CSL2str(LoadOps.chnFlag),...
-    num2str(LoadOps.dataset),...
+    {SR{handles.gui_number}.LoadOps.sourceroot,...
+    SR{handles.gui_number}.LoadOps.bintype,...
+    CSL2str(SR{handles.gui_number}.LoadOps.chnFlag),...
+    num2str(SR{handles.gui_number}.LoadOps.dataset),...
     };   
 opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
-LoadOps.sourceroot = opts{1};
-LoadOps.bintype = opts{2};
-LoadOps.chnFlag = parseCSL(opts{3}); 
-LoadOps.dataset = str2double(opts{4});
+SR{handles.gui_number}.LoadOps.sourceroot = opts{1};
+SR{handles.gui_number}.LoadOps.bintype = opts{2};
+SR{handles.gui_number}.LoadOps.chnFlag = parseCSL(opts{3}); 
+SR{handles.gui_number}.LoadOps.dataset = str2double(opts{4});
 
 % Automatically group all bin files of same section in different colors
   %   based on image number, if it has not already been done
-  if LoadOps.dataset == 0 || isempty(froots)
-    [bins,froots] = automatch_files(LoadOps.pathin,'sourceroot',...
-        LoadOps.sourceroot,'filetype',LoadOps.bintype,'chns',LoadOps.chnFlag);
+  if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
+    [SR{handles.gui_number}.bins,SR{handles.gui_number}.fnames] = automatch_files(SR{handles.gui_number}.LoadOps.pathin,'sourceroot',...
+        SR{handles.gui_number}.LoadOps.sourceroot,'filetype',SR{handles.gui_number}.LoadOps.bintype,'chns',SR{handles.gui_number}.LoadOps.chnFlag);
     disp('files found and grouped:'); 
-    disp(bins(:));
+    disp(SR{handles.gui_number}.bins(:));
   end
   
  % Figure out which channels are really in data set  
- if LoadOps.dataset == 0
+ if SR{handles.gui_number}.LoadOps.dataset == 0
      i=1;
  else
-     i=LoadOps.dataset;
+     i=SR{handles.gui_number}.LoadOps.dataset;
  end
-    hasdata = logical(1-cellfun(@isempty, bins(:,i)));
-    binnames =  bins(hasdata,i); % length cls must equal length binnames
+    hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
+    binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
     if sum((logical(1-hasdata))) ~=0
         disp('no data found for in channels:');
-        disp(LoadOps.chnFlag(logical(1-hasdata)))
+        disp(SR{handles.gui_number}.LoadOps.chnFlag(logical(1-hasdata)))
     end
   
-    fname = froots(:,i);
+    fname = SR{handles.gui_number}.fnames(:,i);
     disp('will load:');
     disp(fname);
     MultiBinLoad(hObject,eventdata,handles,binnames);    
@@ -389,7 +411,12 @@ LoadOps.dataset = str2double(opts{4});
 % Setup defaults
 % -------------------------------------------------------------------
 function imsetup(hObject,eventdata, handles)
-    global imaxes
+    global SR
+    % if imaxes is already defined, use it. 
+    if isfield(SR{handles.gui_number},'imaxes')
+       imaxes = SR{handles.gui_number}.imaxes; 
+    end
+    
     imaxes.H = 256; % actual size of image
     imaxes.W = 256;
     imaxes.scale = 2;  % upscale on display
@@ -405,6 +432,7 @@ function imsetup(hObject,eventdata, handles)
     set(handles.Xslider,'Max',imaxes.xmax);
     set(handles.Yslider,'Min',imaxes.ymin);
     set(handles.Yslider,'Max',imaxes.ymax);
+    SR{handles.gui_number}.imaxes = imaxes;
     guidata(hObject, handles);
     UpdateSliders(hObject,eventdata,handles);
 
@@ -434,7 +462,15 @@ function SaveData_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global I Ozoom cmax cmin fnames savepath Io %#ok<NUSED>
+global SR  %#ok<NUSED>
+
+I = SR{handles.gui_number}.I;
+Io = SR{handles.gui_number}.Io;
+Oz = SR{handles.gui_number}.Oz; %#ok<NASGU>
+if ~isfield(SR{handles.gui_number},'savepath')
+    SR{handles.gui_number}.savepath = '';    
+end
+savepath=SR{handles.gui_number}.savepath;
 
 vlist = MolsInView(handles); %#ok<NASGU>
 
@@ -450,7 +486,7 @@ if ~isempty(k)
     savename = savename(1:k-1); 
 end
 
-if isempty(I) || isempty(cmax) || isempty(cmin)
+if isempty(I) || isempty(SR{handles.gui_number}.cmax) || isempty(SR{handles.gui_number}.cmin)
     disp('no image data to save');
 end
 if isempty(Ozoom)
@@ -458,7 +494,8 @@ if isempty(Ozoom)
 end
 
 if savename ~= 0 % save was not 'canceled'
-    save([savepath,filesep,savename,'.mat'],'vlist','I','Ozoom','cmax','cmin','fnames');
+    fnames = SR{handles.gui_number}.fnames; %#ok<NASGU>
+    save([savepath,filesep,savename,'.mat'],'vlist','I','Oz','fnames');
     disp([savepath,filesep,savename,'.mat' ' saved successfully']);
     imwrite(Io,[savepath,filesep,savename,'.png']); 
     disp(['wrote ', savepath,filesep,savename,'.png']);
@@ -470,7 +507,13 @@ function SaveImage_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to SaveImage (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global Io savepath
+global SR
+Io = SR{handles.gui_number}.Io;
+if ~isfield(SR{handles.gui_number},'savepath')
+    SR{handles.gui_number}.savepath = '';    
+end
+savepath=SR{handles.gui_number}.savepath;
+
 try
 [savename,savepath] = uiputfile(savepath);
 catch
@@ -505,7 +548,8 @@ end
 function getedges(hObject, eventdata, handles)
 % if cx/cy is near the edge and zoom is small, we should have a different
 % maxx maxy
-global imaxes
+global SR     
+imaxes = SR{handles.gui_number}.imaxes;
 % imaxes.xmin = max(0,imaxes.cx - imaxes.W/2/imaxes.zm);
 % imaxes.xmax = min(imaxes.W,imaxes.cx + imaxes.W/2/imaxes.zm);
 % imaxes.ymin = max(0,imaxes.cy - imaxes.H/2/imaxes.zm);
@@ -534,7 +578,7 @@ if imaxes.ymax > imaxes.H
     imaxes.cy = imaxes.cy - (imaxes.ymax - imaxes.H);
     imaxes.ymax = imaxes.cy + imaxes.H/2/imaxes.zm;
 end
-
+SR{handles.gui_number}.imaxes = imaxes;
 
 
 
@@ -545,32 +589,33 @@ end
 %==========================================================================
 function loadim(hObject,eventdata, handles)
 % load variables
-global mlist imaxes I infilter DisplayOps O
+global   SR
+mlist = SR{handles.gui_number}.mlist;  
+
+
 % if we're zoomed out fully, recenter everything
-if imaxes.zm == 1
+if SR{handles.gui_number}.imaxes.zm == 1
   imsetup(hObject,eventdata, handles); % reset to center
 end
 getedges(hObject, eventdata, handles);
 UpdateSliders(hObject,eventdata,handles);
-% disp(['updated minx=',num2str(imaxes.xmin)]);
-% disp(['updated miny=',num2str(imaxes.ymin)]); 
 
 tic
-if DisplayOps.ColorZ
-    Zsteps = DisplayOps.Zsteps;
+if SR{handles.gui_number}.DisplayOps.ColorZ
+    Zsteps = SR{handles.gui_number}.DisplayOps.Zsteps;
     % In general, not worth excluding these dots from 2d images.
     % if desired, can be done by applying a molecule list filter.  
-    if DisplayOps.HidePoor 
-        for c = 1:length(infilter)
-            infilter{c}(mlist{c}.c==9) = 0;  
+    if SR{handles.gui_number}.DisplayOps.HidePoor 
+        for c = 1:length(SR{handles.gui_number}.infilter)
+            SR{handles.gui_number}.infilter{c}(mlist{c}.c==9) = 0;  
         end
     end
 else
     Zsteps = 1;
 end
 
-I = plotSTORM_colorZ(mlist, imaxes,'filter',infilter,'Zrange',DisplayOps.zrange,...
-    'dotsize',DisplayOps.DotScale,'Zsteps',Zsteps,'scalebar',0);
+SR{handles.gui_number}.I = plotSTORM_colorZ(mlist, SR{handles.gui_number}.imaxes,'filter',SR{handles.gui_number}.infilter,'Zrange',SR{handles.gui_number}.DisplayOps.zrange,...
+    'dotsize',SR{handles.gui_number}.DisplayOps.DotScale,'Zsteps',Zsteps,'scalebar',0);
 
 IntegrateOverlay(hObject,handles); % Integrate the Overlay, if it exists
 
@@ -619,13 +664,13 @@ function choosefilt_Callback(hObject, eventdata, handles)
 
 % --- Executes on button press in ClearFilters.
 function ClearFilters_Callback(hObject, eventdata, handles)
-global mlist infilter filts cmax cmin
-filts = struct('custom',[]); % empty structure to store filters
-Cs = length(mlist);
-    infilter = cell(Cs,1);
-    channels = find(1-cellfun(@isempty,mlist))';
+global  SR
+SR{handles.gui_number}.filts = struct('custom',[]); % empty structure to store filters
+Cs = length(SR{handles.gui_number}.mlist);
+    SR{handles.gui_number}.infilter = cell(Cs,1);
+    channels = find(1-cellfun(@isempty,SR{handles.gui_number}.mlist))';
     for i=channels
-        infilter{i} = true(size([mlist{i}.xc]))';
+        SR{handles.gui_number}.infilter{i} = true(size([SR{handles.gui_number}.mlist{i}.xc]))';
     end
     
 channel_active = zeros(1,4);
@@ -635,8 +680,8 @@ set(handles.chn2,'Value',channel_active(2));
 set(handles.chn3,'Value',channel_active(3));
 set(handles.chn4,'Value',channel_active(4));
     
-cmax = .0003*ones(Cs,1); % default values
-cmin = 0*ones(Cs,1);  % default values
+SR{handles.gui_number}.cmax = .0003*ones(Cs,1); % default values
+SR{handles.gui_number}.cmin = 0*ones(Cs,1);  % default values
 loadim(hObject,eventdata, handles); % calls plotdata function
  
  
@@ -644,7 +689,8 @@ loadim(hObject,eventdata, handles); % calls plotdata function
 % --- Executes on button press in ApplyFilter.
 function ApplyFilter_Callback(hObject, eventdata, handles)
 % chose filter
-  global infilter filts ScratchPath
+  global  SR ScratchPath
+  filts = SR{handles.gui_number}.filts;
     contents = cellstr(get(handles.choosefilt,'String')); % returns choosefilt contents as cell array
     par = contents{get(handles.choosefilt,'Value')}; % returns selected item from choosefilt 
 
@@ -666,8 +712,9 @@ function ApplyFilter_Callback(hObject, eventdata, handles)
   
   
   for c=1:channels
-    infilter{c}(vlist{c}.inbox & vlist{c}.infilter') =  newfilter{c};
+    SR{handles.gui_number}.infilter{c}(vlist{c}.inbox & vlist{c}.infilter') =  newfilter{c};
   end
+   SR{handles.gui_number}.filts = filts;
   loadim(hObject,eventdata, handles); % calls plotdata function
 
 % --- Executes on button press in ShowFilters.
@@ -682,7 +729,10 @@ disp('this function still under development');
  
  
 function update_maindisplay(hObject,handles)
-global I Oz Ic Io  cmax cmin fnames DisplayOps imaxes ScratchPath
+global  SR ScratchPath
+
+I = SR{handles.gui_number}.I;
+imaxes = SR{handles.gui_number}.imaxes;
 % I cell containing current STORM image
 % Oz cell containing appropriately rescaled overlay image
 % Ic N layer colored matrix, fed into Ncolor
@@ -699,42 +749,41 @@ active_channels = find(channels);
 Cs = length(I); 
 [h,w,Zs] = size(I{1});
 
-Noverlays = length(Oz);
+Noverlays = length(SR{handles.gui_number}.Oz);
 Ic = zeros(h,w,Zs*length(active_channels)+Noverlays,'uint16'); 
 
 
-  save([ScratchPath,'test.mat'],'Ic','handles','I','DisplayOps','cmax','cmin','active_channels','channels');
+ % save([ScratchPath,'test.mat'],'Ic','handles','I','SR','active_channels','channels');
 % load([ScratchPath,'test.mat']);
 
-if DisplayOps.ColorZ  
+if SR{handles.gui_number}.DisplayOps.ColorZ  
     n=0;  
     active_channels(active_channels>Cs) = []; 
     for c=active_channels
        Zs = size(I{c},3);
        for k=1:Zs
            n=n+1;
-           Ic(:,:,n) =  imadjust(I{c}(:,:,k),[cmin(c),cmax(c)],[0,1]);
+           Ic(:,:,n) =  imadjust(I{c}(:,:,k),[SR{handles.gui_number}.cmin(c),SR{handles.gui_number}.cmax(c)],[0,1]);
        end
    end
 else
     for c=1:Cs
         disp(Cs)
-          Ic(:,:,c) = imadjust(I{c},[cmin(c),cmax(c)],[0,1]);
+          Ic(:,:,c) = imadjust(I{c},[SR{handles.gui_number}.cmin(c),SR{handles.gui_number}.cmax(c)],[0,1]);
     end
     % Ic(:,:,logical(1-channels)) = cast(0,'uint16'); % should be unnecessary, Ic initialized as zeros
 end
 
 % add overlays, if they exist
 for n=1:Noverlays
-    Ic(:,:,c+n) = imadjust(Oz{n},[cmin(c+n),cmax(c+n)]);
+    Ic(:,:,c+n) = imadjust(SR{handles.gui_number}.Oz{n},[SR{handles.gui_number}.cmin(c+n),SR{handles.gui_number}.cmax(c+n)]);
 end
 
 
 Io = Ncolor(Ic,[]); 
-
 [~,~,Cs_out] = size(Io); 
-if DisplayOps.scalebar > 0 
-    scb = round(1:DisplayOps.scalebar/DisplayOps.npp*imaxes.zm*imaxes.scale);
+if SR{handles.gui_number}.DisplayOps.scalebar > 0 
+    scb = round(1:SR{handles.gui_number}.DisplayOps.scalebar/SR{handles.gui_number}.DisplayOps.npp*imaxes.zm*imaxes.scale);
     h1 = round(imaxes.H*.9*imaxes.scale);
     Io(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Cs_out,'uint16'); % Add scale bar and labels
 end
@@ -744,7 +793,7 @@ set(gca,'XTick',[],'YTick',[]);
 imagesc(Io); 
 shading interp;
 axes(handles.axes2);
-set(handles.imtitle,'String',fnames(:)); % interpreter, none
+set(handles.imtitle,'String',SR{handles.gui_number}.fnames(:)); % interpreter, none
 % colorbar; colormap(hsv(Zs*Cs));
 set(gca,'XTick',[],'YTick',[]);
 
@@ -754,7 +803,11 @@ if imaxes.updatemini
     imagesc(Io); 
     imaxes.updatemini = false;
     set(gca,'XTick',[],'YTick',[]);
+    SR{handles.gui_number}.imaxes = imaxes;
 end
+
+SR{handles.gui_number}.Ic = Ic;
+SR{handles.gui_number}.Io = Io; 
 guidata(hObject, handles);
 
 
@@ -764,9 +817,9 @@ function ManualContrastTool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to ManualContrastTool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global cmax cmin 
-cmax = input('enter a vector for max intensity for each channel: ');
-cmin = input('enter a vector for min intensity for each channel: ');
+global SR
+SR{handles.gui_number}.cmax = input('enter a vector for max intensity for each channel: ');
+SR{handles.gui_number}.cmin = input('enter a vector for min intensity for each channel: ');
  update_maindisplay(hObject,handles);
  guidata(hObject, handles);
  
@@ -775,15 +828,16 @@ function AutoContrastTool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to AutoContrastTool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global cmax cmin
-    cmax = [.9,.9,.9,.9];
-    cmin = [.0,.0,.0,.0];
+global SR
+    SR{handles.gui_number}.cmax = [.9,.9,.9,.9];
+    SR{handles.gui_number}.cmin = [.0,.0,.0,.0];
  update_maindisplay(hObject,handles);
  guidata(hObject, handles);
 
 % ------
  function scalecolor(hObject,handles)
- global I cmax cmin DisplayOps ScratchPath
+ global SR ScratchPath
+ I = SR{handles.gui_number}.I;
     channels(1) = get(handles.fchn1,'Value');
     channels(2) = get(handles.fchn2,'Value');
     channels(3) = get(handles.fchn3,'Value');
@@ -802,11 +856,11 @@ global cmax cmin
    logscalecolor = logical(get(handles.logscalecolor,'Value'));
    
    
-   cmax(c) = maxin;
-   cmin(c) = minin;
+   SR{handles.gui_number}.cmax(c) = maxin;
+   SR{handles.gui_number}.cmin(c) = minin;
     
  
-            raw_ints  = double(I{c}(:));     
+        raw_ints  = double(I{c}(:));     
         raw_ints = raw_ints(:);
         max_int = max(raw_ints);
         
@@ -905,12 +959,14 @@ function zoomin_Callback(hObject, eventdata, handles)
 % hObject    handle to zoomin (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 imaxes.zm = imaxes.zm*2; 
 if imaxes.zm > 64
     imaxes.zm = 64;
     disp('max zoom reached...');
 end
+SR{handles.gui_number}.imaxes = imaxes;
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
@@ -921,7 +977,8 @@ function zoomout_Callback(hObject, eventdata, handles)
 % hObject    handle to zoomout (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 imaxes.zm = imaxes.zm/2; 
 if imaxes.zm < 1
     imaxes.zm = 1; % all the way out
@@ -929,6 +986,7 @@ if imaxes.zm < 1
     imaxes.cy = imaxes.H/2;
 end
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
+SR{handles.gui_number}.imaxes = imaxes;
 guidata(hObject, handles);
 UpdateSliders(hObject,eventdata,handles);
 loadim(hObject,eventdata, handles);
@@ -937,7 +995,8 @@ guidata(hObject, handles);
 
 function displayzm_Callback(hObject, eventdata, handles)
 % Execute on direct user input specific zoom value
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 imaxes.zm = str2double(get(handles.displayzm,'String')); 
 if imaxes.zm < 1
     imaxes.zm = 1; % all the way out
@@ -945,6 +1004,7 @@ if imaxes.zm < 1
     imaxes.cy = imaxes.H/2;
 end
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
+SR{handles.gui_number}.imaxes = imaxes;
 guidata(hObject, handles);
 UpdateSliders(hObject,eventdata,handles);
 loadim(hObject,eventdata, handles);
@@ -958,39 +1018,28 @@ function zoomtool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to zoomtool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes ScratchPath
+global SR ScratchPath
+
+imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
 % user specifies box:
 axes(handles.axes2); 
 set(gca,'XTick',[],'YTick',[]);
-disp(['curr zoom=',num2str(imaxes.zm)]);
-disp(['curr cx=',num2str(imaxes.cx)]);
-disp(['curr cy=',num2str(imaxes.cy)]); 
-
-disp(['curr minx=',num2str(imaxes.xmin)]);
-disp(['curr miny=',num2str(imaxes.ymin)]); 
 % getedges(hObject, eventdata, handles)
 [x,y] = ginput(2);  % These are relative to the current axis
-disp('x,y grabbed');
-disp([x,y]);
 xim = imaxes.xmin + x/imaxes.scale/imaxes.zm;
 yim = imaxes.ymin + y/imaxes.scale/imaxes.zm;
-disp('x,y converted');
-disp([xim,yim]);
 imaxes.cx = mean(xim);  % this is relative to the whole image
 imaxes.cy = mean(yim); % y is indexed bottom to top for plotting
 xdiff = abs(xim(2) - xim(1));
 ydiff = abs(yim(2) - yim(1));
-disp('xdiff,ydiff');
-disp([xdiff,ydiff]);
 imaxes.zm =   min(imaxes.W/xdiff, imaxes.H/ydiff); 
 if imaxes.zm > 64
     imaxes.zm = 64;
     disp('max zoom reached...');
 end
-disp(['new zoom=',num2str(imaxes.zm)]);
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
-
+SR{handles.gui_number}.imaxes = imaxes;
 UpdateSliders(hObject,eventdata,handles)
 
 %  save([ScratchPath,'test.mat']);
@@ -1009,7 +1058,8 @@ guidata(hObject, handles);
 
 %----------------------------------------------
 function updateNaviagtor(hObject,handles)
- global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
     axes(handles.axes1);
     set(gca,'Xtick',[],'Ytick',[]);
     hold on;
@@ -1033,7 +1083,8 @@ function recenter_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to recenter (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
 axes(handles.axes2); 
 [x,y] = ginput(1); % these are relative to the current frame
@@ -1041,15 +1092,18 @@ xim = imaxes.xmin + x/imaxes.scale/imaxes.zm;
 yim = imaxes.ymin + y/imaxes.scale/imaxes.zm;
 imaxes.cx = xim;  % these are relative to the whole image
 imaxes.cy = yim;
+SR{handles.gui_number}.imaxes = imaxes;
 guidata(hObject, handles);
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
 
 function UpdateSliders(hObject,eventdata,handles)
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
 set(handles.Xslider,'Value',imaxes.cx);
 set(handles.Yslider,'Value',imaxes.H-imaxes.cy);
+SR{handles.gui_number}.imaxes = imaxes;
 updateNaviagtor(hObject,handles);
 guidata(hObject, handles);
 
@@ -1057,8 +1111,10 @@ guidata(hObject, handles);
 function Yslider_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 imaxes.cy = imaxes.H - get(handles.Yslider,'Value');
+SR{handles.gui_number}.imaxes = imaxes;
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
 
@@ -1073,8 +1129,8 @@ end
 function Xslider_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-global imaxes
-imaxes.cx = get(handles.Xslider,'Value');
+global SR
+SR{handles.gui_number}.imaxes.cx = get(handles.Xslider,'Value');
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
 
@@ -1096,13 +1152,14 @@ function Render3D_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global imaxes I DisplayOps
-
+global SR
+I = SR{handles.gui_number}.I;
+imaxes = SR{handles.gui_number}.imaxes;
 % currently hard-coded, should be user options 
-npp =DisplayOps.npp; 
-zrange = DisplayOps.zrange; % = [-600,600];
+npp =SR{handles.gui_number}.DisplayOps.npp; 
+zrange = SR{handles.gui_number}.DisplayOps.zrange; % = [-600,600];
 
-if DisplayOps.ColorZ && DisplayOps.Zsteps > 1
+if SR{handles.gui_number}.DisplayOps.ColorZ && SR{handles.gui_number}.DisplayOps.Zsteps > 1
 disp('use cell arrays of parameters for multichannel rendering'); 
 disp('see help Im3D for more options'); 
 
@@ -1121,7 +1178,7 @@ num_lines = 1;
     'blue'};
 
 opts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
-Zs = DisplayOps.Zsteps;
+Zs = SR{handles.gui_number}.DisplayOps.Zsteps;
 
 xyp = npp/imaxes.scale/imaxes.zm; % nm per x/y pixel
 zstp = (zrange(2)-zrange(1))/Zs;
@@ -1162,13 +1219,14 @@ function Rotate3Dslices_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to Rotate3Dslices (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes I DisplayOps
-
+global  SR
+I=SR{handles.gui_number}.I;
+imaxes = SR{handles.gui_number}.imaxes;
 % currently hard-coded, should be user options 
-npp =DisplayOps.npp; % npp 
-zrange = DisplayOps.zrange; %  [-600,600];
+npp =SR{handles.gui_number}.DisplayOps.npp; % npp 
+zrange = SR{handles.gui_number}.DisplayOps.zrange; %  [-600,600];
 
-if DisplayOps.ColorZ && DisplayOps.Zsteps > 1
+if SR{handles.gui_number}.DisplayOps.ColorZ && SR{handles.gui_number}.DisplayOps.Zsteps > 1
 dlg_title = 'Render3D';
 num_lines = 1;
 
@@ -1181,7 +1239,7 @@ num_lines = 1;
 
 opts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
 
-Zs = DisplayOps.Zsteps;
+Zs = SR{handles.gui_number}.DisplayOps.Zsteps;
 xyp = npp/imaxes.scale/imaxes.zm; % nm per x/y pixel
 zstp = (zrange(2)-zrange(1))/Zs;
 
@@ -1209,21 +1267,26 @@ end
 
 % --------------------------------------------------------------------
 function plot3Ddots_ClickedCallback(hObject, eventdata, handles)
-global plt3Dfig  ScratchPath
+global SR ScratchPath
+
+if ~isfield(SR{handles.gui_number},'plt3Dfig')
+SR{handles.gui_number}.plt3Dfig =[];
+end
+
 npp = 160; % should be a global in imageops or something
 vlist = MolsInView(handles);
 chns = find(cellfun(@(x) ~isempty(x),vlist));
 Cs = length(chns); 
 cmap = hsv(Cs);
 lab = cell(Cs,1);
-if ~isempty(plt3Dfig)
+if ~isempty(SR{handles.gui_number}.plt3Dfig)
     try
-    close(plt3Dfig);
+    close(SR{handles.gui_number}.plt3Dfig);
     catch er
         disp(er.message);
     end
 end
-plt3Dfig = figure; 
+SR{handles.gui_number}.plt3Dfig = figure; 
 % save([ScratchPath,'testdat.mat']);
 % load([ScratchPath,'testdat.mat']);
 for c = chns
@@ -1253,8 +1316,11 @@ function plot2Ddots_ClickedCallback(hObject, eventdata, handles) %#ok<*INUSD,*DE
     
 function vlist = MolsInView(handles)
 % return just the portion of the molecule list in the fied of view; 
-    
-    global mlist imaxes infilter 
+   
+    global SR 
+    infilter = SR{handles.gui_number}.infilter;
+    imaxes = SR{handles.gui_number}.imaxes;
+     mlist = SR{handles.gui_number}.mlist;
     channels(1) = get(handles.chn1,'Value');
     channels(2) = get(handles.chn2,'Value');
     channels(3) = get(handles.chn3,'Value');
@@ -1300,16 +1366,17 @@ function saveimage_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to saveimage (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global Io
+global SR
+Io = SR{handles.gui_number}.Io;
 [filename,pathname] = uiputfile;
 tiffwrite(Io,[pathname,filesep,filename]);
 
 
-
 function datapath_Callback(hObject, eventdata, handles)
-global LoadOps
-LoadOps.pathin = get(handles.datapath,'String');
+global SR
+SR{handles.gui_number}.LoadOps.pathin = get(handles.datapath,'String');
 guidata(hObject,handles); 
+
 
 function datapath_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
@@ -1401,18 +1468,21 @@ function MenuOverlay_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuOverlay (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global LoadOps Overlay_prompt Overlay_opts cmin cmax O
+global SR
+
+if ~isfield(SR{handles.gui_number},'Overlay_opts')
+    SR{handles.gui_number}.Overlay_opts = [];
+end
+Overlay_opts =  SR{handles.gui_number}.Overlay_opts ;
+if ~isfield(SR{handles.gui_number},'O')
+    SR{handles.gui_number}.O = [];
+end
 
 % ------------- load image
 % open dialog box to decide whether image should be flipped or rotated
 dlg_title = 'Set Load Options';
 num_lines = 1;
-try
-Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
-catch er 
-    % reset 
-    disp(er.message)
-    Overlay_prompt = {
+  Overlay_prompt = {
     'Image selected (leave blank to select with getfile prompt)',...
     'Flip Vertical',...
     'Flip Horizontal',...
@@ -1423,6 +1493,12 @@ catch er
     'Max frames (for Daxfiles)',...
     'Layer',...
     'Contrast'};
+
+try
+Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
+catch er 
+    % reset 
+    disp(er.message)
     Overlay_opts = {
     '',...
     'false',...
@@ -1432,7 +1508,7 @@ catch er
     '0',...
     '[]',...
     '5',...
-    num2str(length(cmin)+1),...
+    num2str(length(SR{handles.gui_number}.cmin)+1),...
     '[0,.3]'};
     Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
 end
@@ -1445,7 +1521,7 @@ if isempty(Overlay_opts{1})
     '*.tif', 'TIFF (*.tif)';
     '*.png', 'PNG (*.png)';
     '*.*', 'All Files (*.*)'},'Choose an image file to overlay',...
-    LoadOps.pathin); % prompts user to select directory 
+    SR{handles.gui_number}.LoadOps.pathin); % prompts user to select directory 
 sourcename = [pathname,filesep,filename];
 Overlay_opts{1} = sourcename;
 end
@@ -1456,21 +1532,20 @@ else
     Otemp = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
     Otemp = uint16(mean(Otemp,3));  % might cause problems
 end
-Noverlays = length(O);
-O{Noverlays+1} = Otemp; 
+Noverlays = length(SR{handles.gui_number}.O);
+SR{handles.gui_number}.O{Noverlays+1} = Otemp; 
+overlay_number = length(SR{handles.gui_number}.O);%  eval(Overlay_opts{9});
 
-overlay_number = length(O);%  eval(Overlay_opts{9});
-
-imlayers = length(cmin);
+imlayers = length(SR{handles.gui_number}.cmin);
 imcaxis = eval(Overlay_opts{10});
-cmin = [cmin; 0];
-cmax = [cmax; 0];
-cmin(imlayers+1) = imcaxis(1);
-cmax(imlayers+1) = imcaxis(2);
+SR{handles.gui_number}.cmin = [SR{handles.gui_number}.cmin; 0];
+SR{handles.gui_number}.cmax = [SR{handles.gui_number}.cmax; 0];
+SR{handles.gui_number}.cmin(imlayers+1) = imcaxis(1);
+SR{handles.gui_number}.cmax(imlayers+1) = imcaxis(2);
 
 [~,filename] = extractpath(Overlay_opts{1});
+SR{handles.gui_number}.Overlay_opts = Overlay_opts ;
 AddOverlayLayer(hObject,handles,overlay_number,filename)
-
 IntegrateOverlay(hObject,handles);
 
 
@@ -1509,23 +1584,28 @@ disp('new button called!');
     %    - subfunction of MenuOverlay, also called each time image resizes
     %    in order to maintain overlay display.  
     function IntegrateOverlay(hObject,handles)
-    global Oz O imaxes Overlay_opts cmin cmax ScratchPath
-    for n=1:length(O);
-        if ~isempty(O{n})
-        Oz{n} = fxn_AddOverlay(O{n},imaxes,'flipV',eval(Overlay_opts{2}),'flipH',eval(Overlay_opts{3}),...
-            'rotate',eval(Overlay_opts{4}),'xshift',eval(Overlay_opts{5}),'yshift',eval(Overlay_opts{6}),...
-            'channels',eval(Overlay_opts{7}) ); 
+    global   SR ScratchPath
+    if isfield(SR{handles.gui_number},'Overlay_opts');
+    Overlay_opts =  SR{handles.gui_number}.Overlay_opts;
+    imaxes = SR{handles.gui_number}.imaxes;
+    for n=1:length(SR{handles.gui_number}.O);
+        if ~isempty(SR{handles.gui_number}.O{n})
+        SR{handles.gui_number}.Oz{n} = fxn_AddOverlay(SR{handles.gui_number}.O{n},imaxes,...
+            'flipV',eval(Overlay_opts{2}),'flipH',eval(Overlay_opts{3}),...
+            'rotate',eval(Overlay_opts{4}),'xshift',eval(Overlay_opts{5}),...
+            'yshift',eval(Overlay_opts{6}),'channels',eval(Overlay_opts{7}) ); 
        % figure(4); clf; imagesc(I{imlayer});
         update_maindisplay(hObject,handles);
         end
     end
+    end
 
 % --------------------------------------------------------------------
 function MenuDisplayOps_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuDisplayOps (see GCBO)
+% hObject    handle to MenuSR{handles.gui_number}.DisplayOps (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global default_Dopts Dprompt DisplayOps
+global SR
 
 dlg_title = 'More Display Options';
 num_lines = 1;
@@ -1538,14 +1618,14 @@ Dprompt = {
     'scalebar (0 for off)',...
     'nm per pixel',...
     'verbose'};
-default_Dopts{1} = num2str(DisplayOps.ColorZ);
-default_Dopts{2} = num2str(DisplayOps.Zsteps);
-default_Dopts{3} = strcat('[',num2str(DisplayOps.zrange),']');
-default_Dopts{4} = num2str(DisplayOps.HidePoor);
-default_Dopts{5} = num2str(DisplayOps.DotScale);
-default_Dopts{6} = num2str(DisplayOps.scalebar);
-default_Dopts{7} = num2str(DisplayOps.npp);
-default_Dopts{8} = num2str(DisplayOps.verbose); 
+default_Dopts{1} = num2str(SR{handles.gui_number}.DisplayOps.ColorZ);
+default_Dopts{2} = num2str(SR{handles.gui_number}.DisplayOps.Zsteps);
+default_Dopts{3} = strcat('[',num2str(SR{handles.gui_number}.DisplayOps.zrange),']');
+default_Dopts{4} = num2str(SR{handles.gui_number}.DisplayOps.HidePoor);
+default_Dopts{5} = num2str(SR{handles.gui_number}.DisplayOps.DotScale);
+default_Dopts{6} = num2str(SR{handles.gui_number}.DisplayOps.scalebar);
+default_Dopts{7} = num2str(SR{handles.gui_number}.DisplayOps.npp);
+default_Dopts{8} = num2str(SR{handles.gui_number}.DisplayOps.verbose); 
 
 % if the menu is screwed up, reset 
 try
@@ -1562,14 +1642,14 @@ catch er
     '160',...
     'true'};
 end
-DisplayOps.ColorZ = eval(default_Dopts{1}); 
-DisplayOps.Zsteps = eval(default_Dopts{2});
-DisplayOps.zrange = eval(default_Dopts{3});
-DisplayOps.HidePoor = eval(default_Dopts{4});
-DisplayOps.DotScale = eval(default_Dopts{5});
-DisplayOps.scalebar = eval(default_Dopts{6});
-DisplayOps.npp = eval(default_Dopts{7});
-DisplayOps.verbose = eval(default_Dopts{8});
+SR{handles.gui_number}.DisplayOps.ColorZ = eval(default_Dopts{1}); 
+SR{handles.gui_number}.DisplayOps.Zsteps = eval(default_Dopts{2});
+SR{handles.gui_number}.DisplayOps.zrange = eval(default_Dopts{3});
+SR{handles.gui_number}.DisplayOps.HidePoor = eval(default_Dopts{4});
+SR{handles.gui_number}.DisplayOps.DotScale = eval(default_Dopts{5});
+SR{handles.gui_number}.DisplayOps.scalebar = eval(default_Dopts{6});
+SR{handles.gui_number}.DisplayOps.npp = eval(default_Dopts{7});
+SR{handles.gui_number}.DisplayOps.verbose = eval(default_Dopts{8});
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
 
@@ -1580,16 +1660,19 @@ function MenuViewMosaic_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuViewMosaic (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global infofile Mosaicfolder
-
-if isempty(Mosaicfolder)
-    Mosaicfolder = [infofile.localPath,filesep,'..',filesep,'Mosaic'];
-    if ~exist(Mosaicfolder,'dir')
-        Mosaicfolder = uigetdir(infofile.localPath);
+global  SR
+if ~isfield(SR{handles.gui_number}, 'Mosaicfolder')
+    SR{handles.gui_number}.Mosaicfolder = [];
+end
+infofile = SR{handles.gui_number}.infofile;
+if isempty(SR{handles.gui_number}.Mosaicfolder)
+    SR{handles.gui_number}.Mosaicfolder = [infofile.localPath,filesep,'..',filesep,'Mosaic'];
+    if ~exist(SR{handles.gui_number}.Mosaicfolder,'dir')
+        SR{handles.gui_number}.Mosaicfolder = uigetdir(infofile.localPath);
     end
 end    
 position = [infofile.Stage_X,infofile.Stage_Y];
-MosaicViewer(Mosaicfolder,position);
+MosaicViewer(SR{handles.gui_number}.Mosaicfolder,position);
 
 
 % --------------------------------------------------------------------
@@ -1597,7 +1680,8 @@ function MenuColors_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuColors (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% 
+
+
 % handles.LayersPanel
 % % rp1 = [943,421,80,20]; % [169 30 17 1.77]; % [1.66 1.769, 15, 1.846]
 % p4 = get(handles.chn4,'Position');
