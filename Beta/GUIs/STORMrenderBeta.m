@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 02-Mar-2013 17:15:08
+% Last Modified by GUIDE v2.5 02-Mar-2013 22:15:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -86,9 +86,6 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.LoadOps.chnFlag = {'750','647','561','488'};  
     SR{handles.gui_number}.LoadOps.dataset = 0;
 
-    SR{handles.gui_number}.cmin = [0,0,0,0];
-    SR{handles.gui_number}.cmax = [.7,.7,.7,.7]; % fixed 4 channel
-
 % Choose default command line output for STORMrenderBeta
 handles.output = hObject;
 
@@ -123,9 +120,9 @@ set(handles.MinIntSlider,'SliderStep',[1/2^12,1/2^4])
 guidata(hObject, handles);
 
 
-% if ~isempty(binfile)
-%     QuickLoad_Callback(hObject, eventdata, handles);
-% end
+if ~isempty(binfile)
+    QuickLoad_Callback(hObject, eventdata, handles);
+end
 
 % Update handles structure
 guidata(hObject, handles);
@@ -152,15 +149,13 @@ varargout{1} = handles.output;
 %========================================================================%
 % --- Executes on button press in QuickLoad.
 function QuickLoad_Callback(hObject, eventdata, handles)
-global binfile
+global binfile SR
+SR{handles.gui_number}.mlist = [];
 if isempty(binfile)
    [filename,pathname] = uigetfile('*.bin');
    binfile = [pathname,filesep,filename];
 end
 SingleBinLoad(hObject,eventdata,handles);
-
-
-
 
 % --------------------------------------------------------------------
 function MenuOpenBin_Callback(hObject, eventdata, handles)
@@ -243,13 +238,66 @@ if FilterIndex ~=0
     set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin); 
     if ~iscell(FileName)
         binfile = [PathName,filesep,FileName];
+        handles = AddStormLayer(hObject,handles,FileName,[]);
+        guidata(hObject, handles);
         SingleBinLoad(hObject,eventdata,handles);
     else
         sortednames = ['FileName(',SR{handles.gui_number}.LoadOps.chnOrder,')'];
         binnames = eval(sortednames); 
+        for c=1:length(FileName)
+        handles = AddStormLayer(hObject,handles,FileName{c},[]);
+        guidata(hObject, handles);
+        end
         MultiBinLoad(hObject,eventdata,handles,binnames);
     end       
 end
+
+ %~~~~~~~
+    function handles = AddStormLayer(hObject,handles,Sname,layer_number)
+        % Adds a new radio button to the OverlayPanel, which can toggle this
+        % channel on and off.  
+    global SR
+    if ~isfield(handles,'stormbutton')
+        handles.stormbutton = [];
+    end
+    
+    if isempty(layer_number)  % allows overwriting existing buttons upon load.  
+        layer_number = length(handles.stormbutton) + 1;
+    end
+    
+    if ~isfield(SR{handles.gui_number},'StormNames')
+    SR{handles.gui_number}.StormNames = {};
+    end
+
+    % update levels
+    SR{handles.gui_number}.OverlayNames{layer_number} = Sname; 
+    LevelsNames = get(handles.LevelsChannel,'String');
+    LevelsNames{layer_number} = Sname;
+    set(handles.LevelsChannel,'String',LevelsNames);
+    
+    SR{handles.gui_number}.cmin(layer_number) = 0;
+    SR{handles.gui_number}.cmax(layer_number) = .7; 
+    
+    % create button
+    button_position = [.6, 8.05-1.25*(layer_number-1), 17, 1.85];
+    handles.stormbutton(layer_number) = ...
+                    uicontrol( 'Parent', handles.StormPanel,...
+                               'Style', 'radiobutton', ...
+                               'Callback', @StormButtonToggle, ...
+                               'Units',    'characters', ...
+                               'Position', button_position, ...
+                               'String',   Sname, ...
+                               'Value',    1);
+    guidata(hObject, handles);
+
+    
+        function StormButtonToggle(hObject, EventData)
+            handles = guidata(hObject);
+            update_maindisplay(hObject,handles);
+
+        
+        
+
 
     function SingleBinLoad(hObject,eventdata,handles)
         % Loads single bin files
@@ -276,23 +324,15 @@ end
      % Passed Inputs:
      % binnames
      % ----------------------------------------------------
-     % % Global Inputs:
-     % SR{handles.gui_number}.LoadOps: structure
-     % fnames: cell array of names of current data files in display 
+     % % Global Inputs (from SR structure):
+     % .LoadOps: structure containing filepaths for data, warps etc
+     % .fnames: cell array of names of current data files in display 
      %          (used for display only).
-     % mlist:  cell array of all molecule lists loaded for display
-     % infofile: InfoFile structure for dataset (contains stage position,
+     % .mlist:  cell array of all molecule lists loaded for display
+     % .infofile: InfoFile structure for dataset (contains stage position,
      %          needed for MosaicView reconstruction).  
-   
-     mlist = SR{handles.gui_number}.mlist; % short hand; 
      
 % Extract some useful info for later:
-        % update channel names in viewer
-        for c=1:length(binnames)
-            updatelabel = ['set(handles.chn',num2str(c),',',...
-                '''String'',binnames{',num2str(c),'})'];
-            eval(updatelabel)
-        end
         guidata(hObject, handles);
     %  Set up title field in display   
     SR{handles.gui_number}.fnames = binnames; % display name for the files
@@ -319,8 +359,8 @@ end
     end
  % Need to know channel names so we can apply the appropriate warp
     if isempty([SR{handles.gui_number}.LoadOps.chns{:}])
-        chns = inputdlg({'Channel Names (must match names in warpmap)'},...
-    '',1,{'750,647,561,488'});
+        chns = inputdlg({'Channel Names: (name must match warpmap, order match layer order)'},...
+    '',1,{'750,647,561,488'});  % <--  Default channel names
         SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1}); 
     end
  % Automatically dealing with old vs. new style chromewarp format
@@ -673,14 +713,11 @@ Cs = length(SR{handles.gui_number}.mlist);
         SR{handles.gui_number}.infilter{i} = true(size([SR{handles.gui_number}.mlist{i}.xc]))';
     end
     
-channel_active = zeros(1,4);
-channel_active(1:Cs) = 1; 
-set(handles.chn1,'Value',channel_active(1));
-set(handles.chn2,'Value',channel_active(2));
-set(handles.chn3,'Value',channel_active(3));
-set(handles.chn4,'Value',channel_active(4));
+for c=1:length(handles.stormbutton)
+    set(handles.stormbutton(1),'Value',1);
+end
     
-SR{handles.gui_number}.cmax = .0003*ones(Cs,1); % default values
+SR{handles.gui_number}.cmax = .3*ones(Cs,1); % default values
 SR{handles.gui_number}.cmin = 0*ones(Cs,1);  % default values
 loadim(hObject,eventdata, handles); % calls plotdata function
  
@@ -740,25 +777,38 @@ imaxes = SR{handles.gui_number}.imaxes;
 
 
 guidata(hObject, handles);
-channels(1) = get(handles.chn1,'Value');
-channels(2) = get(handles.chn2,'Value');
-channels(3) = get(handles.chn3,'Value');
-channels(4) = get(handles.chn4,'Value');
-active_channels = find(channels);
-
 Cs = length(I); 
 [h,w,Zs] = size(I{1});
-
 Noverlays = length(SR{handles.gui_number}.Oz);
-Ic = zeros(h,w,Zs*length(active_channels)+Noverlays,'uint16'); 
 
+save([ScratchPath,'test.mat']);
+% load([ScratchPath,'test.mat']);
+% Find out which channels are toggled for display
+%------------------------------------------------------------
+    channels = zeros(1,Cs); % Storm Channels
+    for c = 1:Cs; % length(handles.stormbutton)
+        channels(c) = get(handles.stormbutton(c),'Value');
+    end
+    active_channels = find(channels);
+    overlays = zeros(1,Noverlays); % Overlay channels
+    for c = 1:Noverlays
+        overlays(c) = get(handles.overlaybutton(c),'Value');
+    end
+    active_overlays = find(overlays);
+    
 
- % save([ScratchPath,'test.mat'],'Ic','handles','I','SR','active_channels','channels');
+% save([ScratchPath,'test.mat'],'handles','I','active_channels','channels','overlays','active_overlays');
 % load([ScratchPath,'test.mat']);
 
+% Stack all image layers (channels, z-dimensions, and overlays)
+%   into a common matrix for multicolor rendering.  Apply indicated
+%   contrast for all data.  
+%-----------------------------------------------------------
+Ic = zeros(h,w,Zs*length(active_channels)+Noverlays,'uint16'); 
 if SR{handles.gui_number}.DisplayOps.ColorZ  
     n=0;  
-    active_channels(active_channels>Cs) = []; 
+    % In 3D mode, only render the active channels 
+    active_channels(active_channels>Cs) = [];  % should no longer be nessary in our variable # channel buttons approach
     for c=active_channels
        Zs = size(I{c},3);
        for k=1:Zs
@@ -767,27 +817,27 @@ if SR{handles.gui_number}.DisplayOps.ColorZ
        end
    end
 else
-    for c=1:Cs
-        disp(Cs)
-          Ic(:,:,c) = imadjust(I{c},[SR{handles.gui_number}.cmin(c),SR{handles.gui_number}.cmax(c)],[0,1]);
+    for n=active_channels
+          Ic(:,:,n) = imadjust(I{n},[SR{handles.gui_number}.cmin(n),SR{handles.gui_number}.cmax(n)],[0,1]);
     end
-    % Ic(:,:,logical(1-channels)) = cast(0,'uint16'); % should be unnecessary, Ic initialized as zeros
 end
-
-% add overlays, if they exist
-for n=1:Noverlays
-    Ic(:,:,c+n) = imadjust(SR{handles.gui_number}.Oz{n},[SR{handles.gui_number}.cmin(c+n),SR{handles.gui_number}.cmax(c+n)]);
+if ~isempty(active_overlays)
+    for n=active_overlays  % add overlays, if they exist
+        Ic(:,:,Cs+n) = imadjust(SR{handles.gui_number}.Oz{n},[SR{handles.gui_number}.omin(n),SR{handles.gui_number}.omax(n)]);
+    end
 end
+Io = Ncolor(Ic,[]); % Actually builds the RGB picture
 
-
-Io = Ncolor(Ic,[]); 
-[~,~,Cs_out] = size(Io); 
+% Add ScaleBar (if indicated)
+Cs_out = size(Io,3); 
 if SR{handles.gui_number}.DisplayOps.scalebar > 0 
     scb = round(1:SR{handles.gui_number}.DisplayOps.scalebar/SR{handles.gui_number}.DisplayOps.npp*imaxes.zm*imaxes.scale);
     h1 = round(imaxes.H*.9*imaxes.scale);
     Io(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Cs_out,'uint16'); % Add scale bar and labels
 end
 
+% Update the display
+%--------------------------------------------------
 axes(handles.axes2); cla; 
 set(gca,'XTick',[],'YTick',[]);
 imagesc(Io); 
@@ -796,7 +846,6 @@ axes(handles.axes2);
 set(handles.imtitle,'String',SR{handles.gui_number}.fnames(:)); % interpreter, none
 % colorbar; colormap(hsv(Zs*Cs));
 set(gca,'XTick',[],'YTick',[]);
-
 if imaxes.updatemini
     axes(handles.axes1); cla;
     set(gca,'XTick',[],'YTick',[]);
@@ -805,7 +854,6 @@ if imaxes.updatemini
     set(gca,'XTick',[],'YTick',[]);
     SR{handles.gui_number}.imaxes = imaxes;
 end
-
 SR{handles.gui_number}.Ic = Ic;
 SR{handles.gui_number}.Io = Io; 
 guidata(hObject, handles);
@@ -925,26 +973,6 @@ function MaxIntSlider_Callback(hObject, eventdata, handles)
 function MinIntSlider_Callback(hObject, eventdata, handles)
  scalecolor(hObject,handles);
  guidata(hObject, handles);
-
-
-
-% color controls
-function chn1_Callback(hObject, eventdata, handles)
-update_maindisplay(hObject,handles);
-guidata(hObject, handles);
-
-function chn2_Callback(hObject, eventdata, handles)
-update_maindisplay(hObject,handles);
-guidata(hObject, handles);
-
-
-function chn3_Callback(hObject, eventdata, handles)
-update_maindisplay(hObject,handles);
-guidata(hObject, handles);
-
-function chn4_Callback(hObject, eventdata, handles)
-update_maindisplay(hObject,handles);
-guidata(hObject, handles);
 
 
 
@@ -1187,15 +1215,13 @@ theta = eval(opts{1});
 stp = eval(opts{2});
 res = eval(opts{3});
 colr = opts{4}; 
-
-channels(1) = get(handles.chn1,'Value');
-channels(2) = get(handles.chn2,'Value');
-channels(3) = get(handles.chn3,'Value');
-channels(4) = get(handles.chn4,'Value');
-active_channels = find(channels);
 Cs = length(I);
-active_channels(active_channels>Cs) = [];
 
+channels = zeros(1,Cs); % Storm Channels
+for c = 1:Cs; % length(handles.stormbutton)
+    channels(c) = get(handles.stormbutton(c),'Value');
+end
+active_channels = find(channels);
 
 figure; clf; 
 Im3D(I(active_channels),'resolution',res,'zStepSize',zstp,'xyStepSize',xyp,...
@@ -1321,14 +1347,14 @@ function vlist = MolsInView(handles)
     infilter = SR{handles.gui_number}.infilter;
     imaxes = SR{handles.gui_number}.imaxes;
      mlist = SR{handles.gui_number}.mlist;
-    channels(1) = get(handles.chn1,'Value');
-    channels(2) = get(handles.chn2,'Value');
-    channels(3) = get(handles.chn3,'Value');
-    channels(4) = get(handles.chn4,'Value');  
-    
-    all_channels = 1:4;
-    active_channels = intersect(all_channels(logical(channels)),1:length(mlist));
-    Cs = length(mlist); 
+     
+     Cs = length(mlist); 
+    channels = zeros(1,Cs); % Storm Channels
+    for c = 1:Cs; % length(handles.stormbutton)
+        channels(c) = get(handles.stormbutton(c),'Value');
+    end
+    active_channels = find(channels);
+
     vlist = cell(Cs,1);
     
     for c=active_channels;
@@ -1454,6 +1480,7 @@ function logscalecolor_Callback(hObject, eventdata, handles)
 %% Options Menu 
 %==========================================================================
 % *Overlays*
+% *Additional Display Options*
 % *Image Context*
 % 
 % --------------------------------------------------------------------
@@ -1491,7 +1518,7 @@ num_lines = 1;
     'vertical shift'...
     'channels'...
     'Max frames (for Daxfiles)',...
-    'Layer',...
+    'Overlay Layer (leave blank to add new layer)',...
     'Contrast'};
 
 try
@@ -1508,7 +1535,7 @@ catch er
     '0',...
     '[]',...
     '5',...
-    num2str(length(SR{handles.gui_number}.cmin)+1),...
+    '',...
     '[0,.3]'};
     Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
 end
@@ -1533,54 +1560,58 @@ else
     Otemp = uint16(mean(Otemp,3));  % might cause problems
 end
 Noverlays = length(SR{handles.gui_number}.O);
-SR{handles.gui_number}.O{Noverlays+1} = Otemp; 
-overlay_number = length(SR{handles.gui_number}.O);%  eval(Overlay_opts{9});
+if isempty(Overlay_opts{9})
+    SR{handles.gui_number}.O{Noverlays+1} = Otemp; 
+    overlay_number = length(SR{handles.gui_number}.O);%  ;
+else
+    overlay_number =  eval(Overlay_opts{9});
+    SR{handles.gui_number}.O{overlay_number} = Otemp;
+end
 
+% Still need to address contrast for overlays
 imlayers = length(SR{handles.gui_number}.cmin);
 imcaxis = eval(Overlay_opts{10});
-SR{handles.gui_number}.cmin = [SR{handles.gui_number}.cmin; 0];
-SR{handles.gui_number}.cmax = [SR{handles.gui_number}.cmax; 0];
-SR{handles.gui_number}.cmin(imlayers+1) = imcaxis(1);
-SR{handles.gui_number}.cmax(imlayers+1) = imcaxis(2);
+
+SR{handles.gui_number}.omin(overlay_number) = imcaxis(1);
+SR{handles.gui_number}.omax(overlay_number) = imcaxis(2);
 
 [~,filename] = extractpath(Overlay_opts{1});
 SR{handles.gui_number}.Overlay_opts = Overlay_opts ;
-AddOverlayLayer(hObject,handles,overlay_number,filename)
+handles = AddOverlayLayer(hObject,handles,overlay_number,filename);
+guidata(hObject, handles);
 IntegrateOverlay(hObject,handles);
 
 
-% updatebuttonname = ['set(handles.chn',num2str(imlayer),',','''String'',','''',filename,'''',')'];
-% updatebuttonvalue = ['set(handles.chn',num2str(imlayer),',','''Value'',',num2str(1),')'];
-% eval(updatebuttonname);
-% eval(updatebuttonvalue); 
-
-
-%~~~~~~~
-    function AddOverlayLayer(hObject,handles,overlay_number,oname)
-button_position = [.6, 8.15-2*(overlay_number-1), 15, 1.85];
-handles.overlaybutton(overlay_number) = ...
-                uicontrol( 'Parent', handles.OverlayPanel,...
-                           'Style', 'radiobutton', ...
-                           'Callback', @OverlayButtonToggle, ...
-                           'Units',    'characters', ...
-                           'Position', button_position, ...
-                           'String',   oname, ...
-                           'Value',    1);
-                 guidata(hObject, handles);
-
-function OverlayButtonToggle(hObject, EventData)
-disp('new button called!');
-% 
-% % 
-%  panel = guidata(hObject);
-% panel.LayersPanel
-% % panel
-% % get(panel.chn1,'Parent')
-% % get(panel.radio,'Parent')
-                 
+    %~~~~~~~
+    function handles = AddOverlayLayer(hObject,handles,overlay_number,oname)
+        % Adds a new radio button to the OverlayPanel, which can toggle this
+        % channel on and off.  
+    global SR
+    if ~isfield(SR{handles.gui_number},'OverlayNames')
+        SR{handles.gui_number}.OverlayNames = {};
+    end
+    
+    if ~isfield(handles,'overlaybutton');
+        handles.overlaybutton = [];
+    end
+    
+    SR{handles.gui_number}.OverlayNames{overlay_number} = oname;  
+    button_position = [.6, 8.05-1.25*(overlay_number-1), 17, 1.85];
+    handles.overlaybutton(overlay_number) = ...
+                    uicontrol( 'Parent', handles.OverlayPanel,...
+                               'Style', 'radiobutton', ...
+                               'Callback', @OverlayButtonToggle, ...
+                               'Units',    'characters', ...
+                               'Position', button_position, ...
+                               'String',   oname, ...
+                               'Value',    1);
+    guidata(hObject, handles);
+        function OverlayButtonToggle(hObject, EventData)
+            handles = guidata(hObject);
+            update_maindisplay(hObject,handles);   
                  
     %---------------------------------------------------------------------
-    % IntegrateOverlay 
+    % IntegrateOverlay into field of view
     %    - subfunction of MenuOverlay, also called each time image resizes
     %    in order to maintain overlay display.  
     function IntegrateOverlay(hObject,handles)
@@ -1600,6 +1631,8 @@ disp('new button called!');
     end
     end
 
+   
+    
 % --------------------------------------------------------------------
 function MenuDisplayOps_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuSR{handles.gui_number}.DisplayOps (see GCBO)
@@ -1674,6 +1707,7 @@ end
 position = [infofile.Stage_X,infofile.Stage_Y];
 MosaicViewer(SR{handles.gui_number}.Mosaicfolder,position);
 
+%%
 
 % --------------------------------------------------------------------
 function MenuColors_Callback(hObject, eventdata, handles)
@@ -1682,20 +1716,6 @@ function MenuColors_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% handles.LayersPanel
-% % rp1 = [943,421,80,20]; % [169 30 17 1.77]; % [1.66 1.769, 15, 1.846]
-% p4 = get(handles.chn4,'Position');
-% Units = get(handles.chn4,'Units');
-% pn = [p4(1),p4(2)-20]
-% handles.radio = uicontrol( 'Parent', handles.LayerPanel,...
-%                            'Style', 'radiobutton', ...
-%                            'Callback', @myRadio, ...
-%                            'Units',    'pixels', ...
-%                            'Position', rp1, ...
-%                            'String',   ['radio ',num2str(1)], ...
-%                            'Value',    0);
-%                  guidata(hObject, handles);
-% 
 
 % % 
 
