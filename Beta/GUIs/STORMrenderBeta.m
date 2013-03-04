@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 02-Mar-2013 22:15:49
+% Last Modified by GUIDE v2.5 03-Mar-2013 21:14:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -330,13 +330,28 @@ end
                                'String',   Sname, ...
                                'Value',    1);
     guidata(hObject, handles);
+    set( handles.stormbutton(layer_number),'Units','normalized');
+    guidata(hObject, handles);
 
-    
+
         function StormButtonToggle(hObject, EventData)
             handles = guidata(hObject);
             update_maindisplay(hObject,handles);
 
-        
+ 
+%     % --- Executes when StormPanel is resized.
+%     function StormPanel_ResizeFcn(hObject, eventdata, handles)
+%     % hObject    handle to StormPanel (see GCBO)
+%     % eventdata  reserved - to be defined in a future version of MATLAB
+%     % handles    structure with handles and user data (see GUIDATA)
+% 
+%         % repositions GUI channel toggle inside parent panel when main
+%         % figure is resized.  
+%             % panel_pos = get(handles.StormPanel,'Position');
+% %             for c = 1:length(handles.stormbutton)
+% %                 set(handles.stormbutton(c),'Units','normalized');
+% %             end
+            
    
             
           
@@ -1670,6 +1685,10 @@ IntegrateOverlay(hObject,handles);
                                'String',   oname, ...
                                'Value',    1);
     guidata(hObject, handles);
+    % Now that it's placed, allow resizing.  
+        set(handles.overlaybutton(overlay_number),'Units','normalized');
+    guidata(hObject, handles);
+    
         function OverlayButtonToggle(hObject, EventData)
             handles = guidata(hObject);
             update_maindisplay(hObject,handles);   
@@ -1800,3 +1819,4 @@ function LevelsChannel_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
