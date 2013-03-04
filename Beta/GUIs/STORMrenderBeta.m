@@ -310,13 +310,8 @@ end
     if isempty(layer_number)  % allows overwriting existing buttons upon load.  
         layer_number = length(handles.stormbutton) + 1;
     end
-    
-    if ~isfield(SR{handles.gui_number},'StormNames')
-    SR{handles.gui_number}.StormNames = {};
-    end
 
     % update levels
-    SR{handles.gui_number}.OverlayNames{layer_number} = Sname; 
     LevelsNames = get(handles.LevelsChannel,'String');
     LevelsNames{layer_number} = Sname;
     set(handles.LevelsChannel,'String',LevelsNames);
@@ -864,7 +859,7 @@ end
 
 % Update the display
 %--------------------------------------------------
-axes(handles.axes2); cla; 
+axes(handles.axes2); cla;
 set(gca,'XTick',[],'YTick',[]);
 imagesc(Io); 
 shading interp;
@@ -903,87 +898,127 @@ function AutoContrastTool_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global SR
-    SR{handles.gui_number}.cmax = [.9,.9,.9,.9];
-    SR{handles.gui_number}.cmin = [.0,.0,.0,.0];
+    Cs = length(SR{handles.gui_number.mlist});
+    for c=1:Cs
+        SR{handles.gui_number}.cmax(c) = .9;
+        SR{handles.gui_number}.cmin(c) = 0;
+    end
  update_maindisplay(hObject,handles);
  guidata(hObject, handles);
 
 % ------
  function scalecolor(hObject,handles)
  global SR ScratchPath
- I = SR{handles.gui_number}.I;
-    channels(1) = get(handles.fchn1,'Value');
-    channels(2) = get(handles.fchn2,'Value');
-    channels(3) = get(handles.fchn3,'Value');
-    channels(4) = get(handles.fchn4,'Value');
-    channels = find(channels);
-  
-    c = channels(1); 
-   
-    set(handles.levelpanel,'Title',['channel ',num2str(c)]);
-    
-   maxin = get(handles.MaxIntSlider,'Value');
-   minin = get(handles.MinIntSlider,'Value'); 
-   set(handles.MaxIntBox,'String',num2str(maxin));
-   set(handles.MinIntBox,'String',num2str(minin));
-   
-   logscalecolor = logical(get(handles.logscalecolor,'Value'));
-   
-   
-   SR{handles.gui_number}.cmax(c) = maxin;
-   SR{handles.gui_number}.cmin(c) = minin;
-    
  
-        raw_ints  = double(I{c}(:));     
-        raw_ints = raw_ints(:);
-        max_int = max(raw_ints);
-        
-       axes(handles.axes3); cla reset; 
-        set(gca,'XTick',[],'YTick',[]); 
-       if ~logscalecolor
-           xs = linspace(0,max_int,1000); 
-            hi1 = hist(nonzeros(raw_ints)./max_int,xs);
-            hist(nonzeros(raw_ints),xs); hold on;
-            inrange = nonzeros(raw_ints( raw_ints/max_int>minin & raw_ints/max_int<maxin))./max_int;
-            hist(inrange,xs);
-            h2 = findobj('type','patch'); 
-            xlim([min(xs),max(xs)]);
-       else
-           
-           xs = linspace(-5,0,50);
-           lognorm =  log10(nonzeros(raw_ints)/max_int);
-           hi1 = hist(lognorm,xs);
-           hist(lognorm,xs); hold on;
-           xlim([min(xs),max(xs)]);
-          log_min = (minin-1)*5; % map relative [0,1] to logpowers [-5 0];
-          log_max = (maxin-1)*5; % map relative [0,1] to logpowers [-5 0];
-          
-           % inrange = log10(nonzeros(raw_ints(lognorm > log_min & lognorm < log_max))/max_int);
-           inrange = lognorm(lognorm>log_min & lognorm<log_max);
-           hist(inrange,xs);
-           xlim([min(xs),max(xs)]);
-           clear h2;
-           h2 = findobj('type','patch'); 
-       end
-        ylim([0,1.2*max(hi1)]);
-       set(h2(2),'FaceColor','b','EdgeColor','b');
-       set(h2(1),'FaceColor','r','EdgeColor','r');
-       set(gca,'XTick',[],'YTick',[]);
-       alpha .5;
-       
-     %      save([ScratchPath,'test.mat']);
-     % load([ScratchPath,'test.mat']);  figure(3); clf;
-       
-       clear raw_ints;        
-      update_maindisplay(hObject,handles);
-      guidata(hObject, handles);
+ 
+ % hObject    handle to LevelsChannel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+% Hints: contents = cellstr(get(hObject,'String')) returns LevelsChannel contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from LevelsChannel
+
+
+% x scale for histogram (log or normal)
+logscalecolor = logical(get(handles.logscalecolor,'Value'));
+N_stormchannels = length(SR{handles.gui_number}.cmax);
+selected_channel = get(handles.LevelsChannel,'Value');
+
+
+% Read in current slider postions, set numeric displays accordingly
+maxin = get(handles.MaxIntSlider,'Value');
+minin = get(handles.MinIntSlider,'Value'); 
+set(handles.MaxIntBox,'String',num2str(maxin));
+set(handles.MinIntBox,'String',num2str(minin));
+   
+
+
+save([ScratchPath,'test.mat']);
+% load([ScratchPath,'test.mat']);
+
+% If it's STORM data, record data range from I and store max min as
+% cmax / cmin
+if selected_channel <= N_stormchannels
+    raw_ints  = double(SR{handles.gui_number}.I{selected_channel}(:)); 
+    SR{handles.gui_number}.cmax(selected_channel) = maxin;
+    SR{handles.gui_number}.cmin(selected_channel) = minin;
+else % If it's Overlay data adjust O
+    selected_channel = selected_channel-N_stormchannels;
+    raw_ints  = double(SR{handles.gui_number}.Oz{selected_channel}(:)); 
+    SR{handles.gui_number}.omax(selected_channel) = maxin;
+    SR{handles.gui_number}.omin(selected_channel) = minin;
+end
+ 
+ % Display histogram;            
+    raw_ints = raw_ints(:);
+    max_int = max(raw_ints);
+
+   axes(handles.axes3); cla reset; 
+    set(gca,'XTick',[],'YTick',[]); 
+   if ~logscalecolor
+       xs = linspace(0,max_int,1000); 
+        hi1 = hist(nonzeros(raw_ints)./max_int,xs);
+        hist(nonzeros(raw_ints),xs); hold on;
+        inrange = nonzeros(raw_ints( raw_ints/max_int>minin & raw_ints/max_int<maxin))./max_int;
+        hist(inrange,xs);
+        h2 = findobj('type','patch'); 
+        xlim([min(xs),max(xs)]);
+   else  % For Log-scale histogram  
+       xs = linspace(-5,0,50);
+       lognorm =  log10(nonzeros(raw_ints)/max_int);
+       hi1 = hist(lognorm,xs);
+       hist(lognorm,xs); hold on;
+       xlim([min(xs),max(xs)]);
+       log_min = (minin-1)*5; % map relative [0,1] to logpowers [-5 0];
+       log_max = (maxin-1)*5; % map relative [0,1] to logpowers [-5 0];
+       inrange = lognorm(lognorm>log_min & lognorm<log_max);
+       hist(inrange,xs);
+       xlim([min(xs),max(xs)]);
+       clear h2;
+       h2 = findobj('type','patch'); 
+   end
+    ylim([0,1.2*max(hi1)]);
+   set(h2(2),'FaceColor','b','EdgeColor','b');
+   set(h2(1),'FaceColor','r','EdgeColor','r');
+   set(gca,'XTick',[],'YTick',[]);
+   alpha .5;
+
+ %      save([ScratchPath,'test.mat']);
+ %     load([ScratchPath,'test.mat']);  figure(3); clf;
+  clear raw_ints;        
+  update_maindisplay(hObject,handles);
+  guidata(hObject, handles);
+
+
+% --- Executes on selection change in LevelsChannel.
+function LevelsChannel_Callback(hObject, eventdata, handles)
+% hObject    handle to LevelsChannel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SR
+N_stormchannels = length(SR{handles.gui_number}.cmax);
+selected_channel = get(handles.LevelsChannel,'Value');
+if selected_channel <= N_stormchannels
+% Set slider positions and values to the current selected channel
+    minin = SR{handles.gui_number}.cmin(selected_channel);
+    maxin = SR{handles.gui_number}.cmax(selected_channel);
+else
+    minin = SR{handles.gui_number}.omin(selected_channel - N_stormchannels);
+    maxin = SR{handles.gui_number}.omax(selected_channel - N_stormchannels);    
+end
+set(handles.MaxIntSlider,'Value',minin);
+set(handles.MaxIntBox,'String',num2str(minin));
+set(handles.MaxIntSlider,'Value',maxin);
+set(handles.MaxIntBox,'String',num2str(maxin));
+  
+% --- Executes on update of MinIntBox  
 function MinIntBox_Callback(hObject, eventdata, handles) %#ok<*INUSL>
  minin = str2double(get(handles.MinIntBox,'Value'));
  set(handles.MinIntSlider,'Value',minin);
  scalecolor(hObject,handles);
  guidata(hObject, handles); 
 
+ % --- Executes on update of MaxIntBox
 function MaxIntBox_Callback(hObject, eventdata, handles)      
  maxin = str2double(get(handles.MaxIntBox,'Value'));
  set(handles.MaxIntSlider,'Value',maxin);
@@ -1613,13 +1648,16 @@ IntegrateOverlay(hObject,handles);
         % Adds a new radio button to the OverlayPanel, which can toggle this
         % channel on and off.  
     global SR
-    if ~isfield(SR{handles.gui_number},'OverlayNames')
-        SR{handles.gui_number}.OverlayNames = {};
-    end
     
     if ~isfield(handles,'overlaybutton');
         handles.overlaybutton = [];
     end
+    
+       % update levels
+    N_stormlayers = length(SR{handles.gui_number}.cmax);
+    LevelsNames = get(handles.LevelsChannel,'String');
+    LevelsNames{N_stormlayers+overlay_number} = oname;
+    set(handles.LevelsChannel,'String',LevelsNames);
     
     SR{handles.gui_number}.OverlayNames{overlay_number} = oname;  
     button_position = [.6, 7.4-1.5*(overlay_number-1), 17, 1.85];
@@ -1741,29 +1779,14 @@ function MenuColors_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+set(handles.axes2,'BusyAction','cancel');
+axes(handles.axes2); cla;
 
 
 % % 
 
 
-% --- Executes on button press in radiobutton11.
-function radiobutton11_Callback(hObject, eventdata, handles)
-% hObject    handle to radiobutton11 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of radiobutton11
-
-
-
-% --- Executes on selection change in LevelsChannel.
-function LevelsChannel_Callback(hObject, eventdata, handles)
-% hObject    handle to LevelsChannel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns LevelsChannel contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from LevelsChannel
 
 
 % --- Executes during object creation, after setting all properties.
