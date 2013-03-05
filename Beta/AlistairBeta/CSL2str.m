@@ -2,7 +2,7 @@ function CSLstring = CSL2str(cellstring)
 %--------------------------------------------------------------------------
 % CSLstring = CSL2str(cellstring)
 %--------------------------------------------------------------------------
-% Takes a string and returns a comma separated list
+% Takes a cell string and returns a comma separated list
 % Alistair Boettiger
 % February 24th, 2013
 
