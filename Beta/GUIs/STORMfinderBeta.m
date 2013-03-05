@@ -827,12 +827,12 @@ catch
 end
 
 % Fit dots
-
+if ~isempty(Zopts)
  AutoZcal(daxfile,'parsfile',parsfile,'method',method,...
        'NewParsRoot',Zopts{1},'runinMatlab',eval(Zopts{2}),...
        'printprogress',eval(Zopts{3}),'overwrite',eval(Zopts{4}),...
     'PlotsOn',eval(Zopts{5}),'zwindow',eval(Zopts{6}),'SaveRoot',Zopts{7});
-
+end
 
 % --------------------------------------------------------------------
 function MenuChromeWarp_Callback(hObject, eventdata, handles) %#ok<*INUSL>
@@ -856,22 +856,22 @@ f = ZCalibrationParameters;
 waitfor(f);
   
 if Zcalpars.OK
-M = Zcalpars.NMovieSets;
-beadset(M).chns =[];
-for m=1:M 
-    beadset(m).chns = Zcalpars.Chns{m};
-    beadset(m).refchn = Zcalpars.ReferenceChannel{m};
-    beadset(m).daxroot = Zcalpars.DaxfileRoots{m};
-    beadset(m).parsroot = Zcalpars.ParameterRoots{m};
-    beadset(m).quadview = Zcalpars.Quadview{m};
-end
+    M = Zcalpars.NMovieSets;
+    beadset(M).chns =[];
+    for m=1:M 
+        beadset(m).chns = Zcalpars.Chns{m};
+        beadset(m).refchn = Zcalpars.ReferenceChannel{m};
+        beadset(m).daxroot = Zcalpars.DaxfileRoots{m};
+        beadset(m).parsroot = Zcalpars.ParameterRoots{m};
+        beadset(m).quadview = Zcalpars.Quadview{m};
+    end
 
-CalcChromeWarp(pathin,'beadset',beadset,'method',method,...
-    'QVorder',Zcalpars.QVorder,'overwrite',Zcalpars.OverwriteBin,...
-    'save root',Zcalpars.SaveNameRoot,'affine match radius',Zcalpars.AffineRadius,...
-    'polyfit match radius',Zcalpars.PolyRadius,'verbose',Zcalpars.VerboseOn,...
-    'hideterminal',Zcalpars.HideTerminal,'Noclass9',Zcalpars.ExcludePoorZ,...
-    'frames per Z',Zcalpars.FramesPerZ); 
+    CalcChromeWarp(pathin,'beadset',beadset,'method',method,...
+        'QVorder',Zcalpars.QVorder,'overwrite',Zcalpars.OverwriteBin,...
+        'save root',Zcalpars.SaveNameRoot,'affine match radius',Zcalpars.AffineRadius,...
+        'polyfit match radius',Zcalpars.PolyRadius,'verbose',Zcalpars.VerboseOn,...
+        'hideterminal',Zcalpars.HideTerminal,'Noclass9',Zcalpars.ExcludePoorZ,...
+        'frames per Z',Zcalpars.FramesPerZ); 
 end
 
 
@@ -882,7 +882,7 @@ function zcalini2xml_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSD>
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global inifile xmlfile i2xopts daxfile
+global inifile xmlfile i2xopts daxfile defaultXmlFile
 
 inifile = string(inifile);
 xmlfile = string(xmlfile);
@@ -892,6 +892,11 @@ if ~isempty(daxfile)
 else
     [dpath,filename] = extractpath(inifile);
 end
+
+if isempty(xmlfile);
+    xmlfile = defaultXmlFile;
+end
+
 xmlout = [dpath,filename(1:end-4),'.xml'];
 
 dlg_title = 'convert ini z-calibration to xml file';
@@ -914,9 +919,9 @@ if ~isempty(i2xopts) % Dialogue was not canceled or closed
     zcal_ini2xml(i2xopts{1},i2xopts{2},i2xopts{3});
     
     % set this to the current xmlfile and switch to DaoSTORM
-    xmlfile = xmlout; 
+    xmlfile = i2xopts{3}; 
     set(handles.CurrentPars,'String',xmlfile);
-    set(handles,FitMethod,'Value',2);
+    set(handles.FitMethod,'Value',2);
 end
 
 

@@ -630,7 +630,7 @@ try
     for n=1:Nsamples    
         for j=2:passes+1 % j=3;
         % for sample beads
-        subplot(Nsamples,Nmovies,(2*n)-1); 
+        subplot(Nsamples,2,(2*n)-1); 
         hist(dat2(n).sample.zo(sample_clust(n,j-1)+1: sample_clust(n,j) ),hx);
         title(['plot: ',num2str((2*n)-1),' ', data(n).sample(1).chn]); 
         xlim([zmin,zmax]); hold on;
@@ -638,7 +638,7 @@ try
         set(h1(1),'FaceColor',col(j-1,:),'EdgeColor',col(j-1,:)); alpha .7;
 
         % For reference beads
-        subplot(Nsamples,Nmovies,(2*n)); 
+        subplot(Nsamples,2,(2*n)); 
         hist(dat2(n).refchn.zo(ref_clust(n,j-1)+1: ref_clust(n,j) ),hx);
         title(['plot: ',num2str((2*n)),' ', data(n).refchn(1).chn]); 
         xlim([zmin,zmax]); hold on;
