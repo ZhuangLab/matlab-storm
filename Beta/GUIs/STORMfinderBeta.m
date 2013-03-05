@@ -193,7 +193,7 @@ global FitPars
     if FitMethod~=3
         try
         mlist = ReadMasterMoleculeList(binfile,'verbose',false);
-        catch
+        catch %#ok<*CTCH>
             disp('no molecules found to display!');
             disp('Try changing fit pars');  
             clear mlist;
@@ -555,43 +555,41 @@ function MenuSavePars_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
   
-global inifile xmlfile gpufile
+global inifile xmlfile gpufile daxfile
     FitMethod = get(handles.FitMethod,'Value');
  % setup starting folder for uigetfile
-    try
-    if FitMethod == 1
-        k = strfind(inifile,filesep);
-        startfolder = inifile(1:k(end));
-    elseif FitMethod == 2 
-        k = strfind(xmlfile,filesep);
-        startfolder = xmlfile(1:k(end));
-    elseif FitMethod == 3
-        k = strfind(gpufile,filesep);
-        startfolder = gpufile(1:k(end));
-    end
-    catch %#ok<*CTCH>
-        startfolder = pwd;
+
+    if ~isempty(daxfile)
+        startfolder = extractpath(daxfile); 
+    else
+         startfolder = pwd;
     end
     
     
     [FitPars,parameters] = ReadParameterFile(FitMethod,handles);  % load current parameters in FitPars
-    [savename, savepath] = uiputfile({'*.ini;*.xml;*.mat','Parameter Files (*.ini, *.xml, *.mat)'},...
+    [savename, savepath,hadinput] = uiputfile(...
+    {'*.ini;*.xml;*.mat','Parameter Files (*.ini, *.xml, *.mat)'},...
         'Save Parameter File',startfolder); % get file path and save name
-    k = strfind(savename,'.');
-    if ~isempty(k);
-        savename = savename(1:k-1);
-    end
-    % save current parameters with menufile name / directory specified above
-    if FitMethod == 1
-        savename = [savename,'.ini'];
-modify_script(inifile,[savepath,savename],parameters,struct2cell(FitPars),'');   
-    elseif FitMethod == 2
-        savename = [savename,'.xml'];
-modify_script(xmlfile,[savepath,savename],parameters,struct2cell(FitPars),'<'); 
-    elseif FitMethod == 3
-        savename = [savename,'.mat'];
-        GPUmultiPars = FitPars;  %#ok<NASGU>
-        save([savepath,savename],'GPUmultiPars');
+    if hadinput > 0
+        k = strfind(savename,'.');
+        if ~isempty(k);
+            savename = savename(1:k-1);
+        end
+        % save current parameters with menufile name / directory specified above
+        if FitMethod == 1
+            savename = [savename,'.ini'];
+            modify_script(inifile,[savepath,savename],parameters,...
+                struct2cell(FitPars),'');   
+        elseif FitMethod == 2
+            savename = [savename,'.xml'];
+            modify_script(xmlfile,[savepath,savename],parameters,...
+                struct2cell(FitPars),'<'); 
+        elseif FitMethod == 3
+            savename = [savename,'.mat'];
+            GPUmultiPars = FitPars;  %#ok<NASGU>
+            gpufile =[savepath,savename]; 
+            save(gpufile,'GPUmultiPars');
+        end
     end
 
     % --------------------------------------------------------------------
@@ -599,39 +597,35 @@ function MenuLoadPars_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuLoadPars (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-    global inifile xmlfile gpufile
-    FitMethod = get(handles.FitMethod,'Value');
+    global inifile xmlfile gpufile daxfile
     
     % setup starting folder for uigetfile
-    try
-    if FitMethod == 1
-        startfolder = extractpath(inifile); 
-    elseif FitMethod == 2 
-        startfolder = extractpath(xmlfile);
-    elseif FitMethod == 3
-        startfolder = extractpath(gpufile);
-    end
-    catch
+    if ~isempty(daxfile)
+        startfolder = extractpath(daxfile);
+    else
         startfolder = pwd;
     end
+
     
-    [filename, filepath] = uigetfile({'*.ini;*.xml;*.mat','Parameter Files (*.ini, *.xml, *.mat)'},...
+    [filename,filepath,hadinput] = uigetfile(...
+        {'*.ini;*.xml;*.mat','Parameter Files (*.ini, *.xml, *.mat)'},...
         'Select Parameter File',startfolder); % get file path and save name
-    k = strfind(filename,'.');
-    if strcmp(filename(k:end),'.ini');
-        inifile = [filepath,filename];
-        parsfile = inifile;
-    elseif strcmp(filename(k:end),'.xml');
-        xmlfile = [filepath,filename];
-        parsfile = xmlfile;
-    elseif strcmp(filename(k:end),'.mat');
-        gpufile = [filepath,filename];
-        parsfile = gpufile;
-    else
-        disp([filename,' is not a recognized parameter file']); 
+    if hadinput > 0
+        k = strfind(filename,'.');
+        if strcmp(filename(k:end),'.ini');
+            inifile = [filepath,filename];
+            parsfile = inifile;
+        elseif strcmp(filename(k:end),'.xml');
+            xmlfile = [filepath,filename];
+            parsfile = xmlfile;
+        elseif strcmp(filename(k:end),'.mat');
+            gpufile = [filepath,filename];
+            parsfile = gpufile;
+        else
+            disp([filename,' is not a recognized parameter file']); 
+        end
+        set(handles.CurrentPars,'String',parsfile);
     end
-    set(handles.CurrentPars,'String',parsfile);
-    
     
     
 
@@ -880,12 +874,16 @@ function zcalini2xml_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSD>
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global inifile xmlfile i2xopts
+global inifile xmlfile i2xopts daxfile
 
 inifile = string(inifile);
 xmlfile = string(xmlfile);
 
-[dpath,filename] = extractpath(inifile);
+if ~isempty(daxfile)
+    [dpath,filename] = extractpath(daxfile);
+else
+    [dpath,filename] = extractpath(inifile);
+end
 xmlout = [dpath,filename(1:end-4),'.xml'];
 
 dlg_title = 'convert ini z-calibration to xml file';
@@ -904,6 +902,14 @@ catch er %#ok<NASGU>
         xmlout}; 
     i2xopts = inputdlg(prompt,dlg_title,num_lines,i2xopts);
 end
-zcal_ini2xml(i2xopts{1},i2xopts{2},i2xopts{3});
+if ~isempty(i2xopts) % Dialogue was not canceled or closed
+    zcal_ini2xml(i2xopts{1},i2xopts{2},i2xopts{3});
+    
+    % set this to the current xmlfile and switch to DaoSTORM
+    xmlfile = xmlout; 
+    set(handles.CurrentPars,'String',xmlfile);
+    set(handles,FitMethod,'Value',2);
+end
+
 
 
