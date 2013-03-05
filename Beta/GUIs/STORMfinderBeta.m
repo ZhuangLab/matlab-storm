@@ -660,7 +660,7 @@ function MenuAnalyzeAll_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuAnalyzeAll (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global Dprompt Dopts daxfile inifile xmlfile gpufile
+global   daxfile inifile xmlfile gpufile
 FitMethod = get(handles.FitMethod,'Value');
 if FitMethod == 1
     parsfile = inifile;
@@ -683,22 +683,18 @@ end
 
 dlg_title = 'Run all dax files in folder';
 num_lines = 1;
-try
+disp('...menu built.  select again to run');
+Dprompt = {
+    'batch size';
+    'all dax files containing string'; %  
+    'parameter file or file root'; % 
+    'overwrite existing?' };
+Dopts = {
+    '3',...
+    '',...
+    parsfile,...
+    'false'}; 
 Dopts = inputdlg(Dprompt,dlg_title,num_lines,Dopts);
-catch 
-    disp('...menu built.  select again to run');
-    Dprompt = {
-        'batch size';
-        'all dax files containing string'; %  
-        'parameter file or file root'; % 
-        'overwrite existing?' };
-    Dopts = {
-        '3',...
-        '',...
-        parsfile,...
-        'false'}; 
-    Dopts = inputdlg(Dprompt,dlg_title,num_lines,Dopts);
-end
 
 % If a parameter file with file ending is specified, call RunDotFinder with
 % that specific parameter file.  Otherwise, assume it is parameter root and
@@ -718,14 +714,14 @@ RunDotFinder('path',fpath,'batchsize',eval(Dopts{1}),'daxroot',Dopts{2},...
 % ^ has this been dealt with?
 
 
-% This may be deleted: {
-function currentpath_Callback(hObject, eventdata, handles)
-
-function currentpath_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-%   }
+% % This may be deleted: {
+% function currentpath_Callback(hObject, eventdata, handles)
+% 
+% function currentpath_CreateFcn(hObject, eventdata, handles)
+% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor','white');
+% end
+% %   }
 
 
 
@@ -882,7 +878,7 @@ function zcalini2xml_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSD>
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global inifile xmlfile i2xopts daxfile defaultXmlFile
+global inifile xmlfile daxfile defaultXmlFile
 
 inifile = string(inifile);
 xmlfile = string(xmlfile);
@@ -905,16 +901,12 @@ prompt = {
     'inifile',...
     'xml reference file',...
     'xml save file'};
+i2xopts = {
+    inifile,...
+    xmlfile,...
+    xmlout}; 
+i2xopts = inputdlg(prompt,dlg_title,num_lines,i2xopts);
 
-try
-    i2xopts = inputdlg(prompt,dlg_title,num_lines,i2xopts);
-catch er %#ok<NASGU>
-    i2xopts = {
-        inifile,...
-        xmlfile,...
-        xmlout}; 
-    i2xopts = inputdlg(prompt,dlg_title,num_lines,i2xopts);
-end
 if ~isempty(i2xopts) % Dialogue was not canceled or closed
     zcal_ini2xml(i2xopts{1},i2xopts{2},i2xopts{3});
     
