@@ -817,7 +817,7 @@ Cs = length(I);
 [h,w,Zs] = size(I{1});
 Noverlays = length(SR{handles.gui_number}.Oz);
 
-save([ScratchPath,'test.mat']);
+% save([ScratchPath,'test.mat']);
 % load([ScratchPath,'test.mat']);
 % Find out which channels are toggled for display
 %------------------------------------------------------------
@@ -948,7 +948,7 @@ set(handles.MinIntBox,'String',num2str(minin));
    
 
 
-save([ScratchPath,'test.mat']);
+% save([ScratchPath,'test.mat']);
 % load([ScratchPath,'test.mat']);
 
 % If it's STORM data, record data range from I and store max min as
@@ -1405,7 +1405,7 @@ end
 xlabel('x (nm)'); ylabel('y (nm)'); zlabel('z (nm)'); 
 title(lab); 
 
-save([ScratchPath,'testdat.mat']);
+% save([ScratchPath,'testdat.mat']);
 
 
 
