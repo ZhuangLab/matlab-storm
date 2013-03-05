@@ -615,16 +615,20 @@ function MenuLoadPars_Callback(hObject, eventdata, handles)
         if strcmp(filename(k:end),'.ini');
             inifile = [filepath,filename];
             parsfile = inifile;
+            method = 1;
         elseif strcmp(filename(k:end),'.xml');
             xmlfile = [filepath,filename];
             parsfile = xmlfile;
+            method = 2;
         elseif strcmp(filename(k:end),'.mat');
             gpufile = [filepath,filename];
             parsfile = gpufile;
+            method = 3;
         else
             disp([filename,' is not a recognized parameter file']); 
         end
         set(handles.CurrentPars,'String',parsfile);
+        set(handles.FitMethod,'Value',method);
     end
     
     
@@ -670,6 +674,10 @@ elseif FitMethod == 3
     parsfile = gpufile;
     method = 'GPUmultifit';
     partype = '.mat';
+end
+
+if isempty(parsfile)
+    parsfile = '';
 end
 
 
