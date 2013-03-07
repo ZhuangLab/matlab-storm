@@ -154,9 +154,13 @@ function QuickLoad_Callback(hObject, eventdata, handles)
 global binfile SR
 SR{handles.gui_number}.mlist = [];
 if isempty(binfile)
-   [filename,pathname] = uigetfile('*.bin');
-   binfile = [pathname,filesep,filename];
+   [FileName,PathName] = uigetfile('*.bin');
+   binfile = [PathName,filesep,FileName];
+else
+    [PathName,FileName] = extractpath(binfile);
 end
+handles = AddStormLayer(hObject,handles,FileName,[]);
+guidata(hObject, handles);
 SingleBinLoad(hObject,eventdata,handles);
 
 % --------------------------------------------------------------------
@@ -173,6 +177,11 @@ function MenuOpenMulti_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 multiselect = 'on';
+% Multiload assumes you wish to clear all current data;
+if isfield(handles,'stormbutton')
+    delete(handles.stormbutton); 
+    guidata(hObject,handles);
+end
 LoadBin(hObject,eventdata,handles,multiselect);
 
 
@@ -231,7 +240,7 @@ function MenuAutoMultiLoad_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global SR ScratchPath
-
+stoprun = 0;
 % confirm auto-load options
 dlg_title = 'Bin file names must begin with unique channel flag';
 num_lines = 1;
@@ -248,6 +257,8 @@ default_opts = ...
     num2str(SR{handles.gui_number}.LoadOps.dataset),...
     };   
 opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
+
+if ~isempty(opts) % don't try anything if dialogue box is canceled
 SR{handles.gui_number}.LoadOps.sourceroot = opts{1};
 SR{handles.gui_number}.LoadOps.bintype = opts{2};
 SR{handles.gui_number}.LoadOps.chnFlag = parseCSL(opts{3}); 
@@ -255,12 +266,17 @@ SR{handles.gui_number}.LoadOps.dataset = str2double(opts{4});
 %  if we don't have a file path, prompt user to find one. 
 if isempty(SR{handles.gui_number}.LoadOps.pathin)
     SR{handles.gui_number}.LoadOps.pathin = uigetdir(pwd,'select data folder');
+    if ~SR{handles.gui_number}.LoadOps.pathin
+        SR{handles.gui_number}.LoadOps.pathin = '';
+        stoprun = 1;
+    end
 end
 
+if ~stoprun
 % Automatically group all bin files of same section in different colors
   %   based on image number, if it has not already been done
   if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
-    [SR{handles.gui_number}.bins,SR{handles.gui_number}.fnames] = ...
+    [SR{handles.gui_number}.bins,SR{handles.gui_number}.allfnames] = ...
         automatch_files(SR{handles.gui_number}.LoadOps.pathin,...
            'sourceroot',SR{handles.gui_number}.LoadOps.sourceroot,...
            'filetype',SR{handles.gui_number}.LoadOps.bintype,...
@@ -275,14 +291,34 @@ end
  else
      i=SR{handles.gui_number}.LoadOps.dataset;
  end
-    hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
+ 
+ % save([ScratchPath,'test.mat']);
+ % load([ScratchPath,'test.mat']);
+ 
+ hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
     binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
     if sum((logical(1-hasdata))) ~=0
         disp('no data found for in channels:');
         disp(SR{handles.gui_number}.LoadOps.chnFlag(logical(1-hasdata)))
     end
-  
-    SR{handles.gui_number}.fnames = SR{handles.gui_number}.fnames(hasdata,i);
+    %  save([ScratchPath,'test.mat']); 
+    % load([ScratchPath,'test.mat']); 
+    
+    if isfield(handles,'stormbutton')
+            delete(handles.stormbutton); 
+            guidata(hObject,handles);
+            handles = rmfield(handles, 'stormbutton');
+            guidata(hObject,handles);          
+    end
+     if isfield(handles,'overlaybutton')
+            delete(handles.overlaybutton); 
+            guidata(hObject,handles);
+            handles = rmfield(handles, 'overlaybutton');
+            guidata(hObject,handles);   
+            SR{handles.gui_number}.Oz = {};  
+    end
+    
+    SR{handles.gui_number}.fnames = SR{handles.gui_number}.allfnames(hasdata,i);
     disp('will load:');
     disp(SR{handles.gui_number}.fnames);   
     for c=1:length(SR{handles.gui_number}.fnames)
@@ -291,8 +327,8 @@ end
     end
     
     MultiBinLoad(hObject,eventdata,handles,binnames);    
-
-
+end
+end
 
 
 
@@ -302,7 +338,9 @@ end
     function handles = AddStormLayer(hObject,handles,Sname,layer_number)
         % Adds a new radio button to the OverlayPanel, which can toggle this
         % channel on and off.  
-    global SR
+    global SR ScratchPath
+    % save([ScratchPath,'test2.mat']); 
+    
     if ~isfield(handles,'stormbutton')
         handles.stormbutton = [];
     end
@@ -366,7 +404,8 @@ end
         disp('file loaded'); 
         [pathname,filename] = extractpath(binfile); 
         k = strfind(filename,'_');
-        SR{handles.gui_number}.infofile = ReadInfoFile([pathname,filesep,filename(1:k(end)-1),'.inf']);
+        SR{handles.gui_number}.infofile = ReadInfoFile(...
+            [pathname,filesep,filename(1:k(end)-1),'.inf']);
         disp('setting up image options...');
         imsetup(hObject,eventdata, handles);
         disp('drawing data...');
@@ -386,6 +425,8 @@ end
      % .LoadOps: structure containing filepaths for data, warps etc
      % .fnames: cell array of names of current data files in display 
      %          (used for display only).
+     %------------------------------------------------------
+     % Outputs (saved in SR data structure)
      % .mlist:  cell array of all molecule lists loaded for display
      % .infofile: InfoFile structure for dataset (contains stage position,
      %          needed for MosaicView reconstruction).  
@@ -407,7 +448,8 @@ end
 
 % Apply global drift correction, then return loaded mlist file.
 % Then apply chromewarp.  
-    mlist = MultiChnDriftCorrect(allbins,'correctDrift',SR{handles.gui_number}.LoadOps.correctDrift);
+    mlist = MultiChnDriftCorrect(allbins,...
+        'correctDrift',SR{handles.gui_number}.LoadOps.correctDrift);
     
   % Need a warp map.  
     if isempty(SR{handles.gui_number}.LoadOps.warpfile)
@@ -419,16 +461,20 @@ end
     if isempty([SR{handles.gui_number}.LoadOps.chns{:}])
         chns = inputdlg({'Channel Names: (name must match warpmap, order match layer order)'},...
     '',1,{'750,647,561,488'});  % <--  Default channel names
-        SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1}); 
+        SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1})
     end
  % Automatically dealing with old vs. new style chromewarp format
     [warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
     if ~isempty(strfind(warpname,'tform'))
     for c=1:length(mlist)
-        mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
+        mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
+            mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
     end        
     else  % Run new style
-        mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,SR{handles.gui_number}.LoadOps.warpfile,'warpD',SR{handles.gui_number}.LoadOps.warpD,'names',SR{handles.gui_number}.fnames);    
+        mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
+            SR{handles.gui_number}.LoadOps.warpfile,...
+            'warpD',SR{handles.gui_number}.LoadOps.warpD,...
+            'names',SR{handles.gui_number}.fnames);    
     end
     % Cleanup settings from any previous data and render image:
     SR{handles.gui_number}.mlist = mlist; 
@@ -465,16 +511,40 @@ global SR ScratchPath
         'Correct global drift (files must be loaded in order acquired)',...
         'Order acquired (see display channels box for order listed)',...
         };
-    
+try    
 opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
-SR{handles.gui_number}.LoadOps.pathin = opts{1};
-SR{handles.gui_number}.LoadOps.chns = parseCSL(opts{2});
-SR{handles.gui_number}.LoadOps.warpfile = opts{3};
-SR{handles.gui_number}.LoadOps.warpD = str2double(opts{4});
-SR{handles.gui_number}.LoadOps.correctDrift = logical(str2double(opts{5}));
-SR{handles.gui_number}.LoadOps.chnOrder = opts{6}; 
-set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin);     
-    
+catch er  % if values get really screwed up, start again
+    disp(er.message); 
+    SR{handles.gui_number}.LoadOps.warpD = 3; % set to 0 for no chromatic warp
+    SR{handles.gui_number}.LoadOps.warpfile = ''; % can leave blank if no chromatic warp
+    SR{handles.gui_number}.LoadOps.chns = {''};% {'750','647','561','488'};
+    SR{handles.gui_number}.LoadOps.pathin = '';
+    SR{handles.gui_number}.LoadOps.correctDrift = true;
+    SR{handles.gui_number}.LoadOps.chnOrder = '[1:end]'; 
+    SR{handles.gui_number}.LoadOps.sourceroot = '';
+    SR{handles.gui_number}.LoadOps.bintype = '_alist.bin';
+    SR{handles.gui_number}.LoadOps.chnFlag = {'750','647','561','488'};  
+    SR{handles.gui_number}.LoadOps.dataset = 0;
+        default_opts = ...
+        {SR{handles.gui_number}.LoadOps.pathin,...
+        CSL2str(SR{handles.gui_number}.LoadOps.chns),...
+        SR{handles.gui_number}.LoadOps.warpfile,...
+        num2str(SR{handles.gui_number}.LoadOps.warpD),...
+        num2str(SR{handles.gui_number}.LoadOps.correctDrift),...
+        SR{handles.gui_number}.LoadOps.chnOrder,...
+        }';
+    opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
+end
+
+if ~isempty(opts)
+    SR{handles.gui_number}.LoadOps.pathin = opts{1};
+    SR{handles.gui_number}.LoadOps.chns = parseCSL(opts{2});
+    SR{handles.gui_number}.LoadOps.warpfile = opts{3};
+    SR{handles.gui_number}.LoadOps.warpD = str2double(opts{4});
+    SR{handles.gui_number}.LoadOps.correctDrift = logical(str2double(opts{5}));
+    SR{handles.gui_number}.LoadOps.chnOrder = opts{6}; 
+    set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin);     
+end
 
 % --------------------------------------------------------------------
 function ToolbarOpenFile_ClickedCallback(hObject, eventdata, handles)
