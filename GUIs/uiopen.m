@@ -64,6 +64,7 @@ elseif ((~isempty(findstr(type,'.tif'))) && (direct))
 else
   % %   Matlab gets confused by finding these function names
     %----------DO NOT CHANGE---------------------------
+warning off all
     presentPWD = pwd;
     cd([matlabroot '/toolbox/matlab/uitools']);
     strn = ['uiopen(''' type ''',' num2str(direct) ')'];
@@ -71,5 +72,5 @@ else
     cd(presentPWD);
     %----------DO NOT CHANGE---------------------------
 end
-warning off all
+warning on all
 %-------------------------------------------------------------------------
