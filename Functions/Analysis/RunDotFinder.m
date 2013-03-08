@@ -27,10 +27,12 @@ function RunDotFinder(varargin)
 %               - full name and path of .dax file to analyze
 % path / string / ''
 %               - directory containing .dax files to be analyzed
-% batchsize / integer / 3
+% batchsize / integer / 1
 %               - max number of versions of analysis to run in parallel
-% overwrite / logical / true     
-%               - set true to overwrite existing .bin files
+% overwrite / double / 2     
+%               - Skip files for which bin files already exist (0),
+%               Overwrite any existing bin files without asking (1), Ask
+%               the user what to do if file exists (2). 
 % method / string / insightM
 %               - method to use for dotfinding analysis.  
 %               Options: insight, DaoSTORM, GPUmultifit
@@ -44,14 +46,48 @@ function RunDotFinder(varargin)
 %               contain this string in their file name.
 % verbose / logical / true
 %               - print comments and progress to screen?
+% runinMatlab / logical / false
+%               - Run in matlab command line (single instance only).
+% printprogress / logical / false
+%               - when running in matlab, print progress to terminal?
+% hideterminal / logical / false
+%               - run in a "hidden" external terminal (good for rapidly
+%               launching 100s of processes to keep them from all popping
+%               up on your screen).  
+% maxCPU / double / 95
+%               - if more than this percent of CPU is already in use,
+%               RunDotFinder will pause and wait for it to drop below
+%               before adding lanuching new tasks.  
+%--------------------------------------------------------------------------
+% Examples
+% RunDotFinder('method','insight','daxfile','D:\movie.dax',...
+%       'parsfile','D:\pars.ini')
+%     -- runs insight on daxfile 'D:\movie.dax' using parameter file 
+%           'D:\pars.ini'.  If using default method, 'method' can be
+%           omitted.
+% RunDotFinder('path','D:\data')
+%     -- runs default dotfinding program on all dax files found in
+%           'D:\data' using the parameter file in that folder that matches
+%           the default dotfinding program.  If no parameter files exist or
+%           multiple parameter files exist, it will bring up a GUI to
+%           prompt you to chose which file you want to use.
+% RunDotFinder(... 'hideterminal',true)
+%     - run "silently" in a "hidden" external terminal (good for rapidly
+%           launching 100s of processes to keep them from all popping
+%           up on your screen).  Or if you are doing a lot of Ctrl+C
+%           copying while RunDotFinder is launching stuff it won't
+%           cancel by accident.  
+% RunDotFinder(... 'maxCPU',80)
+%     - Function will pause and wait for free CPU if more than 80% of CPU
+%           is currently in use.  
 %--------------------------------------------------------------------------
 %
 % Alistair Boettiger
 % boettiger@fas.harvard.edu
-% January 20, 2013
+% February 9, 2013
 % Copyright Creative Commons 3.0 CC BY.    
 %
-% Version 1.2
+% Version 1.4
 %--------------------------------------------------------------------------
 
 %--------------------------------------------------------------------------
@@ -69,15 +105,20 @@ global defaultDaoSTORM
 %--------------------------------------------------------------------------
 % this makes it easy to change default values
 batchsize = 1;
-overwrite = true;
+overwrite = 2; % ask user
 minsize = 1E6;
 daxroot = '';
 parsroot = '';
-method = 'insight';
+method = 'DaoSTORM';
 daxfile = '';
 parsfile = '';
 dpath = ''; 
 verbose = true; 
+hideterminal = false; 
+runinMatlab = false;
+printprogress = false;
+batchwait = false;
+maxCPU = 95;
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Arguments
@@ -105,13 +146,21 @@ if nargin > 1
             case 'minsize'
                 minsize = CheckParameter(parameterValue, 'positive', 'minsize');
             case 'overwrite'
-                overwrite = CheckParameter(parameterValue, 'boolean', 'overwrite');
+                overwrite = CheckParameter(parameterValue, 'nonnegative', 'overwrite');
             case 'parsfile'
                 parsfile = CheckParameter(parameterValue, 'string', 'parsfile');
             case 'daxfile'
                 daxfile  = CheckParameter(parameterValue, 'string', 'daxfile');
             case 'verbose'
-                verbose =  CheckParameter(parameterValue, 'boolean', 'daxfile');
+                verbose = CheckParameter(parameterValue, 'boolean', 'verbose');
+            case 'hideterminal'
+                hideterminal = CheckParameter(parameterValue, 'boolean', 'hideterminal');
+            case 'runinMatlab'
+                runinMatlab = CheckParameter(parameterValue, 'boolean', 'runinMatlab');
+            case 'printprogress'
+                printprogress = CheckParameter(parameterValue, 'boolean', 'printprogress');
+            case 'maxCPU'
+                maxCPU = CheckParameter(parameterValue, 'boolean', 'maxCPU');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -140,20 +189,20 @@ else  % parse out file path and daxfile name
     daxroots = {regexprep(daxfile(k(end)+1:end),'.dax','')};
 end
 
-% ~~~~~~~~~~~~~~~ Set method specific flags ~~~~~~~~~~~~~~~~~~~~~~~
+%% ~~~~~~~~~~~~~~~ Set method specific flags ~~~~~~~~~~~~~~~~~~~~~~~
 switch method
     case 'insight'
         datatype = '_list.bin'; 
         parstype = '.ini';
-        processName = 'InsightM.exe';
     case 'DaoSTORM'
         datatype = '_mlist.bin';
         parstype = '.xml';
-        processName = 'python.exe';
     case 'GPUmultifit'
         datatype = '_glist.bin';
         parstype = '.mat';
-        processName = ''; % GPU scripts can't be launched in batch
+        if batchsize > 1
+            disp('Batch task execution not available for GPU');
+        end
     otherwise
         error(['method ',method,' not recognized.  Available methods:',...
             ' insight, DaoSTORM, GPUmultifit.']);
@@ -161,18 +210,27 @@ end
 
 % ~~~~~~~~~~~~ check for parameter files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if isempty(parsfile)
-    parsfile = dir([dpath,'*',parsroot, '*',parstype]);
-    if length(parsfile) > 1
-        error(['Too many ',parstype,...
-            ' files in directory.  Please specify specific file.']);
-    elseif isempty(parsfile)
-        error(['No ',parstype,' file in directory.']);
+    parsname = dir([dpath,filesep,'*',parsroot, '*',parstype]);
+    if length(parsname) > 1 || isempty(parsname)
+        disp(['Too many or no ',parstype,...
+            ' files in directory.  Please chose a parameters file for']);
+        disp(daxnames(1));
+       getfileprompt = {['*',parstype],[method,' pars (*',parstype,')']};
+       [filename, filepath] = uigetfile(getfileprompt,...
+           'Select Parameter File',dpath);
+       parsfile = [filepath,filename];
+    else
+        parsfile = [dpath, parsname.name];
+        disp('No parameters specified: RunDotFinder found parameters ');
+        disp(parsfile);
+        disp('using these parameters ...'); 
     end
-    parsfile = [dpath, parsfile.name];
 end     
+if isempty(strfind(parsfile,parstype))
+    error([parsfile, ' is not a valid ', parstype, ' parameter file for ',method]);
+end
 
-
-%~~~~ Decide if existing data files should be skipped or overwritten ~~~~~%    
+%% ~~~~ Decide if existing data files should be skipped or overwritten ~~~~~%    
 % structure containing names of all bin files in folder 
     all_prev_bin = dir([dpath,'\','*',daxroot,'*',datatype]);
     binnames = {all_prev_bin(:).name};
@@ -181,50 +239,98 @@ end
 % index of all dax files which have bin files associated 
     hasbin = sum(cell2mat(cellfun(@(x) strcmp(x,daxroots),...
         binroots,'UniformOutput',false)'));
+    txtout = ['warning: found existing ',datatype,' data files for ',...
+        daxnames(logical(hasbin))];
     
 % don't analyze movies which have _list.bin files
 if sum(hasbin) ~= 0 
-   txtout = ['warning: found existing ',datatype,' data files for ',...
-       daxnames(logical(hasbin))];
-    if verbose
-       disp(char(txtout));
-    end
-    if overwrite
+    if overwrite == 2   
+        disp(char(txtout));
         disp('these files will be overwritten.  ');
-        cont = input('type 1 to continue, 0 to cancel:  ');
-        if cont == 1
-            % files must be physically deleted to enable a fresh daoSTORM
-            % analysis.  
-            if strcmp('method','daoSTORM')
-                allextra = daxroots(logical(hasbin));
-                for a = 1:length(allextra)
-                    deletebin = ['del ', allextra(a),datatype];
-                    dos(deletebin);
+        overwritefiles = input('type 2 to skip, 1 to overwrite, 0 to cancel:  ');
+    elseif overwrite == 1
+        overwritefiles = 1;
+        if verbose
+        disp(char(txtout));
+        disp('these files will be overwritten.  ');
+        end
+    elseif overwrite == 0
+        overwritefiles = 2; 
+    else
+        disp(overwrite)
+        disp('is not a valid value for overwrite'); 
+    end
+    if overwritefiles==1
+        % files must be physically deleted to enable a fresh daoSTORM
+        % analysis.  
+        if strcmp('method','daoSTORM')
+            allextra = daxroots(logical(hasbin));
+            for a = 1:length(allextra)
+                delete(strcat(allextra{a},datatype));
+                alist = dir(strcat(allextra{a},'_alist.bin'));
+                if length(alist)>1
+                    delete(strcat(allextra{a},'_alist.bin'));
                 end
             end
-        else
-            disp('skipping these movies...'); 
-            daxnames(logical(hasbin))=[]; % actually removes from que  
         end
-    else
-        disp('skipping these movies...'); 
+    elseif overwritefiles == 2
+        if ~strcmp(method,'DaoSTORM');
+            disp('skipping these movies...'); 
+            % DaoSTORM defaults to 'pick up where it left off' analysis
         daxnames(logical(hasbin))=[]; % actually removes from que     
+        end
+    elseif overwritefiles == 0
+        disp('RunDaoSTORM canceled');
+        return
     end
 end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-%~~~~~~~~~~~~~~~~~ Call analysis commands in batch ~~~~~~~~~~~~~~~~~~~~~~~%
+%% ~~~~~~~~~~~~~~~~~ Call analysis commands in batch ~~~~~~~~~~~~~~~~~~~~~~~%
 Sections = length(daxnames);
+prc = cell(Sections,1); % cell array to store system process structures for each process launched
 for s=1:Sections % loop through all dax movies in que
-    daxfile = [dpath,filesep,daxnames{s}];          
+    daxfile = [dpath,filesep,daxnames{s}];  
+    
+    if ~isempty(maxCPU)
+        waitforfreecpu('MaxLoad',maxCPU,'RefreshTime',10,'verbose',verbose);
+    end
+    
+   if verbose
+        disp(['running ',method,' on:']);
+        disp(daxfile); 
+        disp(parsfile); 
+        disp('...');
+    end 
+    
     switch method
         case 'insight'
          % display command split up onto multiple lines  
-        % Actually launch insightM and poll computer for number of processes
-        dos([defaultInsightPath,' ',daxfile,' ',parsfile, ' && exit &']); 
+         % Actually launch insightM and poll computer for number of processes
+            if runinMatlab % 
+                if printprogress  % Print fitting progress to command line
+                    system([defaultInsightPath,' ',daxfile,' ',parsfile]);  
+                else  % Don't print to command line (save output in text file)
+                    system([defaultInsightPath,' ',daxfile,' ',parsfile,' >' dpath,'\newlog',num2str(s),'.txt']); 
+                end
+            else
+               system_command = [defaultInsightPath,' ',daxfile,' ',parsfile, ' && exit &']; 
+               prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
+               batchwait = true;
+            end
         case 'DaoSTORM'
             binfile = [dpath,filesep,daxroots{s},datatype];
-            system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' && exit &']);       
+            if runinMatlab % 
+                if printprogress  % Print fitting progress to command line
+                    system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile]);  
+                else  % Don't print to command line (save output in text file)
+                    system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' >' dpath,'\newlog',num2str(s),'.txt']); 
+                end
+            else  % Launch silently in the background
+                system_command = [defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile, ' && exit &']; 
+                prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
+                batchwait = true;
+            end          
         case 'GPUmultifit'
             load(parsfile);
             gpuclock = tic;
@@ -235,37 +341,20 @@ for s=1:Sections % loop through all dax movies in que
             disp(['in ',num2str(gputime),' minutes']); 
     end    
 
-    if verbose
-        disp(['running ',method,' on:']);
-        disp(daxfile); 
-        disp(parsfile); 
-    end    
-
-%~~~~~  Regulate number of instances of analysis running in parallel. ~~~~~~~~ 
-    if ~isempty(processName)
-         [~, result] = dos(['wmic process where (name="',...
-             processName,'") list brief']); 
-         running = strfind(result,processName);
-
-           % Don't launch more than 'batchsize' number of scripts at once:
-           waitT = 0; 
-           batchwait = tic;
-                while length(running) >= batchsize
-                    pause(1); 
-                     waitT = waitT + 1; % Process time-out counter
-                    % Watch for appearance of completed bin file 
-                    [~, result] = dos(['wmic process where (name="',...
-                        processName,'") list brief']); 
-                    running = strfind(result,processName);  
-                end      
-           batchwait = toc(batchwait);
-           disp(['time elapsed = ',num2str(batchwait/60),' min']); 
+ 
+    if batchwait
+    Nrunning = inf; 
+       while Nrunning >= batchsize
+           prcActive = prc(logical(1-cellfun(@isempty, prc)));
+           hasexited = cellfun(@(x) x.HasExited,prcActive);
+           Nrunning = s-sum(hasexited);
+           pause(1); 
+       end 
     end
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 end
 
 time_run = toc(time_run);
 if verbose
 disp(['RunDotFinder finished processing ',num2str(Sections),' dax movies',...
-    ' Total time=',num2str(time_run/(60*60)),'hours']); 
+    ' Total time=',num2str(time_run/(60*60)),' hours']); 
 end

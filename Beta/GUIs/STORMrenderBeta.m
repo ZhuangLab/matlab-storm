@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 02-Feb-2013 12:09:16
+% Last Modified by GUIDE v2.5 03-Mar-2013 21:14:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -52,6 +52,42 @@ function STORMrenderBeta_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to STORMrenderBeta (see VARARGIN)
 
+global binfile SR
+if isempty(SR)
+    SR = cell(1,1);
+else
+    SR = [SR;cell(1,1)];
+end
+
+handles.gui_number = length(SR);
+set(handles.SRinstance,'String',['inst id',num2str(handles.gui_number)]);
+
+
+% Initialize a few blank fields
+SR{handles.gui_number}.Oz = {};  
+
+% Default Display Options
+    SR{handles.gui_number}.DisplayOps.ColorZ = false; 
+    SR{handles.gui_number}.DisplayOps.Zsteps = 5;
+    SR{handles.gui_number}.DisplayOps.DotScale = 4;
+    SR{handles.gui_number}.DisplayOps.HidePoor = false;
+    SR{handles.gui_number}.DisplayOps.scalebar = 500;
+    SR{handles.gui_number}.DisplayOps.npp = 160;
+    SR{handles.gui_number}.DisplayOps.verbose = true;
+    SR{handles.gui_number}.DisplayOps.zrange = [-500,500];
+
+% Default MultiBinFile Load Options
+    SR{handles.gui_number}.LoadOps.warpD = 3; % set to 0 for no chromatic warp
+    SR{handles.gui_number}.LoadOps.warpfile = ''; % can leave blank if no chromatic warp
+    SR{handles.gui_number}.LoadOps.chns = {''};% {'750','647','561','488'};
+    SR{handles.gui_number}.LoadOps.pathin = '';
+    SR{handles.gui_number}.LoadOps.correctDrift = true;
+    SR{handles.gui_number}.LoadOps.chnOrder = '[1:end]'; 
+    SR{handles.gui_number}.LoadOps.sourceroot = '';
+    SR{handles.gui_number}.LoadOps.bintype = '_alist.bin';
+    SR{handles.gui_number}.LoadOps.chnFlag = {'750','647','561','488'};  
+    SR{handles.gui_number}.LoadOps.dataset = 0;
+
 % Choose default command line output for STORMrenderBeta
 handles.output = hObject;
 
@@ -60,16 +96,31 @@ set(handles.Yslider,'Value',0);
 set(handles.Yslider,'Min',-256);
 set(handles.Yslider,'Max',256);
 
-addpath(genpath('C:\Users\Alistair\Documents\Projects\General_STORM\Matlab_STORM'));
-
+% set up axes for plotting
+ axes(handles.axes1); 
+ set(gca,'color','k');
+ set(gca,'XTick',[],'YTick',[]);
+ axes(handles.axes2); 
+ set(gca,'color','k');
+set(gca,'XTick',[],'YTick',[]);
+ axes(handles.axes3); 
+ set(gca,'color','w');
+set(gca,'XTick',[],'YTick',[]);
 % build dropdown menu
 molfields = {'custom';'region';'z';'h';'a';'i';'w'};
 set(handles.choosefilt,'String',molfields);
 
-global DisplayOps binfile
-DisplayOps.ColorZ = false;
-DisplayOps.Zsteps = 3;
-DisplayOps.DotScale = 4;
+% set up sliders for contrast adjustment
+set(handles.MaxIntSlider,'Max',1);
+set(handles.MaxIntSlider,'Min',0);
+set(handles.MaxIntSlider,'Value',1);
+set(handles.MaxIntSlider,'SliderStep',[1/2^12,1/2^4])
+set(handles.MinIntSlider,'Max',1);
+set(handles.MinIntSlider,'Min',0);
+set(handles.MinIntSlider,'Value',0); 
+set(handles.MinIntSlider,'SliderStep',[1/2^12,1/2^4])
+guidata(hObject, handles);
+
 
 if ~isempty(binfile)
     QuickLoad_Callback(hObject, eventdata, handles);
@@ -100,171 +151,418 @@ varargout{1} = handles.output;
 %========================================================================%
 % --- Executes on button press in QuickLoad.
 function QuickLoad_Callback(hObject, eventdata, handles)
-
- 
-% % load a .mat file for troubleshooting
-% datapath = get(handles.datapath,'String');
-% load(datapath); mlist = molist; 
-% if exist('molist','var') == 0
-%     error('file does not contain a recognized molecule list');
-% end
-figure(1); close; 
-clear global mlist fnames;
-global mlist fnames binfile
+global binfile SR
+SR{handles.gui_number}.mlist = [];
 if isempty(binfile)
-   [filename,pathname] = uigetfile('*.bin');
-   binfile = [pathname,filesep,filename];
+   [FileName,PathName] = uigetfile('*.bin');
+   binfile = [PathName,filesep,FileName];
+else
+    [PathName,FileName] = extractpath(binfile);
 end
-mlist{1} = ReadMasterMoleculeList(binfile);
-fnames{1} = binfile; 
-disp('file loaded'); 
-
-imsetup(hObject,eventdata, handles);
-ClearFilters_Callback(hObject, eventdata, handles); 
-
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
+handles = AddStormLayer(hObject,handles,FileName,[]);
 guidata(hObject, handles);
+SingleBinLoad(hObject,eventdata,handles);
 
-
-
-% --- Executes on button press in SetLoadOps.
-function SetLoadOps_Callback(hObject, eventdata, handles)
-global loadops prompt default_opts froots
-if ~isempty(froots)
-    disp(froots)
+% --------------------------------------------------------------------
+function MenuOpenBin_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuOpenBin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+multiselect = 'off';
+LoadBin(hObject,eventdata,handles,multiselect);
+   
+% --------------------------------------------------------------------
+function MenuOpenMulti_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuOpenMulti (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+multiselect = 'on';
+% Multiload assumes you wish to clear all current data;
+if isfield(handles,'stormbutton')
+    delete(handles.stormbutton); 
+    guidata(hObject,handles);
 end
-dlg_title = 'Set Load Options';
-num_lines = 1;
-try
-default_opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
-catch er
-    disp(er.message)
-    prompt = {
-    'Source Root',...
-    'Image Number',...
-    'Correct Drift to channel 1, frame 1?:',...
-    'Apply chromatic warp?:',...
-    'Warp dimension (2, 3 or 2.5)',...
-    'Exlude bad z-fits for channel 1:4',...
-    'binflag (_list.bin or _mlist.bin)',...
-    'channels'};
-    default_opts = {'',...
-    '1',...
-    'true',...
-    'true',...
-    '3',...
-    '[false,true,true,true]',...
-    '_list.bin',...
-    ['{', sprintf('''%3d'',',[750,647,561,488]), '}']}; 
+LoadBin(hObject,eventdata,handles,multiselect);
+
+
+
+
+        
+function LoadBin(hObject,eventdata,handles,multiselect)
+% Brings up dialogue box to select bin file(s) to load;     
+global binfile SR
+
+% clear existing fields for these variables
+SR{handles.gui_number}.mlist = [];
+SR{handles.gui_number}.bins = [];
+SR{handles.gui_number}.fnames = [];
+SR{handles.gui_number}.froots = [];
+SR{handles.gui_number}.infofile = [];
+
+if ~isempty(SR{handles.gui_number}.LoadOps.pathin)
+    startfolder = SR{handles.gui_number}.LoadOps.pathin;
+elseif ~isempty(binfile)
+    startfolder = extractpath(binfile);
+else
+    startfolder = pwd;
 end
-
-loadops = default_opts; 
-for n=[2:6,8]
-    loadops{n} = eval(default_opts{n}); % saves a lot of str2double later.  
-end
-loadops{2}
-if ~isempty(froots)
-    disp('will load');
-    fname = froots(:,loadops{2});
-    disp(fname);
-end
-% --- Executes on button press in MultiColorLoad.
-function MultiColorLoad_Callback(hObject, eventdata, handles)
-global loadops mlist fnames froots
-
-  % parse pathin (whether it's a filename or a folder, we want the folder)
-    pathin = get(handles.datapath,'String');
-    f = strfind(pathin,'.');
-    if ~isempty(f)
-        f = strfind(pathin,'\');
-        pathin = pathin(1:f(end));
-    end
-    set(handles.datapath,'String',pathin);
-    disp(['searching for bin files in ', pathin,'...'])
-
-
-
-  % Automatically group all bin files of same section in different colors
-  %   based on image number. 
-
-    [bins,froots] = automatch_files(pathin,'sourceroot',loadops{1},'filetype',loadops{7},'chns',loadops{8});
-    disp('files found and grouped:'); disp(bins(:));
-
-  % Search for the correct chromatic warp file if chromatic warp is desired
-    if loadops{4}
-        warpD = loadops{5};
-        if warpD == 3 || 2.5
-            sfile = 'tforms3D.mat';
-        elseif warD == 2
-            sfile = 'tforms2D.mat';
-        end
-        maxup = 1; % levels below the root directory to restrict search. 
-        % If this is not an external drive make this large or use with care. 
-        disp('searching for chromatic warp files...')
-        Bead_folder = findfile(pathin,sfile,maxup); % function that does the search
-        if isempty(Bead_folder) 
-            loadops{4} = false;
-            disp(['no ,' sfile,' file found for chromatic warp']);
-            disp('skipping chromatic correction'); 
-        end
+[FileName,PathName,FilterIndex] = uigetfile({'*.bin','Bin file (*.bin)';...
+    '*.*','All Files (*.*)'},'Select molecule list',startfolder,...
+    'MultiSelect',multiselect);
+if FilterIndex ~=0
+    SR{handles.gui_number}.LoadOps.pathin = PathName;
+    set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin); 
+    if ~iscell(FileName)
+        binfile = [PathName,filesep,FileName];
+        handles = AddStormLayer(hObject,handles,FileName,[]);
+        guidata(hObject, handles);
+        SingleBinLoad(hObject,eventdata,handles);
     else
-        Bead_folder = [];
-    end 
-
-    i = loadops{2}; % im number
-
-  % Figure out which channels are really in data set  
-    hasdata = logical(1-cellfun(@isempty, bins(:,i)));
-    binnames =  bins(hasdata,i); % length cls must equal length binnames
-    fnames = froots(hasdata,i); 
-    disp(fnames);
-    figure(1); title(fnames(:),'interpreter','none');  
-    chns = loadops{8}(hasdata); 
-    disp('no data found for in channels:');
-    disp(loadops{8}(logical(1-hasdata)))
-     
-  % combine folder with binnames in order to call DriftCorrect / binload
-    [Tchns,~] = size(binnames);
-    allbins = cell(Tchns,1); 
-    for c=1:Tchns
-            allbins{c} = strcat(pathin,filesep,binnames{c});
-    end
-
-% Apply global drift correction, then return loaded mlist file.
-% Then apply chromewarp.  
-mlist = MultiChnDriftCorrect(allbins);
-for c=1:length(mlist)
-    mlist{c} = chromewarp(chns(c),mlist{c},Bead_folder,'warpD',loadops{5});
+        sortednames = ['FileName(',SR{handles.gui_number}.LoadOps.chnOrder,')'];
+        binnames = eval(sortednames); 
+        for c=1:length(FileName)
+            handles = AddStormLayer(hObject,handles,FileName{c},[]);
+            guidata(hObject, handles);
+        end
+        MultiBinLoad(hObject,eventdata,handles,binnames);
+    end       
 end
 
-    % Cleanup settings from any previous data and render image:
-    imsetup(hObject,eventdata, handles);
-    ClearFilters_Callback(hObject, eventdata, handles); 
-    guidata(hObject, handles);
-    % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-    % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
 
 
 
 % --------------------------------------------------------------------
-function openfile_ClickedCallback(hObject, eventdata, handles)
-    sourcepath = uigetdir;
-    set(handles.datapath,'String',sourcepath);
-    clear global Im; % clear mosaic if path has changed
-    clear global stage;
-    guidata(hObject, handles);
+function MenuAutoMultiLoad_Callback(hObject, eventdata, handles)
+% Automatically group bin files and load the one indicated by the Load
+% options (default = # 1).  
+% 
+% hObject    handle to MenuAutoMultiLoad (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SR ScratchPath
+stoprun = 0;
+% confirm auto-load options
+dlg_title = 'Bin file names must begin with unique channel flag';
+num_lines = 1;
+prompt = ...
+    {'files containing string',...
+    'bin type',...
+    'channel flag',...
+    'Match set to load (0 to print matches)'...
+    };
+default_opts = ...
+    {SR{handles.gui_number}.LoadOps.sourceroot,...
+    SR{handles.gui_number}.LoadOps.bintype,...
+    CSL2str(SR{handles.gui_number}.LoadOps.chnFlag),...
+    num2str(SR{handles.gui_number}.LoadOps.dataset),...
+    };   
+opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
+
+if ~isempty(opts) % don't try anything if dialogue box is canceled
+SR{handles.gui_number}.LoadOps.sourceroot = opts{1};
+SR{handles.gui_number}.LoadOps.bintype = opts{2};
+SR{handles.gui_number}.LoadOps.chnFlag = parseCSL(opts{3}); 
+SR{handles.gui_number}.LoadOps.dataset = str2double(opts{4});
+%  if we don't have a file path, prompt user to find one. 
+if isempty(SR{handles.gui_number}.LoadOps.pathin)
+    SR{handles.gui_number}.LoadOps.pathin = uigetdir(pwd,'select data folder');
+    if ~SR{handles.gui_number}.LoadOps.pathin
+        SR{handles.gui_number}.LoadOps.pathin = '';
+        stoprun = 1;
+    end
+end
+
+if ~stoprun
+% Automatically group all bin files of same section in different colors
+  %   based on image number, if it has not already been done
+  if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
+    [SR{handles.gui_number}.bins,SR{handles.gui_number}.allfnames] = ...
+        automatch_files(SR{handles.gui_number}.LoadOps.pathin,...
+           'sourceroot',SR{handles.gui_number}.LoadOps.sourceroot,...
+           'filetype',SR{handles.gui_number}.LoadOps.bintype,...
+           'chns',SR{handles.gui_number}.LoadOps.chnFlag);
+    disp('files found and grouped:'); 
+    disp(SR{handles.gui_number}.bins(:));
+  end
+  
+ % Figure out which channels are really in data set  
+ if SR{handles.gui_number}.LoadOps.dataset == 0
+     i=1;
+ else
+     i=SR{handles.gui_number}.LoadOps.dataset;
+ end
+ 
+ % save([ScratchPath,'test.mat']);
+ % load([ScratchPath,'test.mat']);
+ 
+ hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
+    binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
+    if sum((logical(1-hasdata))) ~=0
+        disp('no data found for in channels:');
+        disp(SR{handles.gui_number}.LoadOps.chnFlag(logical(1-hasdata)))
+    end
+    %  save([ScratchPath,'test.mat']); 
+    % load([ScratchPath,'test.mat']); 
     
-    % % to set file instead of path, use: 
-    %  [filename,pathname] = uigetfile('*.bin'); % prompts user to select directory 
-    %  sourcename = [pathname,filesep,filename];
-    % set(handles.datapath,'String',sourcename);
+    if isfield(handles,'stormbutton')
+            delete(handles.stormbutton); 
+            guidata(hObject,handles);
+            handles = rmfield(handles, 'stormbutton');
+            guidata(hObject,handles);          
+    end
+     if isfield(handles,'overlaybutton')
+            delete(handles.overlaybutton); 
+            guidata(hObject,handles);
+            handles = rmfield(handles, 'overlaybutton');
+            guidata(hObject,handles);   
+            SR{handles.gui_number}.Oz = {};  
+    end
+    
+    SR{handles.gui_number}.fnames = SR{handles.gui_number}.allfnames(hasdata,i);
+    disp('will load:');
+    disp(SR{handles.gui_number}.fnames);   
+    for c=1:length(SR{handles.gui_number}.fnames)
+        handles = AddStormLayer(hObject,handles,SR{handles.gui_number}.fnames{c},[]);
+        guidata(hObject, handles);
+    end
+    
+    MultiBinLoad(hObject,eventdata,handles,binnames);    
+end
+end
+
+
+
+
+
+ %~~~~~~~
+    function handles = AddStormLayer(hObject,handles,Sname,layer_number)
+        % Adds a new radio button to the OverlayPanel, which can toggle this
+        % channel on and off.  
+    global SR ScratchPath
+    % save([ScratchPath,'test2.mat']); 
+    
+    if ~isfield(handles,'stormbutton')
+        handles.stormbutton = [];
+    end
+    
+    if isempty(layer_number)  % allows overwriting existing buttons upon load.  
+        layer_number = length(handles.stormbutton) + 1;
+    end
+
+    % update levels
+    LevelsNames = get(handles.LevelsChannel,'String');
+    LevelsNames{layer_number} = Sname;
+    set(handles.LevelsChannel,'String',LevelsNames);
+    
+    SR{handles.gui_number}.cmin(layer_number) = 0;
+    SR{handles.gui_number}.cmax(layer_number) = .7; 
+    
+    % create button
+    button_position = [.6, 7.4-1.5*(layer_number-1), 17, 1.85];
+    handles.stormbutton(layer_number) = ...
+                    uicontrol( 'Parent', handles.StormPanel,...
+                               'Style', 'radiobutton', ...
+                               'Callback', @StormButtonToggle, ...
+                               'Units',    'characters', ...
+                               'Position', button_position, ...
+                               'String',   Sname, ...
+                               'Value',    1);
+    guidata(hObject, handles);
+    set( handles.stormbutton(layer_number),'Units','normalized');
+    guidata(hObject, handles);
+
+
+        function StormButtonToggle(hObject, EventData)
+            handles = guidata(hObject);
+            update_maindisplay(hObject,handles);
+
+ 
+%     % --- Executes when StormPanel is resized.
+%     function StormPanel_ResizeFcn(hObject, eventdata, handles)
+%     % hObject    handle to StormPanel (see GCBO)
+%     % eventdata  reserved - to be defined in a future version of MATLAB
+%     % handles    structure with handles and user data (see GUIDATA)
+% 
+%         % repositions GUI channel toggle inside parent panel when main
+%         % figure is resized.  
+%             % panel_pos = get(handles.StormPanel,'Position');
+% %             for c = 1:length(handles.stormbutton)
+% %                 set(handles.stormbutton(c),'Units','normalized');
+% %             end
+            
+   
+            
+          
+
+
+    function SingleBinLoad(hObject,eventdata,handles)
+        % Loads single bin files
+        global binfile SR 
+        disp('reading binfile...');
+        SR{handles.gui_number}.mlist{1} = ReadMasterMoleculeList(binfile);
+        SR{handles.gui_number}.fnames{1} = binfile; 
+        disp('file loaded'); 
+        [pathname,filename] = extractpath(binfile); 
+        k = strfind(filename,'_');
+        SR{handles.gui_number}.infofile = ReadInfoFile(...
+            [pathname,filesep,filename(1:k(end)-1),'.inf']);
+        disp('setting up image options...');
+        imsetup(hObject,eventdata, handles);
+        disp('drawing data...');
+        ClearFilters_Callback(hObject, eventdata, handles); 
+        guidata(hObject, handles);
+
+
+
+        
+ function MultiBinLoad(hObject,eventdata,handles,binnames)
+     global SR ScratchPath
+     % ----------------------------------------------------
+     % Passed Inputs:
+     % binnames
+     % ----------------------------------------------------
+     % % Global Inputs (from SR structure):
+     % .LoadOps: structure containing filepaths for data, warps etc
+     % .fnames: cell array of names of current data files in display 
+     %          (used for display only).
+     %------------------------------------------------------
+     % Outputs (saved in SR data structure)
+     % .mlist:  cell array of all molecule lists loaded for display
+     % .infofile: InfoFile structure for dataset (contains stage position,
+     %          needed for MosaicView reconstruction).  
+     
+% Extract some useful info for later:
+        guidata(hObject, handles);
+    %  Set up title field in display   
+    SR{handles.gui_number}.fnames = binnames; % display name for the files
+    % Get infofile #1 for position information
+    k = strfind(binnames{1},'_'); 
+    SR{handles.gui_number}.infofile = ReadInfoFile([SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf']);
+    
+% Combine folder with binnames in order to call DriftCorrect / binload
+    Tchns = length(binnames);
+    allbins = cell(Tchns,1); 
+    for c=1:Tchns
+            allbins{c} = strcat(SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{c});
+    end
+
+% Apply global drift correction, then return loaded mlist file.
+% Then apply chromewarp.  
+    mlist = MultiChnDriftCorrect(allbins,...
+        'correctDrift',SR{handles.gui_number}.LoadOps.correctDrift);
+    
+  % Need a warp map.  
+    if isempty(SR{handles.gui_number}.LoadOps.warpfile)
+        [FileName,PathName] = uigetfile({'*.mat','Matlab data (*.mat)';...
+    '*.*','All Files (*.*)'},'Select warpfile',SR{handles.gui_number}.LoadOps.pathin);
+    SR{handles.gui_number}.LoadOps.warpfile = [PathName,FileName];
+    end
+ % Need to know channel names so we can apply the appropriate warp
+    if isempty([SR{handles.gui_number}.LoadOps.chns{:}])
+        chns = inputdlg({'Channel Names: (name must match warpmap, order match layer order)'},...
+    '',1,{'750,647,561,488'});  % <--  Default channel names
+        SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1})
+    end
+ % Automatically dealing with old vs. new style chromewarp format
+    [warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
+    if ~isempty(strfind(warpname,'tform'))
+    for c=1:length(mlist)
+        mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
+            mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
+    end        
+    else  % Run new style
+        mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
+            SR{handles.gui_number}.LoadOps.warpfile,...
+            'warpD',SR{handles.gui_number}.LoadOps.warpD,...
+            'names',SR{handles.gui_number}.fnames);    
+    end
+    % Cleanup settings from any previous data and render image:
+    SR{handles.gui_number}.mlist = mlist; 
+    imsetup(hObject,eventdata, handles);
+    ClearFilters_Callback(hObject, eventdata, handles); 
+    guidata(hObject, handles);
+
+
+    
+
+% --------------------------------------------------------------------
+function MenuLoadOptions_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuLoadOptions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SR ScratchPath
+
+    dlg_title = 'Update Load Options';
+    num_lines = 1;
+
+    default_opts = ...
+        {SR{handles.gui_number}.LoadOps.pathin,...
+        CSL2str(SR{handles.gui_number}.LoadOps.chns),...
+        SR{handles.gui_number}.LoadOps.warpfile,...
+        num2str(SR{handles.gui_number}.LoadOps.warpD),...
+        num2str(SR{handles.gui_number}.LoadOps.correctDrift),...
+        SR{handles.gui_number}.LoadOps.chnOrder,...
+        }';
+    prompt = ...
+        {'Data Folder',...
+        'Channel Names (must match names in chromewarp)',...
+        'warpfile',...
+        'warp dimension',...
+        'Correct global drift (files must be loaded in order acquired)',...
+        'Order acquired (see display channels box for order listed)',...
+        };
+try    
+opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
+catch er  % if values get really screwed up, start again
+    disp(er.message); 
+    SR{handles.gui_number}.LoadOps.warpD = 3; % set to 0 for no chromatic warp
+    SR{handles.gui_number}.LoadOps.warpfile = ''; % can leave blank if no chromatic warp
+    SR{handles.gui_number}.LoadOps.chns = {''};% {'750','647','561','488'};
+    SR{handles.gui_number}.LoadOps.pathin = '';
+    SR{handles.gui_number}.LoadOps.correctDrift = true;
+    SR{handles.gui_number}.LoadOps.chnOrder = '[1:end]'; 
+    SR{handles.gui_number}.LoadOps.sourceroot = '';
+    SR{handles.gui_number}.LoadOps.bintype = '_alist.bin';
+    SR{handles.gui_number}.LoadOps.chnFlag = {'750','647','561','488'};  
+    SR{handles.gui_number}.LoadOps.dataset = 0;
+        default_opts = ...
+        {SR{handles.gui_number}.LoadOps.pathin,...
+        CSL2str(SR{handles.gui_number}.LoadOps.chns),...
+        SR{handles.gui_number}.LoadOps.warpfile,...
+        num2str(SR{handles.gui_number}.LoadOps.warpD),...
+        num2str(SR{handles.gui_number}.LoadOps.correctDrift),...
+        SR{handles.gui_number}.LoadOps.chnOrder,...
+        }';
+    opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
+end
+
+if ~isempty(opts)
+    SR{handles.gui_number}.LoadOps.pathin = opts{1};
+    SR{handles.gui_number}.LoadOps.chns = parseCSL(opts{2});
+    SR{handles.gui_number}.LoadOps.warpfile = opts{3};
+    SR{handles.gui_number}.LoadOps.warpD = str2double(opts{4});
+    SR{handles.gui_number}.LoadOps.correctDrift = logical(str2double(opts{5}));
+    SR{handles.gui_number}.LoadOps.chnOrder = opts{6}; 
+    set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin);     
+end
+
+% --------------------------------------------------------------------
+function ToolbarOpenFile_ClickedCallback(hObject, eventdata, handles)
+LoadBin(hObject,eventdata,handles,'off')
+
+
+
 
 
 % Setup defaults
 % -------------------------------------------------------------------
 function imsetup(hObject,eventdata, handles)
-    global imaxes
+    global SR
+    % if imaxes is already defined, use it. 
+    if isfield(SR{handles.gui_number},'imaxes')
+       imaxes = SR{handles.gui_number}.imaxes; 
+    end
+    
     imaxes.H = 256; % actual size of image
     imaxes.W = 256;
     imaxes.scale = 2;  % upscale on display
@@ -275,10 +573,12 @@ function imsetup(hObject,eventdata, handles)
     imaxes.xmax = imaxes.W;
     imaxes.ymin = 0; 
     imaxes.ymax = imaxes.H; 
+    imaxes.updatemini = true; 
     set(handles.Xslider,'Min',imaxes.xmin);
     set(handles.Xslider,'Max',imaxes.xmax);
     set(handles.Yslider,'Min',imaxes.ymin);
     set(handles.Yslider,'Max',imaxes.ymax);
+    SR{handles.gui_number}.imaxes = imaxes;
     guidata(hObject, handles);
     UpdateSliders(hObject,eventdata,handles);
 
@@ -296,17 +596,10 @@ function imsetup(hObject,eventdata, handles)
 %% Toolbar Functions
 %=========================================================================%
 
-function openfile_1_Callback(hObject, eventdata, handles)
+function FileMenu_Callback(hObject, eventdata, handles)
 % hObject    handle to SaveData (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% this is the toolbar open icon 
-sourcepath = uigetdir;
-set(handles.datapath,'String',sourcepath);
-clear global Im; % clear mosaic if path has changed
-clear global stage;
-guidata(hObject, handles);
 
 
 % --------------------------------------------------------------------
@@ -315,24 +608,21 @@ function SaveData_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global mlist infilter imaxes I Ozoom max_sat min_off savepath Io
-chns = find(true - cellfun(@isempty,mlist))';
-Cs = length(chns);
-molist = cell(Cs,1);
-mfilter = cell(Cs,1);
+global SR  %#ok<NUSED>
 
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');   
-
-for c=chns
-    inbox = [mlist{c}.xc]>imaxes.xmin & [mlist{c}.xc] < imaxes.xmax & [mlist{c}.yc] >imaxes.ymin & [mlist{c}.yc] <imaxes.ymax;
-    molist{c} = structfun(@(x) x(inbox), mlist{c},'UniformOutput',false);
-    mfilter{c} = infilter{c}(inbox); 
+I = SR{handles.gui_number}.I;
+Io = SR{handles.gui_number}.Io;
+Oz = SR{handles.gui_number}.Oz; %#ok<NASGU>
+if ~isfield(SR{handles.gui_number},'savepath')
+    SR{handles.gui_number}.savepath = '';    
 end
+savepath=SR{handles.gui_number}.savepath;
+
+vlist = MolsInView(handles); %#ok<NASGU>
 
 try
 [savename,savepath] = uiputfile(savepath);
-catch
+catch %#ok<CTCH>
     [savename,savepath] = uiputfile;
 end
 
@@ -342,7 +632,7 @@ if ~isempty(k)
     savename = savename(1:k-1); 
 end
 
-if isempty(I) || isempty(max_sat) || isempty(min_off)
+if isempty(I) || isempty(SR{handles.gui_number}.cmax) || isempty(SR{handles.gui_number}.cmin)
     disp('no image data to save');
 end
 if isempty(Ozoom)
@@ -350,7 +640,8 @@ if isempty(Ozoom)
 end
 
 if savename ~= 0 % save was not 'canceled'
-    save([savepath,filesep,savename,'.mat'],'molist','mfilter','I','Ozoom','imaxes','max_sat','min_off');
+    fnames = SR{handles.gui_number}.fnames; %#ok<NASGU>
+    save([savepath,filesep,savename,'.mat'],'vlist','I','Oz','fnames');
     disp([savepath,filesep,savename,'.mat' ' saved successfully']);
     imwrite(Io,[savepath,filesep,savename,'.png']); 
     disp(['wrote ', savepath,filesep,savename,'.png']);
@@ -362,7 +653,13 @@ function SaveImage_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to SaveImage (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global Io savepath
+global SR
+Io = SR{handles.gui_number}.Io;
+if ~isfield(SR{handles.gui_number},'savepath')
+    SR{handles.gui_number}.savepath = '';    
+end
+savepath=SR{handles.gui_number}.savepath;
+
 try
 [savename,savepath] = uiputfile(savepath);
 catch
@@ -397,7 +694,8 @@ end
 function getedges(hObject, eventdata, handles)
 % if cx/cy is near the edge and zoom is small, we should have a different
 % maxx maxy
-global imaxes
+global SR     
+imaxes = SR{handles.gui_number}.imaxes;
 % imaxes.xmin = max(0,imaxes.cx - imaxes.W/2/imaxes.zm);
 % imaxes.xmax = min(imaxes.W,imaxes.cx + imaxes.W/2/imaxes.zm);
 % imaxes.ymin = max(0,imaxes.cy - imaxes.H/2/imaxes.zm);
@@ -426,7 +724,7 @@ if imaxes.ymax > imaxes.H
     imaxes.cy = imaxes.cy - (imaxes.ymax - imaxes.H);
     imaxes.ymax = imaxes.cy + imaxes.H/2/imaxes.zm;
 end
-
+SR{handles.gui_number}.imaxes = imaxes;
 
 
 
@@ -437,30 +735,37 @@ end
 %==========================================================================
 function loadim(hObject,eventdata, handles)
 % load variables
-global mlist imaxes I infilter DisplayOps
+global   SR
+mlist = SR{handles.gui_number}.mlist;  
+
+
 % if we're zoomed out fully, recenter everything
-disp(imaxes);
-if imaxes.zm == 1
+if SR{handles.gui_number}.imaxes.zm == 1
   imsetup(hObject,eventdata, handles); % reset to center
 end
 getedges(hObject, eventdata, handles);
 UpdateSliders(hObject,eventdata,handles);
-disp(['updated minx=',num2str(imaxes.xmin)]);
-disp(['updated miny=',num2str(imaxes.ymin)]); 
 
 tic
-if DisplayOps.ColorZ
-    if DisplayOps.HidePoor 
-        for c = 1:length(infilter)
-            infilter{c}(mlist{c}.c==9) = 0;  
+if SR{handles.gui_number}.DisplayOps.ColorZ
+    Zsteps = SR{handles.gui_number}.DisplayOps.Zsteps;
+    % In general, not worth excluding these dots from 2d images.
+    % if desired, can be done by applying a molecule list filter.  
+    if SR{handles.gui_number}.DisplayOps.HidePoor 
+        for c = 1:length(SR{handles.gui_number}.infilter)
+            SR{handles.gui_number}.infilter{c}(mlist{c}.c==9) = 0;  
         end
     end
-    I = plotSTORM_colorZ(mlist, imaxes,'filter',infilter,...
-        'dotsize',DisplayOps.DotScale,'Zsteps',DisplayOps.Zsteps);
 else
-    I = plotSTORM(mlist, imaxes,'filter',infilter,'dotsize',DisplayOps.DotScale);
+    Zsteps = 1;
 end
-update_imcolor(handles); % converts I, applys contrast, to RBG
+
+SR{handles.gui_number}.I = plotSTORM_colorZ(mlist, SR{handles.gui_number}.imaxes,'filter',SR{handles.gui_number}.infilter,'Zrange',SR{handles.gui_number}.DisplayOps.zrange,...
+    'dotsize',SR{handles.gui_number}.DisplayOps.DotScale,'Zsteps',Zsteps,'scalebar',0);
+
+IntegrateOverlay(hObject,handles); % Integrate the Overlay, if it exists
+
+update_maindisplay(hObject,handles); % converts I, applys contrast, to RBG
 guidata(hObject, handles);
 plottime = toc;
 disp(['total time to render image: ',num2str(plottime)]);
@@ -505,24 +810,21 @@ function choosefilt_Callback(hObject, eventdata, handles)
 
 % --- Executes on button press in ClearFilters.
 function ClearFilters_Callback(hObject, eventdata, handles)
-global mlist infilter filts max_sat min_off
-filts = struct('custom',[]); % empty structure to store filters
-Cs = length(mlist);
-    infilter = cell(Cs,1);
-    channels = find(1-cellfun(@isempty,mlist))';
+global  SR
+SR{handles.gui_number}.filts = struct('custom',[]); % empty structure to store filters
+Cs = length(SR{handles.gui_number}.mlist);
+    SR{handles.gui_number}.infilter = cell(Cs,1);
+    channels = find(1-cellfun(@isempty,SR{handles.gui_number}.mlist))';
     for i=channels
-        infilter{i} = true(size([mlist{i}.xc]))';
+        SR{handles.gui_number}.infilter{i} = true(size([SR{handles.gui_number}.mlist{i}.xc]))';
     end
     
-channel_active = zeros(1,4);
-channel_active(1:Cs) = 1; 
-set(handles.chn1,'Value',channel_active(1));
-set(handles.chn2,'Value',channel_active(2));
-set(handles.chn3,'Value',channel_active(3));
-set(handles.chn4,'Value',channel_active(4));
+for c=1:length(handles.stormbutton)
+    set(handles.stormbutton(1),'Value',1);
+end
     
-max_sat = .0003*ones(Cs,1); % default values
-min_off = 0*ones(Cs,1);  % default values
+SR{handles.gui_number}.cmax = .3*ones(Cs,1); % default values
+SR{handles.gui_number}.cmin = 0*ones(Cs,1);  % default values
 loadim(hObject,eventdata, handles); % calls plotdata function
  
  
@@ -530,7 +832,8 @@ loadim(hObject,eventdata, handles); % calls plotdata function
 % --- Executes on button press in ApplyFilter.
 function ApplyFilter_Callback(hObject, eventdata, handles)
 % chose filter
-  global mlist infilter filts
+  global  SR ScratchPath
+  filts = SR{handles.gui_number}.filts;
     contents = cellstr(get(handles.choosefilt,'String')); % returns choosefilt contents as cell array
     par = contents{get(handles.choosefilt,'Value')}; % returns selected item from choosefilt 
 
@@ -542,8 +845,19 @@ function ApplyFilter_Callback(hObject, eventdata, handles)
     channels = find(channels);
     
     myfilt = get(handles.CustomFilter,'String');
+    vlist = MolsInView(handles);
     
-  [infilter,filts] = applyfilter(mlist, infilter, filts, channels, par, myfilt);   
+    local_filter = cell(max(channels),1);
+ for c=1:channels;
+    local_filter{c} = vlist{c}.locinfilter;
+ end
+  [newfilter,filts] = applyfilter(vlist,local_filter, filts, channels, par, myfilt); 
+  
+  
+  for c=1:channels
+    SR{handles.gui_number}.infilter{c}(vlist{c}.inbox & vlist{c}.infilter') =  newfilter{c};
+  end
+   SR{handles.gui_number}.filts = filts;
   loadim(hObject,eventdata, handles); % calls plotdata function
 
 % --- Executes on button press in ShowFilters.
@@ -557,175 +871,254 @@ disp('this function still under development');
 
  
  
-function update_imcolor(handles)
-global I Ic Io max_sat min_off fnames DisplayOps
-channels(1) = get(handles.chn1,'Value');
-channels(2) = get(handles.chn2,'Value');
-channels(3) = get(handles.chn3,'Value');
-channels(4) = get(handles.chn4,'Value');
-active_channels = find(channels);
+function update_maindisplay(hObject,handles)
+global  SR ScratchPath
 
-Ic = I; % incase Ic doesn't exist.  since new values are about to get applied anyway. 
-Zs = DisplayOps.Zsteps; % simplier
-[h,w,Cs] = size(I);
+I = SR{handles.gui_number}.I;
+imaxes = SR{handles.gui_number}.imaxes;
+% I cell containing current STORM image
+% Oz cell containing appropriately rescaled overlay image
+% Ic N layer colored matrix, fed into Ncolor
+% Io 3-color output image. Global only to pass to export/save image calls.
 
-if DisplayOps.ColorZ  
-    Ic = zeros(h,w,Zs*length(active_channels),'uint16');   
-   n = 0; 
+
+guidata(hObject, handles);
+Cs = length(I); 
+[h,w,Zs] = size(I{1});
+Noverlays = length(SR{handles.gui_number}.Oz);
+
+% save([ScratchPath,'test.mat']);
+% load([ScratchPath,'test.mat']);
+% Find out which channels are toggled for display
+%------------------------------------------------------------
+    channels = zeros(1,Cs); % Storm Channels
+    for c = 1:Cs; % length(handles.stormbutton)
+        channels(c) = get(handles.stormbutton(c),'Value');
+    end
+    active_channels = find(channels);
+    overlays = zeros(1,Noverlays); % Overlay channels
+    for c = 1:Noverlays
+        overlays(c) = get(handles.overlaybutton(c),'Value');
+    end
+    active_overlays = find(overlays);
+    
+
+% save([ScratchPath,'test.mat'],'handles','I','active_channels','channels','overlays','active_overlays');
+% load([ScratchPath,'test.mat']);
+
+% Stack all image layers (channels, z-dimensions, and overlays)
+%   into a common matrix for multicolor rendering.  Apply indicated
+%   contrast for all data.  
+%-----------------------------------------------------------
+Ic = zeros(h,w,Zs*length(active_channels)+Noverlays,'uint16'); 
+if SR{handles.gui_number}.DisplayOps.ColorZ  
+    n=0;  
+    % In 3D mode, only render the active channels 
+    active_channels(active_channels>Cs) = [];  % should no longer be nessary in our variable # channel buttons approach
     for c=active_channels
-       for k=1:DisplayOps.Zsteps
-          n = n+1;
-          if channels(c) == 1
-              % disp((c-1)*Zs+k);
-            Ic(:,:,n) = mycontrast(I(:,:,(c-1)*Zs+k),max_sat(c),min_off(c));
-          end
+       Zs = size(I{c},3);
+       for k=1:Zs
+           n=n+1;
+           Ic(:,:,n) =  imadjust(I{c}(:,:,k),[SR{handles.gui_number}.cmin(c),SR{handles.gui_number}.cmax(c)],[0,1]);
        end
    end
 else
-    for c=1:Cs
-          Ic(:,:,c) = mycontrast(I(:,:,c),max_sat(c),min_off(c));
+    for n=active_channels
+          Ic(:,:,n) = imadjust(I{n},[SR{handles.gui_number}.cmin(n),SR{handles.gui_number}.cmax(n)],[0,1]);
     end
-    Ic(:,:,logical(1-channels)) = cast(0,'uint16'); 
+end
+if ~isempty(active_overlays)
+    for n=active_overlays  % add overlays, if they exist
+        Ic(:,:,Cs+n) = imadjust(SR{handles.gui_number}.Oz{n},[SR{handles.gui_number}.omin(n),SR{handles.gui_number}.omax(n)]);
+    end
+end
+Io = Ncolor(Ic,[]); % Actually builds the RGB picture
+
+% Add ScaleBar (if indicated)
+Cs_out = size(Io,3); 
+if SR{handles.gui_number}.DisplayOps.scalebar > 0 
+    scb = round(1:SR{handles.gui_number}.DisplayOps.scalebar/SR{handles.gui_number}.DisplayOps.npp*imaxes.zm*imaxes.scale);
+    h1 = round(imaxes.H*.9*imaxes.scale);
+    Io(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Cs_out,'uint16'); % Add scale bar and labels
 end
 
-%  save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat','Ic','handles','I','DisplayOps','max_sat','min_off','active_channels','channels');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-
-Io = Ncolor(Ic,[]); 
-figure(1); clf; set(gcf,'color','w'); 
+% Update the display
+%--------------------------------------------------
+axes(handles.axes2); cla;
+set(gca,'XTick',[],'YTick',[]);
 imagesc(Io); 
 shading interp;
-figure(1); title(fnames(:),'interpreter','none'); colorbar; colormap(hsv(Cs));
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat','Ic','I','Io');
- 
-
-
-
-
-
-
-
-
-
- % --- Executes on button press in Rescale.
-function Rescale_Callback(hObject, eventdata, handles)
-% changes min and max range for color histogram in selected channel.
-% try making this a toggle button ?
-global I Ic max_sat min_off
-    channels(1) = get(handles.fchn1,'Value');
-    channels(2) = get(handles.fchn2,'Value');
-    channels(3) = get(handles.fchn3,'Value');
-    channels(4) = get(handles.fchn4,'Value');
-    channels = find(channels);
-  
-    if isempty(channels)
-        disp('please select a channel to rescale "Apply Filter to"');
-    end
-    
-    for c=channels
-       ints = double(Ic(:,:,c)); 
-       raw_ints = double(I(:,:,c)); 
-       im_max = max(raw_ints(:)); 
-       im_min = min(raw_ints(:));
-       xs = linspace(im_min,im_max,2000);
-       
-       figure(2); clf; 
-       hist(raw_ints(:),xs);
-       h = findobj('type','patch'); 
-       hold on;
-       hist(ints(:),xs);
-       h2 = findobj('type','patch'); 
-       set(h2,'FaceColor','m','EdgeColor','m');
-       set(h,'FaceColor','b','EdgeColor','b');
-       alpha .5;
-       disp({'choose lower and upper bounds for color map from the histogram.';
-           'double click left of the histogram to enter fraction with keyboard.'})
-       [v,~] = ginput(2);
-       disp(v);
-       
-       if v(2) > 0 
-       
-       disp(v(2)/im_max)
-       v(1) = max(v(1),0); 
-       max_sat(c) = sum(raw_ints(:)>v(2))/length(raw_ints(:)); % 256^2;
-       min_off(c) = sum(raw_ints(:)<v(1))/length(raw_ints(:)); %256^2;
-       disp(['new max sat for channel ',num2str(c),'=',num2str(max_sat(c))]);
-       disp(['new min off for channel ',num2str(c),'=',num2str(min_off(c))]);
-       else
-           max_sat(c) = input('max fraction of pixels to saturate: ');
-           min_off(c) = 0; 
-       end
-       
-    end
-    update_imcolor(handles);
-guidata(hObject, handles);
-
-
-% color controls
-function chn1_Callback(hObject, eventdata, handles)
-update_imcolor(handles);
-guidata(hObject, handles);
-
-function chn2_Callback(hObject, eventdata, handles)
-update_imcolor(handles);
-guidata(hObject, handles);
-
-
-function chn3_Callback(hObject, eventdata, handles)
-update_imcolor(handles);
-guidata(hObject, handles);
-
-function chn4_Callback(hObject, eventdata, handles)
-update_imcolor(handles);
+axes(handles.axes2);
+set(handles.imtitle,'String',SR{handles.gui_number}.fnames(:)); % interpreter, none
+% colorbar; colormap(hsv(Zs*Cs));
+set(gca,'XTick',[],'YTick',[]);
+if imaxes.updatemini
+    axes(handles.axes1); cla;
+    set(gca,'XTick',[],'YTick',[]);
+    imagesc(Io); 
+    imaxes.updatemini = false;
+    set(gca,'XTick',[],'YTick',[]);
+    SR{handles.gui_number}.imaxes = imaxes;
+end
+SR{handles.gui_number}.Ic = Ic;
+SR{handles.gui_number}.Io = Io; 
 guidata(hObject, handles);
 
 
 
-% --- Executes on button press in MoreDisplayOps.
-function MoreDisplayOps_Callback(hObject, eventdata, handles)
-% hObject    handle to MoreDisplayOps (see GCBO)
+% --------------------------------------------------------------------
+function ManualContrastTool_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to ManualContrastTool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global default_Dopts Dprompt DisplayOps
+global SR
+SR{handles.gui_number}.cmax = input('enter a vector for max intensity for each channel: ');
+SR{handles.gui_number}.cmin = input('enter a vector for min intensity for each channel: ');
+ update_maindisplay(hObject,handles);
+ guidata(hObject, handles);
+ 
+% --------------------------------------------------------------------
+function AutoContrastTool_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to AutoContrastTool (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SR
+    Cs = length(SR{handles.gui_number.mlist});
+    for c=1:Cs
+        SR{handles.gui_number}.cmax(c) = .9;
+        SR{handles.gui_number}.cmin(c) = 0;
+    end
+ update_maindisplay(hObject,handles);
+ guidata(hObject, handles);
 
-dlg_title = 'More Display Options';
-num_lines = 1;
-try
-default_Dopts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
-catch er
-    disp(er.message)
-    Dprompt = {
-    'Display Z as color',...
-    'Number of Z-steps',...
-    'Dot scale',...
-    'hide poor z-fits'};
-    default_Dopts = {
-    'false',...
-    '3',...
-    '4',...
-    'false'};
+% ------
+ function scalecolor(hObject,handles)
+ global SR ScratchPath
+ 
+ 
+ % hObject    handle to LevelsChannel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns LevelsChannel contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from LevelsChannel
+
+
+% x scale for histogram (log or normal)
+logscalecolor = logical(get(handles.logscalecolor,'Value'));
+N_stormchannels = length(SR{handles.gui_number}.cmax);
+selected_channel = get(handles.LevelsChannel,'Value');
+
+
+% Read in current slider postions, set numeric displays accordingly
+maxin = get(handles.MaxIntSlider,'Value');
+minin = get(handles.MinIntSlider,'Value'); 
+set(handles.MaxIntBox,'String',num2str(maxin));
+set(handles.MinIntBox,'String',num2str(minin));
+   
+
+
+% save([ScratchPath,'test.mat']);
+% load([ScratchPath,'test.mat']);
+
+% If it's STORM data, record data range from I and store max min as
+% cmax / cmin
+if selected_channel <= N_stormchannels
+    raw_ints  = double(SR{handles.gui_number}.I{selected_channel}(:)); 
+    SR{handles.gui_number}.cmax(selected_channel) = maxin;
+    SR{handles.gui_number}.cmin(selected_channel) = minin;
+else % If it's Overlay data adjust O
+    selected_channel = selected_channel-N_stormchannels;
+    raw_ints  = double(SR{handles.gui_number}.Oz{selected_channel}(:)); 
+    SR{handles.gui_number}.omax(selected_channel) = maxin;
+    SR{handles.gui_number}.omin(selected_channel) = minin;
 end
-DisplayOps.ColorZ = eval(default_Dopts{1}); 
-DisplayOps.Zsteps = eval(default_Dopts{2});
-DisplayOps.DotScale = eval(default_Dopts{3});
-DisplayOps.HidePoor = eval(default_Dopts{4});
+ 
+ % Display histogram;            
+    raw_ints = raw_ints(:);
+    max_int = max(raw_ints);
+
+   axes(handles.axes3); cla reset; 
+    set(gca,'XTick',[],'YTick',[]); 
+   if ~logscalecolor
+       xs = linspace(0,max_int,1000); 
+        hi1 = hist(nonzeros(raw_ints)./max_int,xs);
+        hist(nonzeros(raw_ints),xs); hold on;
+        inrange = nonzeros(raw_ints( raw_ints/max_int>minin & raw_ints/max_int<maxin))./max_int;
+        hist(inrange,xs);
+        h2 = findobj('type','patch'); 
+        xlim([min(xs),max(xs)]);
+   else  % For Log-scale histogram  
+       xs = linspace(-5,0,50);
+       lognorm =  log10(nonzeros(raw_ints)/max_int);
+       hi1 = hist(lognorm,xs);
+       hist(lognorm,xs); hold on;
+       xlim([min(xs),max(xs)]);
+       log_min = (minin-1)*5; % map relative [0,1] to logpowers [-5 0];
+       log_max = (maxin-1)*5; % map relative [0,1] to logpowers [-5 0];
+       inrange = lognorm(lognorm>log_min & lognorm<log_max);
+       hist(inrange,xs);
+       xlim([min(xs),max(xs)]);
+       clear h2;
+       h2 = findobj('type','patch'); 
+   end
+    ylim([0,1.2*max(hi1)]);
+   set(h2(2),'FaceColor','b','EdgeColor','b');
+   set(h2(1),'FaceColor','r','EdgeColor','r');
+   set(gca,'XTick',[],'YTick',[]);
+   alpha .5;
+
+ %      save([ScratchPath,'test.mat']);
+ %     load([ScratchPath,'test.mat']);  figure(3); clf;
+  clear raw_ints;        
+  update_maindisplay(hObject,handles);
+  guidata(hObject, handles);
 
 
+% --- Executes on selection change in LevelsChannel.
+function LevelsChannel_Callback(hObject, eventdata, handles)
+% hObject    handle to LevelsChannel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SR
+N_stormchannels = length(SR{handles.gui_number}.cmax);
+selected_channel = get(handles.LevelsChannel,'Value');
+if selected_channel <= N_stormchannels
+% Set slider positions and values to the current selected channel
+    minin = SR{handles.gui_number}.cmin(selected_channel);
+    maxin = SR{handles.gui_number}.cmax(selected_channel);
+else
+    minin = SR{handles.gui_number}.omin(selected_channel - N_stormchannels);
+    maxin = SR{handles.gui_number}.omax(selected_channel - N_stormchannels);    
+end
+set(handles.MaxIntSlider,'Value',minin);
+set(handles.MaxIntBox,'String',num2str(minin));
+set(handles.MaxIntSlider,'Value',maxin);
+set(handles.MaxIntBox,'String',num2str(maxin));
+  
+% --- Executes on update of MinIntBox  
+function MinIntBox_Callback(hObject, eventdata, handles) %#ok<*INUSL>
+ minin = str2double(get(handles.MinIntBox,'Value'));
+ set(handles.MinIntSlider,'Value',minin);
+ scalecolor(hObject,handles);
+ guidata(hObject, handles); 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ % --- Executes on update of MaxIntBox
+function MaxIntBox_Callback(hObject, eventdata, handles)      
+ maxin = str2double(get(handles.MaxIntBox,'Value'));
+ set(handles.MaxIntSlider,'Value',maxin);
+ scalecolor(hObject,handles);
+ guidata(hObject, handles); 
+ 
+% --- Executes on slider movement.
+function MaxIntSlider_Callback(hObject, eventdata, handles)
+ scalecolor(hObject,handles);
+ guidata(hObject, handles);   
+ 
+% --- Executes on slider movement.
+function MinIntSlider_Callback(hObject, eventdata, handles)
+ scalecolor(hObject,handles);
+ guidata(hObject, handles);
 
 
 
@@ -740,12 +1133,14 @@ function zoomin_Callback(hObject, eventdata, handles)
 % hObject    handle to zoomin (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 imaxes.zm = imaxes.zm*2; 
 if imaxes.zm > 64
     imaxes.zm = 64;
     disp('max zoom reached...');
 end
+SR{handles.gui_number}.imaxes = imaxes;
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
@@ -756,7 +1151,8 @@ function zoomout_Callback(hObject, eventdata, handles)
 % hObject    handle to zoomout (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 imaxes.zm = imaxes.zm/2; 
 if imaxes.zm < 1
     imaxes.zm = 1; % all the way out
@@ -764,17 +1160,17 @@ if imaxes.zm < 1
     imaxes.cy = imaxes.H/2;
 end
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
+SR{handles.gui_number}.imaxes = imaxes;
 guidata(hObject, handles);
 UpdateSliders(hObject,eventdata,handles);
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat','imaxes','handles');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
 
 
 function displayzm_Callback(hObject, eventdata, handles)
 % Execute on direct user input specific zoom value
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 imaxes.zm = str2double(get(handles.displayzm,'String')); 
 if imaxes.zm < 1
     imaxes.zm = 1; % all the way out
@@ -782,6 +1178,7 @@ if imaxes.zm < 1
     imaxes.cy = imaxes.H/2;
 end
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
+SR{handles.gui_number}.imaxes = imaxes;
 guidata(hObject, handles);
 UpdateSliders(hObject,eventdata,handles);
 loadim(hObject,eventdata, handles);
@@ -795,52 +1192,64 @@ function zoomtool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to zoomtool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes
+global SR ScratchPath
+
+imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
 % user specifies box:
-figure(1); 
-disp(['curr zoom=',num2str(imaxes.zm)]);
-disp(['curr cx=',num2str(imaxes.cx)]);
-disp(['curr cy=',num2str(imaxes.cy)]); 
-
-disp(['curr minx=',num2str(imaxes.xmin)]);
-disp(['curr miny=',num2str(imaxes.ymin)]); 
+axes(handles.axes2); 
+set(gca,'XTick',[],'YTick',[]);
 % getedges(hObject, eventdata, handles)
 [x,y] = ginput(2);  % These are relative to the current axis
-disp('x,y grabbed');
-disp([x,y]);
 xim = imaxes.xmin + x/imaxes.scale/imaxes.zm;
 yim = imaxes.ymin + y/imaxes.scale/imaxes.zm;
-disp('x,y converted');
-disp([xim,yim]);
 imaxes.cx = mean(xim);  % this is relative to the whole image
 imaxes.cy = mean(yim); % y is indexed bottom to top for plotting
 xdiff = abs(xim(2) - xim(1));
 ydiff = abs(yim(2) - yim(1));
-disp('xdiff,ydiff');
-disp([xdiff,ydiff]);
 imaxes.zm =   min(imaxes.W/xdiff, imaxes.H/ydiff); 
 if imaxes.zm > 64
     imaxes.zm = 64;
     disp('max zoom reached...');
 end
-disp(['new zoom=',num2str(imaxes.zm)]);
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
-
-guidata(hObject, handles);
+SR{handles.gui_number}.imaxes = imaxes;
 UpdateSliders(hObject,eventdata,handles)
 
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
+%  save([ScratchPath,'test.mat']);
+ % load([ScratchPath,'test.mat']);
 
 % plot box
-figure(1); hold on;
+axes(handles.axes2); hold on;
+set(gca,'Xtick',[],'Ytick',[]);
 rectangle('Position',[min(x),min(y),abs(x(2)-x(1)),abs(y(2)-y(1))],'EdgeColor','w'); hold off;
-% rectangle('Position',[imaxes.cx-xdiff/2,imaxes.cy-ydiff/2,xdiff,ydiff],'EdgeColor','c');
 guidata(hObject, handles);
 pause(.1); 
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
+
+
+
+%----------------------------------------------
+function updateNaviagtor(hObject,handles)
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
+    axes(handles.axes1);
+    set(gca,'Xtick',[],'Ytick',[]);
+    hold on;
+    hside= imaxes.H*imaxes.scale/imaxes.zm;
+    wside = imaxes.W*imaxes.scale/imaxes.zm;
+    lower_x = imaxes.scale*imaxes.cx-wside/2;
+    lower_y = imaxes.scale*imaxes.cy-hside/2;
+    prevbox = findobj(gca,'Type','rectangle');
+    delete(prevbox); 
+    rectangle('Position',[lower_x,lower_y,wside,hside],...
+        'EdgeColor','w','linewidth',1); 
+    set(gca,'Xtick',[],'Ytick',[]);
+    hold off;
+    guidata(hObject, handles);
+% ------------------------------------------
+
 
 % --------------------------------------------------------------------
 function recenter_ClickedCallback(hObject, eventdata, handles)
@@ -848,31 +1257,38 @@ function recenter_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to recenter (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
-figure(1); 
+axes(handles.axes2); 
 [x,y] = ginput(1); % these are relative to the current frame
 xim = imaxes.xmin + x/imaxes.scale/imaxes.zm;
 yim = imaxes.ymin + y/imaxes.scale/imaxes.zm;
 imaxes.cx = xim;  % these are relative to the whole image
 imaxes.cy = yim;
+SR{handles.gui_number}.imaxes = imaxes;
 guidata(hObject, handles);
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
 
 function UpdateSliders(hObject,eventdata,handles)
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
 set(handles.Xslider,'Value',imaxes.cx);
 set(handles.Yslider,'Value',imaxes.H-imaxes.cy);
+SR{handles.gui_number}.imaxes = imaxes;
+updateNaviagtor(hObject,handles);
 guidata(hObject, handles);
 
 % --- Executes on slider movement.
 function Yslider_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-global imaxes
+global SR
+imaxes = SR{handles.gui_number}.imaxes;
 imaxes.cy = imaxes.H - get(handles.Yslider,'Value');
+SR{handles.gui_number}.imaxes = imaxes;
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
 
@@ -887,8 +1303,8 @@ end
 function Xslider_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-global imaxes
-imaxes.cx = get(handles.Xslider,'Value');
+global SR
+SR{handles.gui_number}.imaxes.cx = get(handles.Xslider,'Value');
 loadim(hObject,eventdata, handles);
 guidata(hObject, handles);
 
@@ -901,15 +1317,23 @@ end
 
 
 
+
+
+%% 3D Plotting Options
 % --------------------------------------------------------------------
 function Render3D_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to Render3D (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global imaxes Ic DisplayOps
+global SR
+I = SR{handles.gui_number}.I;
+imaxes = SR{handles.gui_number}.imaxes;
+% currently hard-coded, should be user options 
+npp =SR{handles.gui_number}.DisplayOps.npp; 
+zrange = SR{handles.gui_number}.DisplayOps.zrange; % = [-600,600];
 
-if DisplayOps.ColorZ
+if SR{handles.gui_number}.DisplayOps.ColorZ && SR{handles.gui_number}.DisplayOps.Zsteps > 1
 disp('use cell arrays of parameters for multichannel rendering'); 
 disp('see help Im3D for more options'); 
 
@@ -928,43 +1352,38 @@ num_lines = 1;
     'blue'};
 
 opts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
-Zs = DisplayOps.Zsteps;
+Zs = SR{handles.gui_number}.DisplayOps.Zsteps;
 
-xyp = 160/imaxes.scale/imaxes.zm; % nm per x/y pixel
-zstp = 1200/Zs;
+xyp = npp/imaxes.scale/imaxes.zm; % nm per x/y pixel
+zstp = (zrange(2)-zrange(1))/Zs;
 
 theta = eval(opts{1});
 stp = eval(opts{2});
 res = eval(opts{3});
 colr = opts{4}; 
+Cs = length(I);
 
-% Split the multiple color channels up into different MxNxZs images.  
-[~,~,Cs] = size(Ic); 
-C = Cs/Zs;
-I3D = cell(C,1); 
-for c=1:C; 
-    I3D{c} = Ic(:,:,(c-1)*Zs+1:c*Zs);
+channels = zeros(1,Cs); % Storm Channels
+for c = 1:Cs; % length(handles.stormbutton)
+    channels(c) = get(handles.stormbutton(c),'Value');
 end
+active_channels = find(channels);
 
-figure(3); clf; 
-Im3D(I3D,'resolution',res,'zStepSize',zstp,'xyStepSize',xyp,...
+figure; clf; 
+Im3D(I(active_channels),'resolution',res,'zStepSize',zstp,'xyStepSize',xyp,...
     'theta',theta,'downsample',stp,'color',colr);
 set(gcf,'color','w');
 camlight left;
 xlabel('nm');
 ylabel('nm');
 zlabel('nm');
-xlim([0,(imaxes.xmax-imaxes.xmin)*160]);
-ylim([0,(imaxes.ymax-imaxes.ymin)*160]);
+xlim([0,(imaxes.xmax-imaxes.xmin)*npp]);
+ylim([0,(imaxes.ymax-imaxes.ymin)*npp]);
 
 else
     disp('must set Display Ops color Z to true for 3D rendering'); 
-    dips('Go to "More Display Ops" and set first field as "true"');
+    disp('Go to "More Display Ops" and set first field as "true"');
 end
-
-% save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
-% load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat')
-% could loop through channels and plot each in a different color;
 
 
 % --------------------------------------------------------------------
@@ -972,9 +1391,14 @@ function Rotate3Dslices_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to Rotate3Dslices (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global imaxes Ic DisplayOps
+global  SR
+I=SR{handles.gui_number}.I;
+imaxes = SR{handles.gui_number}.imaxes;
+% currently hard-coded, should be user options 
+npp =SR{handles.gui_number}.DisplayOps.npp; % npp 
+zrange = SR{handles.gui_number}.DisplayOps.zrange; %  [-600,600];
 
-if DisplayOps.ColorZ
+if SR{handles.gui_number}.DisplayOps.ColorZ && SR{handles.gui_number}.DisplayOps.Zsteps > 1
 dlg_title = 'Render3D';
 num_lines = 1;
 
@@ -987,23 +1411,23 @@ num_lines = 1;
 
 opts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
 
-[~,~,Zs] = size(Ic);
-xyp = 160/imaxes.scale/imaxes.zm; % nm per x/y pixel
-zstp = 1200/Zs;
+Zs = SR{handles.gui_number}.DisplayOps.Zsteps;
+xyp = npp/imaxes.scale/imaxes.zm; % nm per x/y pixel
+zstp = (zrange(2)-zrange(1))/Zs;
 
 theta = eval(opts{1});
 stp = str2double(opts{2});
 
 
-figure(4); clf; 
-Im3Dslices(Ic,'zStepSize',zstp,'xyStepSize',xyp,...
+figure; clf; 
+Im3Dslices(I,'zStepSize',zstp,'xyStepSize',xyp,...
     'theta',theta,'downsample',stp,'coloroffset',0);
 set(gcf,'color','w');
 xlabel('x-position (nm)');
 ylabel('y-position (nm)');
 zlabel('z-position (nm)');
-xlim([0,(imaxes.xmax-imaxes.xmin)*160]);
-ylim([0,(imaxes.ymax-imaxes.ymin)*160])
+xlim([0,(imaxes.xmax-imaxes.xmin)*npp]);
+ylim([0,(imaxes.ymax-imaxes.ymin)*npp])
 
 else
     disp('must set Display Ops color Z to true for 3D rendering'); 
@@ -1013,6 +1437,81 @@ end
 % make coloroffset larger than largest intensity of previous image to have
 % stacked dots rendered in different intensities.  
 
+% --------------------------------------------------------------------
+function plot3Ddots_ClickedCallback(hObject, eventdata, handles)
+global SR ScratchPath
+
+if ~isfield(SR{handles.gui_number},'plt3Dfig')
+SR{handles.gui_number}.plt3Dfig =[];
+end
+
+npp = 160; % should be a global in imageops or something
+vlist = MolsInView(handles);
+chns = find(cellfun(@(x) ~isempty(x),vlist));
+Cs = length(chns); 
+cmap = hsv(Cs);
+lab = cell(Cs,1);
+if ~isempty(SR{handles.gui_number}.plt3Dfig)
+    try
+    close(SR{handles.gui_number}.plt3Dfig);
+    catch er
+        disp(er.message);
+    end
+end
+SR{handles.gui_number}.plt3Dfig = figure; 
+% save([ScratchPath,'testdat.mat']);
+% load([ScratchPath,'testdat.mat']);
+for c = chns
+    if length(vlist{c}.x) > 2000
+        msize = 1;
+    else
+        msize = 5; 
+    end
+    plot3(vlist{c}.xc*npp,vlist{c}.yc*npp,vlist{c}.zc*npp,'.','color',cmap(c,:),...
+        'MarkerSize',msize);
+    lab{c} = ['channel ',num2str(c)', ' # loc:',num2str(length(vlist{c}.x))];
+    hold on;
+end
+xlabel('x (nm)'); ylabel('y (nm)'); zlabel('z (nm)'); 
+title(lab); 
+
+% save([ScratchPath,'testdat.mat']);
+
+
+
+
+% --------------------------------------------------------------------
+function plot2Ddots_ClickedCallback(hObject, eventdata, handles) %#ok<*INUSD,*DEFNU>
+
+
+    
+    
+function vlist = MolsInView(handles)
+% return just the portion of the molecule list in the fied of view; 
+   
+    global SR 
+    infilter = SR{handles.gui_number}.infilter;
+    imaxes = SR{handles.gui_number}.imaxes;
+     mlist = SR{handles.gui_number}.mlist;
+     
+     Cs = length(mlist); 
+    channels = zeros(1,Cs); % Storm Channels
+    for c = 1:Cs; % length(handles.stormbutton)
+        channels(c) = get(handles.stormbutton(c),'Value');
+    end
+    active_channels = find(channels);
+
+    vlist = cell(Cs,1);
+    
+    for c=active_channels;
+      if length(mlist{c}.x) >1
+         vlist{c} = msublist(mlist{c},imaxes,'filter',infilter{c});
+         vlist{c}.channel = c; 
+         vlist{c}.infilter = infilter{c};
+         vlist{c}.locinfilter = infilter{c}(infilter{c}' & vlist{c}.inbox)';
+      end
+    end  
+  
 %=========================================================================%
 
 
@@ -1023,145 +1522,10 @@ end
 
 
 
-%==========================================================================
-%% Overlays / Image Context / Batch 
-%==========================================================================
-
-% --- Executes on button press in BatchOptions.
-function BatchOptions_Callback(hObject, eventdata, handles)
-disp('This function still under development')
-% --- Executes on button press in BatchProcess.
-function BatchProcess_Callback(hObject, eventdata, handles)
-disp('This function still under development')
+%% Other
 
 
 
-% --- Executes on button press in AddOverlay.
-function AddOverlay_Callback(hObject, eventdata, handles)
-global I Ozoom imaxes Overlay_prompt Overlay_opts max_sat min_off fnames
-
-% ------------- load image
-% open dialog box to decide whether image should be flipped or rotated
-dlg_title = 'Set Load Options';
-num_lines = 1;
-try
-Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
-catch er 
-    % reset 
-    disp(er.message)
-    Overlay_prompt = {
-    'Image selected (leave blank to select with getfile prompt)',...
-    'Flip Vertical',...
-    'Flip Horizontal',...
-    'Rotate by N degrees'...
-    'horizontal shift'...
-    'vertical shift'...
-    'channels'};
-    Overlay_opts = {
-    '',...
-    'false',...
-    'false',...
-    '0',...
-    '0',...
-    '0',...
-    ''};
-    Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
-end
-
-if isempty(Overlay_opts{1})
-[filename,pathname] = uigetfile({'*.jpg;*.png;*.tif','Image files (*.jpg, *.png, *.tif)';
-    '*.jpg', 'JPEGS (*.jpg)';
-    '*.tif', 'TIFF (*.tif)';
-    '*.png', 'PNG (*.png)';
-    '*.*', 'All Files (*.*)'},'Choose an image file to overlay'); % prompts user to select directory 
-sourcename = [pathname,filesep,filename];
-Overlay_opts{1} = sourcename;
-end
-
-O = imreadfast(Overlay_opts{1}); % load image file;
-Ozoom = fxn_AddOverlay(O,I,imaxes,'flipV',eval(Overlay_opts{2}),'flipH',eval(Overlay_opts{3}),...
-    'rotate',eval(Overlay_opts{4}),'xshift',eval(Overlay_opts{5}),'yshift',eval(Overlay_opts{6}),...
-    'channels',eval(Overlay_opts{7}) );
-[~,~,cin] = size(Ozoom);
-[~,~,Cs] = size(I);
-
-%------------- Set Contrasts
- % this contrast should be optional in FUTURE version
-for k=1:cin
-    Ozoom(:,:,k) = mycontrast(Ozoom(:,:,k),.001,.01); 
-end
-It = Ncolor(Ozoom,'');
-figure(2); clf; imagesc(It); % display contrasted image
-Ic = I; 
-for k=1:Cs
-      Ic(:,:,k) = mycontrast(I(:,:,k),max_sat(k),min_off(k));
-end
-
-%----------- Combine with Choice colormap
-I2 = cat(3,Ic,uint16(.8*Ozoom));  
-title('isolated overlay'); 
-% choose color map; (could make into a menu option in FUTURE version)
-%Io = Ncolor(I2,[hsv(Cs);hsv(cin)]); % match colors
-Io = Ncolor(I2,hsv(Cs+cin)); % unique colors
-figure(4); clf; imagesc(Io);
-set(gcf,'color','w'); 
-title(fnames(:),'interpreter','none');
-shading interp;
-
-
-
-
-
-% --- Executes on button press in ImageContext.
-function ImageContext_Callback(hObject, eventdata, handles)
-% Loads multicolor mosaic created with the Steve application.
-% Marks location of current image on mosaic. 
-global Im fnames stage
-
-pathin = get(handles.datapath,'String');
-f = strfind(pathin,filesep); % go up one directory
-pathroot = pathin(1:f(end));
-
-
-% % optional, get position list
-% fname = 'positions.txt';
-% Pfolder = findfile(pathin,fname,1);
-% positionlist = [Pfolder,filesep,fname];  % full directory to positions
-
-Mfolder = 'Mosaic';
-shrk = 1; 
-% Load the mosaic file
-  % This has potential to kill the memory; 
-  if isempty(stage)  % Don't want to rebuild the mosaic everytime.  
-    [Im,stage] = fxn_rebuild_mosaic([pathroot,filesep,Mfolder],'shrink',shrk);
-  end
-   figure(6); clf; imagesc(Im);
-  
-  % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat','Im','stage','pathin','fnames','shrk');
-  % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-  
-  % get location of current image on mosaic
-  info = ReadInfoFile('path',[pathin,filesep],'files',[fnames{1},'.inf']);
-  info.Stage_X, info.Stage_Y
-  Stage_Y =(stage.sy*info.Stage_X - stage.ymin + 256)/shrk; 
-  Stage_X =(stage.sx*info.Stage_Y - stage.xmin + 256)/shrk; 
-  
-  % HIGHLIGHT IMAGE LOCATION ON MOSAIC
-    zn = 256*6; % number of pixels to incude on each side (6 more frames eachway)
-    [ih,iw,~] = size(Im);
-      my1 = floor( max(Stage_Y-zn,1) );
-      my2 = floor( min(Stage_Y+zn,ih) );
-      mx1 = floor( max(Stage_X-zn,1) );
-      mx2 = floor( min(Stage_X+zn,iw) );
-      Im_zoom = Im(my1:my2,mx1:mx2,:);
-    Im_zoom(:,:,1) = mycontrast(Im_zoom(:,:,1),.00025,0);
-
-    % Save zoomed in version of mosaic
-    mosaic_zoom = figure(5); clf; 
-    imagesc(Im_zoom);
-    rectangle('Position',[zn-127,zn-127,256,256],'EdgeColor','c');    
-      
- 
 
 
 
@@ -1174,24 +1538,22 @@ function saveimage_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to saveimage (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global Io
+global SR
+Io = SR{handles.gui_number}.Io;
 [filename,pathname] = uiputfile;
 tiffwrite(Io,[pathname,filesep,filename]);
 
 
-
-
 function datapath_Callback(hObject, eventdata, handles)
-global Im
-clear global Im;
-clear global stage;
-% if source folder is changed, clear mosaic
+global SR
+SR{handles.gui_number}.LoadOps.pathin = get(handles.datapath,'String');
+guidata(hObject,handles); 
+
 
 function datapath_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 
 function CustomFilter_Callback(hObject, eventdata, handles)
 
@@ -1208,7 +1570,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
 % --- Executes on button press in fchn2.
 function fchn2_Callback(hObject, eventdata, handles)
 
@@ -1221,10 +1582,311 @@ function fchn3_Callback(hObject, eventdata, handles)
 % --- Executes on button press in fchn1.
 function fchn1_Callback(hObject, eventdata, handles)
 
-function edit3_Callback(hObject, eventdata, handles)
 
-% % --- Executes during object creation, after setting all properties.
-% function edit3_CreateFcn(hObject, eventdata, handles)
-% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%     set(hObject,'BackgroundColor','white');
-% end
+% --- Executes during object creation, after setting all properties.
+function chn4_CreateFcn(hObject, eventdata, handles)
+
+% --- Executes during object creation, after setting all properties.
+function MaxIntBox_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function MinIntBox_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes during object creation, after setting all properties.
+function MaxIntSlider_CreateFcn(hObject, eventdata, handles)
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+% --- Executes during object creation, after setting all properties.
+function MinIntSlider_CreateFcn(hObject, eventdata, handles)
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on button press in logscalecolor.
+function logscalecolor_Callback(hObject, eventdata, handles)
+
+    
+ 
+    
+  
+
+    
+%% 
+%==========================================================================
+%% Options Menu 
+%==========================================================================
+% *Overlays*
+% *Additional Display Options*
+% *Image Context*
+% 
+% --------------------------------------------------------------------
+function OptionsMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to OptionsMenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuOverlay_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuOverlay (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SR
+
+if ~isfield(SR{handles.gui_number},'Overlay_opts')
+    SR{handles.gui_number}.Overlay_opts = [];
+end
+Overlay_opts =  SR{handles.gui_number}.Overlay_opts ;
+if ~isfield(SR{handles.gui_number},'O')
+    SR{handles.gui_number}.O = [];
+end
+
+% ------------- load image
+% open dialog box to decide whether image should be flipped or rotated
+dlg_title = 'Set Load Options';
+num_lines = 1;
+  Overlay_prompt = {
+    'Image selected (leave blank to select with getfile prompt)',...
+    'Flip Vertical',...
+    'Flip Horizontal',...
+    'Rotate by N degrees'...
+    'horizontal shift'...
+    'vertical shift'...
+    'channels'...
+    'Max frames (for Daxfiles)',...
+    'Overlay Layer (leave blank to add new layer)',...
+    'Contrast'};
+
+try
+Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
+catch er 
+    % reset 
+    disp(er.message)
+    Overlay_opts = {
+    '',...
+    'false',...
+    'false',...
+    '0',...
+    '0',...
+    '0',...
+    '[]',...
+    '5',...
+    '',...
+    '[0,.3]'};
+    Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
+end
+
+if isempty(Overlay_opts{1})
+[filename,pathname] = uigetfile({'*.dax;*.jpg;*.png;*.tif',...
+    'Image files (*.dax, *.jpg, *.png, *.tif)';
+    '*.dax','DAX (*.dax)';
+    '*.jpg', 'JPEGS (*.jpg)';
+    '*.tif', 'TIFF (*.tif)';
+    '*.png', 'PNG (*.png)';
+    '*.*', 'All Files (*.*)'},'Choose an image file to overlay',...
+    SR{handles.gui_number}.LoadOps.pathin); % prompts user to select directory 
+sourcename = [pathname,filesep,filename];
+Overlay_opts{1} = sourcename;
+end
+k = strfind(Overlay_opts{1},'.dax');
+if isempty(k)
+    Otemp = imread(Overlay_opts{1}); % load image file;
+else
+    Otemp = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
+    Otemp = uint16(mean(Otemp,3));  % might cause problems
+end
+Noverlays = length(SR{handles.gui_number}.O);
+if isempty(Overlay_opts{9})
+    SR{handles.gui_number}.O{Noverlays+1} = Otemp; 
+    overlay_number = length(SR{handles.gui_number}.O);%  ;
+else
+    overlay_number =  eval(Overlay_opts{9});
+    SR{handles.gui_number}.O{overlay_number} = Otemp;
+end
+
+% Still need to address contrast for overlays
+imlayers = length(SR{handles.gui_number}.cmin);
+imcaxis = eval(Overlay_opts{10});
+
+SR{handles.gui_number}.omin(overlay_number) = imcaxis(1);
+SR{handles.gui_number}.omax(overlay_number) = imcaxis(2);
+
+[~,filename] = extractpath(Overlay_opts{1});
+SR{handles.gui_number}.Overlay_opts = Overlay_opts ;
+handles = AddOverlayLayer(hObject,handles,overlay_number,filename);
+guidata(hObject, handles);
+IntegrateOverlay(hObject,handles);
+
+
+    %~~~~~~~
+    function handles = AddOverlayLayer(hObject,handles,overlay_number,oname)
+        % Adds a new radio button to the OverlayPanel, which can toggle this
+        % channel on and off.  
+    global SR
+    
+    if ~isfield(handles,'overlaybutton');
+        handles.overlaybutton = [];
+    end
+    
+       % update levels
+    N_stormlayers = length(SR{handles.gui_number}.cmax);
+    LevelsNames = get(handles.LevelsChannel,'String');
+    LevelsNames{N_stormlayers+overlay_number} = oname;
+    set(handles.LevelsChannel,'String',LevelsNames);
+    
+    SR{handles.gui_number}.OverlayNames{overlay_number} = oname;  
+    button_position = [.6, 7.4-1.5*(overlay_number-1), 17, 1.85];
+    handles.overlaybutton(overlay_number) = ...
+                    uicontrol( 'Parent', handles.OverlayPanel,...
+                               'Style', 'radiobutton', ...
+                               'Callback', @OverlayButtonToggle, ...
+                               'Units',    'characters', ...
+                               'Position', button_position, ...
+                               'String',   oname, ...
+                               'Value',    1);
+    guidata(hObject, handles);
+    % Now that it's placed, allow resizing.  
+        set(handles.overlaybutton(overlay_number),'Units','normalized');
+    guidata(hObject, handles);
+    
+        function OverlayButtonToggle(hObject, EventData)
+            handles = guidata(hObject);
+            update_maindisplay(hObject,handles);   
+                 
+    %---------------------------------------------------------------------
+    % IntegrateOverlay into field of view
+    %    - subfunction of MenuOverlay, also called each time image resizes
+    %    in order to maintain overlay display.  
+    function IntegrateOverlay(hObject,handles)
+    global   SR ScratchPath
+    if isfield(SR{handles.gui_number},'Overlay_opts');
+    Overlay_opts =  SR{handles.gui_number}.Overlay_opts;
+    imaxes = SR{handles.gui_number}.imaxes;
+    for n=1:length(SR{handles.gui_number}.O);
+        if ~isempty(SR{handles.gui_number}.O{n})
+        SR{handles.gui_number}.Oz{n} = fxn_AddOverlay(SR{handles.gui_number}.O{n},imaxes,...
+            'flipV',eval(Overlay_opts{2}),'flipH',eval(Overlay_opts{3}),...
+            'rotate',eval(Overlay_opts{4}),'xshift',eval(Overlay_opts{5}),...
+            'yshift',eval(Overlay_opts{6}),'channels',eval(Overlay_opts{7}) ); 
+       % figure(4); clf; imagesc(I{imlayer});
+        update_maindisplay(hObject,handles);
+        end
+    end
+    end
+
+   
+    
+% --------------------------------------------------------------------
+function MenuDisplayOps_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuSR{handles.gui_number}.DisplayOps (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SR
+
+dlg_title = 'More Display Options';
+num_lines = 1;
+Dprompt = {
+    'Display Z as color',...
+    'Number of Z-steps',...
+    'Z range (nm)',...
+    'hide poor z-fits',...
+    'Dot scale',...
+    'scalebar (0 for off)',...
+    'nm per pixel',...
+    'verbose'};
+default_Dopts{1} = num2str(SR{handles.gui_number}.DisplayOps.ColorZ);
+default_Dopts{2} = num2str(SR{handles.gui_number}.DisplayOps.Zsteps);
+default_Dopts{3} = strcat('[',num2str(SR{handles.gui_number}.DisplayOps.zrange),']');
+default_Dopts{4} = num2str(SR{handles.gui_number}.DisplayOps.HidePoor);
+default_Dopts{5} = num2str(SR{handles.gui_number}.DisplayOps.DotScale);
+default_Dopts{6} = num2str(SR{handles.gui_number}.DisplayOps.scalebar);
+default_Dopts{7} = num2str(SR{handles.gui_number}.DisplayOps.npp);
+default_Dopts{8} = num2str(SR{handles.gui_number}.DisplayOps.verbose); 
+
+% if the menu is screwed up, reset 
+try
+default_Dopts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
+catch er
+    disp(er.message)
+    default_Dopts = {
+    'false',...
+    '8',...
+    '[-500,500]',...
+    'false',...
+    '4',...
+    '500',...
+    '160',...
+    'true'};
+end
+SR{handles.gui_number}.DisplayOps.ColorZ = eval(default_Dopts{1}); 
+SR{handles.gui_number}.DisplayOps.Zsteps = eval(default_Dopts{2});
+SR{handles.gui_number}.DisplayOps.zrange = eval(default_Dopts{3});
+SR{handles.gui_number}.DisplayOps.HidePoor = eval(default_Dopts{4});
+SR{handles.gui_number}.DisplayOps.DotScale = eval(default_Dopts{5});
+SR{handles.gui_number}.DisplayOps.scalebar = eval(default_Dopts{6});
+SR{handles.gui_number}.DisplayOps.npp = eval(default_Dopts{7});
+SR{handles.gui_number}.DisplayOps.verbose = eval(default_Dopts{8});
+loadim(hObject,eventdata, handles);
+guidata(hObject, handles);
+
+
+
+% --------------------------------------------------------------------
+function MenuViewMosaic_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuViewMosaic (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global  SR
+if ~isfield(SR{handles.gui_number}, 'Mosaicfolder')
+    SR{handles.gui_number}.Mosaicfolder = [];
+end
+infofile = SR{handles.gui_number}.infofile;
+if isempty(SR{handles.gui_number}.Mosaicfolder)
+    SR{handles.gui_number}.Mosaicfolder = [infofile.localPath,filesep,'..',filesep,'Mosaic'];
+    if ~exist(SR{handles.gui_number}.Mosaicfolder,'dir')
+        SR{handles.gui_number}.Mosaicfolder = uigetdir(infofile.localPath);
+    end
+end    
+position = [infofile.Stage_X,infofile.Stage_Y];
+MosaicViewer(SR{handles.gui_number}.Mosaicfolder,position);
+
+%%
+
+% --------------------------------------------------------------------
+function MenuColors_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuColors (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+set(handles.axes2,'BusyAction','cancel');
+axes(handles.axes2); cla;
+
+
+% % 
+
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function LevelsChannel_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to LevelsChannel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+

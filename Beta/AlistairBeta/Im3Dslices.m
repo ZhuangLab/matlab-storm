@@ -1,15 +1,16 @@
-function Im3Dslices(Ic,varargin)
+function Im3Dslices(I,varargin)
 %-------------------------------------------------------------------------
-%% function Im3D
-% Im3D(Ic);
-% Im3D(Ic,'downsample',value,'zStepSize',value,'xyStepSize',value,...
+%% function Im3Dslices
+% Im3Dslices(Ic);
+% Im3Dslices(Ic,'downsample',value,'zStepSize',value,'xyStepSize',value,...
 %    'theta',value,'color',value);
-%  Converts at 3D image file into a 3D surface plot image, using the 3rd
-%  dimension as Z information.  Isosurfaces are plotted at the indicated
-%  threshold.  
+%  Converts at 3D image file into a 3D view of semi-transparent, 2d
+%  histograms stacked in Z.  A threshold is also applied to render
+%  invisible other background intensity.  
 %-------------------------------------------------------------------------
 % Inputs
-% Ic mxnxp image  -- image matrix to render 3D
+% I mxnxp image  -- image matrix to render 3D.  If multicolor, I is a
+%                   cell array of 3D image matrices.   
 % 
 %-------------------------------------------------------------------------
 % Optional Inputs
@@ -38,7 +39,10 @@ function Im3Dslices(Ic,varargin)
 % boettiger.alistair@gmail.com
 % October 10th, 2012
 %
-% Version 1.0
+% Version 1.1
+%--------------------------------------------------------------------------
+% Updates
+% Version 1.1 now in multicolor!
 %--------------------------------------------------------------------------
 % Creative Commons License 3.0 CC BY 
 %--------------------------------------------------------------------------
@@ -50,7 +54,7 @@ function Im3Dslices(Ic,varargin)
 xyp = 1;
 stp = 3;
 zstp = 1; 
-theta = []; 
+theta = cell(10,1); 
 colr = 0;
 
 %--------------------------------------------------------------------------
@@ -83,23 +87,53 @@ if nargin > 1
         end
     end
 end
+
+
+
+
+%-------------------------------------------------------------------------
+%% Parse variable input formats 
+%-------------------------------------------------------------------------
+
+% handling different inputs for multicolor images
+if iscell(I)
+    channels = length(I);
+else
+    I = {I}; 
+end
+
+if ~iscell(theta)
+   theta = {theta};
+end
+if length(theta) < channels
+    theta(2:channels) = theta(1); 
+end
+
+
+
+
+
 %-------------------------------------------------------------------------
 %% Main Analysis Script
 %-------------------------------------------------------------------------
-if isempty(theta)
-   theta = 2*double(nanmean(Ic(:)));
-end
+for c=1:channels
+    Iin = I{c};
+    if isempty(theta{c})
+       theta{c} = 2*nanmean(double(Iin(:)));
+    end
 
-[hs,ws,Zs] = size(Ic);
-I2 = double(Ic);
-I2(I2<theta) = NaN;
+    [hs,ws,Zs] = size(Iin);
+    I2 = double(Iin);
+    I2(I2<theta{c}) = NaN;
 
-[X,Y] = meshgrid((1:stp:ws)*xyp,(1:stp:hs)*xyp);
-% Plot nuclei data
-for z=1:Zs
-    In = double(I2(1:stp:ws,1:stp:ws,z) + colr); 
-    Z = (Zs - z*ones(size(In)))*zstp;
-    surf(X,Y,Z,In); hold on;
+    [X,Y] = meshgrid((1:stp:ws)*xyp,(1:stp:hs)*xyp);
+    % Plot nuclei data
+    for z=1:Zs
+        In = double(I2(1:stp:ws,1:stp:ws,z) + colr); 
+        Z = (Zs - z*ones(size(In)))*zstp;
+        surf(X,Y,Z,In); hold on;
+    end
+     shading interp;
+     alpha(.45);  % make  transparent 
+     colr = colr + max(In(:)); 
 end
- shading interp;
- alpha(.45);  % make nuclei transparent 

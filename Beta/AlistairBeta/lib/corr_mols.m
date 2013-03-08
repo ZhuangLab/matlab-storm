@@ -10,10 +10,21 @@ function [matched,unmatched] = corr_mols(set1_pos,set2_pos,tform_start,match_rad
 % each have fields set1_inds and set2_inds.
 %
 % SYNTAX: [matched,unmatched] = corr_mols(set1_pos,set2_pos,tform_start,match_radius)
+% By Josh Vaugan 
+
+% with additions by Alistair Boettiger
 
 % initialize variables
 num_mols_set1 = length(set1_pos.x);
 matching_set2_inds = zeros(1,num_mols_set1);
+
+
+if isa(set1_pos.x,'single') 
+    set1_pos.x = double(set1_pos.x);
+    set1_pos.y = double(set1_pos.y);
+    set2_pos.x = double(set2_pos.x);
+    set2_pos.y = double(set2_pos.y);
+end
 
 % overlap set2 onto set1 (shift, or also warp, depending on tform_start)
 [registered_set2_pos.x,registered_set2_pos.y] = tforminv(tform_start,set2_pos.x',set2_pos.y');

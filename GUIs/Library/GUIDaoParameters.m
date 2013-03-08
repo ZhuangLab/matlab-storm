@@ -22,7 +22,7 @@ function varargout = GUIDaoParameters(varargin)
 
 % Edit the above text to modify the response to help GUIDaoParameters
 
-% Last Modified by GUIDE v2.5 19-Jan-2013 18:33:40
+% Last Modified by GUIDE v2.5 12-Feb-2013 22:17:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -183,6 +183,7 @@ FitPars.By  = get(handles.By,'String');
 FitPars.Cy  = get(handles.Cy,'String');
 FitPars.Dy  = get(handles.Dy,'String');
 
+FitPars.OK = true;
 pause(.1); 
 close(GUIDaoParameters);
 
@@ -192,8 +193,13 @@ close(GUIDaoParameters);
 
 
 
+% --- Executes on button press in cancel.
+function cancel_Callback(hObject, eventdata, handles)
+% hObject    handle to cancel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
-
+close(GUIDaoParameters);
 
 
 

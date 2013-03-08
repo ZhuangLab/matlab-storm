@@ -42,7 +42,7 @@ function I = plotSTORM(mlist, imaxes, varargin)
 % boettiger.alistair@gmail.com
 % October 10th, 2012
 %
-% Version 1.0
+% Version 1.2
 %--------------------------------------------------------------------------
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
@@ -58,7 +58,7 @@ W = imaxes.W;
 zm = imaxes.zm;
 Cs = length(mlist);
 chns = find(true - cellfun(@isempty,mlist))';
-
+showScalebar = true; 
 
 %--------------------------------------------------------------------------
 %% Default inputs
@@ -72,6 +72,8 @@ dotsize = 4;
 maxblobs = 2E4; %
 maxdotsize = .05; 
 mindotsize = .1;
+npp = 160; 
+scalebar = 500;
 %--------------------------------------------------------------------------
 
 
@@ -96,12 +98,20 @@ if nargin > 2
                 maxblobs = parameterValue;
             case 'maxdotsize'
                 maxdotsize = parameterValue;
+            case 'nm per pixel'
+                npp = parameterValue;
+            case 'scalebar'
+                scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
         end
     end
 end
 
 %% Main Function
 %--------------------------------------------------------------------------
+
+if scalebar < 1
+    showScalebar = false; 
+end
 
 % initialize variables
 sig = cell(Cs,1);
@@ -117,16 +127,13 @@ for c=chns
     a = mlist{c}.a;
     sig{c} = real(dotsize./sqrt(a)); % 5
 end
-xsize = W/zm;% imaxes.xmax - imaxes.xmin;
-ysize = H/zm; % imaxes.ymax - imaxes.ymin;
+xsize = W/zm;
+ysize = H/zm;
 
  I = zeros(ceil(xsize*zm*scale),ceil(ysize*zm*scale),Cs,'uint16');
   for c=chns
       if length(x{c}) >1
-          %  save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-          % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
           inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax;
-          tic
          xi = (x{c}(inbox & infilter{c}')-imaxes.xmin);
          yi = (y{c}(inbox & infilter{c}')-imaxes.ymin);
          si = sig{c}(inbox & infilter{c}');
@@ -134,18 +141,15 @@ ysize = H/zm; % imaxes.ymax - imaxes.ymin;
          si(si>mindotsize) = mindotsize; 
          Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';  % 1E5     
                  I(:,:,c) = Itemp;
-         toc
       end
   end  
   
-   % 
- %  save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
- % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
   
   % add scalebar
-npp = 160; scale_bar = 500;
-scb = round(1:scale_bar/npp*zm*scale);
-h1 = round(imaxes.H*.9*scale);
-I(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Cs,'uint16'); % Add scale bar and labels
+if showScalebar
+    scb = round(1:scalebar/npp*zm*scale);
+    h1 = round(imaxes.H*.9*scale);
+    I(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Cs,'uint16'); % Add scale bar and labels
+end
 
   
