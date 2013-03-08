@@ -19,5 +19,5 @@ if ~isempty(items)
         cellstring{i} = strtrim(stringlist(items(i)+1:items(i+1)-1));
     end
 else
-    cellstring = {''};
+    cellstring = {stringlist};
 end
