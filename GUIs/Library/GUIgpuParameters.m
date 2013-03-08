@@ -103,7 +103,7 @@ FitPars.counts_per_photon = get(handles.counts,'String');
 FitPars.startFrame = get(handles.startFrame,'String');
 FitPars.endFrame = get(handles.endFrame,'String');
 
-
+FitPars.OK = true;
 pause(.1); 
 close(GUIgpuParameters);
 

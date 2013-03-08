@@ -8,12 +8,22 @@ function fig_handle = PresentationPlot(varargin)
 %
 %--------------------------------------------------------------------------
 % Variable Inputs:
-% 
+% 'FontSize'
+% 'LineWidth'
+% 'AxisWidth'
+% 'MarkerWidth'
+% 'FigureHandle'
+% 'Background' 
 %--------------------------------------------------------------------------
 % Jeffrey Moffitt
 % October 9, 2012
 % jeffmoffitt@gmail.com
 %
+% Version 1.1
+%--------------------------------------------------------------------------
+% Updates:
+% Version 1.1: allow user to keep current values for font / linesize / axis
+%       size by passing 0.  
 % Version 1.0
 %--------------------------------------------------------------------------
 
@@ -21,9 +31,15 @@ function fig_handle = PresentationPlot(varargin)
 % Default Values
 %--------------------------------------------------------------------------
 fontSize = 16;
+<<<<<<< HEAD
 lineWidth = 2;
+=======
+lineWidth = 3;
+axisWidth = [];
+>>>>>>> 77fcb7787b9e035c9d6bb0511afe964e63b44848
 markerWidth = 12;
 figHandle = gcf;
+bkd = 'w'; 
 %--------------------------------------------------------------------------
 % Parse Variable Input 
 %--------------------------------------------------------------------------
@@ -38,49 +54,59 @@ if nargin >= 2
         parameterValue = varargin{parameterIndex*2};
         switch parameterName
             case 'FontSize'
-                fontSize = CheckParameter(parameterValue, 'positive', parameterName);
+                fontSize = CheckParameter(parameterValue, 'nonnegative', parameterName);
             case 'LineWidth'
-                lineWidth = CheckParameter(parameterValue, 'positive', parameterName);
+                lineWidth = CheckParameter(parameterValue, 'nonnegative', parameterName);
+            case 'AxisWidth'
+                axisWidth = CheckParameter(parameterValue, 'nonnegative', parameterName);
             case 'MarkerWidth'
                 markerWidth = CheckParameter(parameterValue, 'positive', parameterName);
             case 'FigureHandle'
                 figHandle = CheckParameter(parameterValue, 'positive', parameterName);
+            case 'Background'
+                bkd = CheckParameter(parameterValue, 'string', parameterName);
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
     end
 end
 
+if isempty(axisWidth)
+    axisWidth = lineWidth;
+end
+
 figure(figHandle);
 ax = get(gcf, 'Children');
+set(gcf,'color',bkd); 
 
 for i=1:length(ax)
     
     axis_handles = get(ax(i));
     axis_fields = fieldnames(axis_handles);
-    
-    if ismember('FontSize', axis_fields)
-        set(ax(i), 'FontSize', fontSize);
-    end
-    
-    if ismember('XLabel', axis_fields)
-        x_handle = get(ax(i), 'XLabel');
-        if ismember('FontSize', fieldnames(get(x_handle)))
-            set(x_handle, 'FontSize', fontSize);
+    if fontSize ~= 0 
+        if ismember('FontSize', axis_fields)
+            set(ax(i), 'FontSize', fontSize);
         end
-    end
 
-    if ismember('YLabel', axis_fields)
-        y_handle = get(ax(i), 'YLabel');
-        if ismember('FontSize', fieldnames(get(y_handle)))
-            set(y_handle, 'FontSize', fontSize);
+        if ismember('XLabel', axis_fields)
+            x_handle = get(ax(i), 'XLabel');
+            if ismember('FontSize', fieldnames(get(x_handle)))
+                set(x_handle, 'FontSize', fontSize);
+            end
         end
-    end
 
-    if ismember('Title', axis_fields)
-        t_handle = get(ax(i), 'Title');
-        if ismember('FontSize', fieldnames(get(t_handle)))
-            set(t_handle, 'FontSize', fontSize);
+        if ismember('YLabel', axis_fields)
+            y_handle = get(ax(i), 'YLabel');
+            if ismember('FontSize', fieldnames(get(y_handle)))
+                set(y_handle, 'FontSize', fontSize);
+            end
+        end
+
+        if ismember('Title', axis_fields)
+            t_handle = get(ax(i), 'Title');
+            if ismember('FontSize', fieldnames(get(t_handle)))
+                set(t_handle, 'FontSize', fontSize);
+            end
         end
     end
     
@@ -88,8 +114,10 @@ for i=1:length(ax)
         line_handles = get(ax(i), 'Children');
         
         for j=1:length(line_handles)
-            if ismember('LineWidth', fieldnames(get(line_handles(j))))
-                set(line_handles(j), 'LineWidth', lineWidth);
+            if lineWidth ~= 0 
+                if ismember('LineWidth', fieldnames(get(line_handles(j))))
+                    set(line_handles(j), 'LineWidth', lineWidth);
+                end
             end
             if ismember('MarkerSize', fieldnames(get(line_handles(j))))
                 set(line_handles(j), 'MarkerSize', markerWidth);
@@ -98,6 +126,8 @@ for i=1:length(ax)
     end
     
     if ismember('LineWidth', axis_fields)
-        set(ax(i), 'LineWidth', lineWidth);
+        if axisWidth ~= 0 
+            set(ax(i), 'LineWidth', axisWidth);
+        end
     end
 end

@@ -53,5 +53,7 @@ end
 % Check Conditions
 %--------------------------------------------------------------------------
 if ~ismember(value, list)
+    disp(['valid options for ',name,':'])
+    disp(list);
     error([value ' is not a valid option for ' name]);
 end

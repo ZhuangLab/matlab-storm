@@ -79,6 +79,10 @@ for i=1:length(type)
             if ~ischar(value)
                 error([name ' is not a string']);
             end
+        case 'cell'
+            if ~iscell(value)
+                error([name 'is not a cell']);
+            end
         otherwise
             error('Not a valid type');
     end
