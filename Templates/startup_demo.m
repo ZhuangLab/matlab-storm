@@ -18,7 +18,7 @@ warning off all
 restoredefaultpath; % Clear previous paths
 warning on all
 %% Define matlab-storm Path
-basePath = 'D:\Users\JeffMoffitt\Dropbox\ZhuangLab\Coding\Matlab\matlab-storm';  %% MODIFY this path for the local machine
+basePath = 'C:\Users\Jeff\Dropbox\ZhuangLab\Coding\Matlab\matlab-storm';  %% MODIFY this path for the local machine
 addpath(basePath, '-begin');
 
 disp('Base path set to:')
