@@ -3,6 +3,11 @@
 #################
 *.asv
 
+#################
+## Externals
+#################
+\External
+
 
 #################
 ## Eclipse
@@ -167,3 +172,4 @@ pip-log.txt
 
 # Mac crap
 .DS_Store
+External
