@@ -67,6 +67,10 @@ function [movie, infoFile, MList] = SimulateSTORM(varargin)
 %
 % Version 1.0
 %--------------------------------------------------------------------------
+% Version 1.1
+% JRM: 3/10/13
+% Added the ability to specific the indices in which fluorophores can be
+% found
 
 %--------------------------------------------------------------------------
 % Hardcoded Variables
@@ -98,6 +102,7 @@ PSFconstructor = 'fspecial(''gaussian'', 10*upSample, upSample)';
 savePath = [pwd '\'];
 saveName = '';
 saveMoleculeListName = '';
+fluorophoreIndices = [];
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -148,6 +153,8 @@ if nargin > 0
                 upSample = CheckParameter(parameterValue, 'positive', parameterName);
             case 'PSFconstructor'
                 PSFconstructor = CheckParameter(parameterValue, 'string', parameterName);
+            case 'fluorophoreIndices'
+                fluorophoreIndices = CheckParameter(parameterValue, 'positive', parameterName);
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -214,7 +221,12 @@ for i=1:numFrames
     %--------------------------------------------------------------------------
     % Distribute fluorophores and calculate photon number
     %--------------------------------------------------------------------------
-    fluorIndices = randi(numel(singleRealFrame), [1 numEmit]);
+    if isempty(fluorophoreIndices)
+        fluorIndices = randi(numel(singleRealFrame), [1 numEmit]);
+    else
+        fluorIndices = datasample(fluorophoreIndices, numEmit); % Sample with replacement
+    end
+    
     if border
         fluorIndices = setdiff(fluorIndices, borderInd);
     end
