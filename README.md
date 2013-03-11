@@ -17,3 +17,6 @@ All code contained here is liscensed under the creative commons CC BY NC.
 Everyone is welcome to contribute to matlab-storm, but any code contributed must follow several general 'clean code' standards.
 1. New functions should be written in the form described in /Templates/FunctionTemplate.m and placed in an appropriate folder in /Functions
 2. Modifications to existing functions should remain backwards compatible as much as possible.
+
+## Additional Software for Analysis
+Some aspects of this analysis package depend on the Insight and DAO-STORM software packages written by others. These packages can be found online (DAO-STORM; http://zhuang.harvard.edu/software/3d_daostorm.html) or can be provided by request (Insight; Matt Kilroy kilroy at chem.harvard.edu). For instructions on integrating this software with matlab-storm, contact Alistair or Jeff. 
