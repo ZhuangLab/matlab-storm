@@ -79,6 +79,7 @@ Zs = 20;
 Zrange = [-500,500]; % range in nm 
 npp = 160; 
 scalebar = 500;
+CorrectDrift = true;
 %--------------------------------------------------------------------------
 
 
@@ -111,6 +112,8 @@ if nargin > 2
                 npp = CheckParameter(parameterValue,'positive','nm per pixel');
             case 'scalebar'
                 scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
+            case 'correct drift'
+                CorrectDrift = CheckParameter(parameterValue,'nonnegative','correct drift');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -132,9 +135,15 @@ z = cell(Cs,1);
 
 
 for c=chns
-    x{c} = mlist{c}.xc;
-    y{c} = mlist{c}.yc;
-    z{c} = mlist{c}.zc;
+    if CorrectDrift
+        x{c} = mlist{c}.xc;
+        y{c} = mlist{c}.yc;
+        z{c} = mlist{c}.zc;
+    else
+        x{c} = mlist{c}.x;
+        y{c} = mlist{c}.y;
+        z{c} = mlist{c}.z;
+    end
     a = mlist{c}.a;
     sig{c} = real(dotsize./sqrt(a)); % 5
 end

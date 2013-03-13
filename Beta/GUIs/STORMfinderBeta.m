@@ -880,8 +880,8 @@ function zcalini2xml_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSD>
 
 global inifile xmlfile daxfile defaultXmlFile
 
-inifile = string(inifile);
-xmlfile = string(xmlfile);
+inifile = char(inifile);
+xmlfile = char(xmlfile);
 
 if ~isempty(daxfile)
     [dpath,filename] = extractpath(daxfile);

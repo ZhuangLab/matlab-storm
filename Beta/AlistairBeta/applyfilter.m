@@ -45,7 +45,7 @@ for c = channels
         eval(myfilt); 
      
         
-        infilter{c} = infilter{c} & logical(f)';
+        infilter{c} = infilter{c} & logical(f);
         filts.custom = myfilt;
         
     %--------------------------------------------------------------------

@@ -75,6 +75,7 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.DisplayOps.npp = 160;
     SR{handles.gui_number}.DisplayOps.verbose = true;
     SR{handles.gui_number}.DisplayOps.zrange = [-500,500];
+    SR{handles.gui_number}.DisplayOps.CorrDrift = true;
 
 % Default MultiBinFile Load Options
     SR{handles.gui_number}.LoadOps.warpD = 3; % set to 0 for no chromatic warp
@@ -157,7 +158,7 @@ if isempty(binfile)
    [FileName,PathName] = uigetfile('*.bin');
    binfile = [PathName,filesep,FileName];
 else
-    [PathName,FileName] = extractpath(binfile);
+    [~,FileName] = extractpath(binfile);
 end
 handles = AddStormLayer(hObject,handles,FileName,[]);
 guidata(hObject, handles);
@@ -178,10 +179,6 @@ function MenuOpenMulti_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 multiselect = 'on';
 % Multiload assumes you wish to clear all current data;
-if isfield(handles,'stormbutton')
-    delete(handles.stormbutton); 
-    guidata(hObject,handles);
-end
 LoadBin(hObject,eventdata,handles,multiselect);
 
 
@@ -191,13 +188,7 @@ LoadBin(hObject,eventdata,handles,multiselect);
 function LoadBin(hObject,eventdata,handles,multiselect)
 % Brings up dialogue box to select bin file(s) to load;     
 global binfile SR
-
-% clear existing fields for these variables
-SR{handles.gui_number}.mlist = [];
-SR{handles.gui_number}.bins = [];
-SR{handles.gui_number}.fnames = [];
-SR{handles.gui_number}.froots = [];
-SR{handles.gui_number}.infofile = [];
+handles=ClearCurrentData(hObject,eventdata,handles);
 
 if ~isempty(SR{handles.gui_number}.LoadOps.pathin)
     startfolder = SR{handles.gui_number}.LoadOps.pathin;
@@ -239,7 +230,9 @@ function MenuAutoMultiLoad_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuAutoMultiLoad (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SR ScratchPath
+global SR ScratchPath  %#ok<NUSED>
+
+handles=ClearCurrentData(hObject,eventdata,handles);
 stoprun = 0;
 % confirm auto-load options
 dlg_title = 'Bin file names must begin with unique channel flag';
@@ -304,19 +297,6 @@ if ~stoprun
     %  save([ScratchPath,'test.mat']); 
     % load([ScratchPath,'test.mat']); 
     
-    if isfield(handles,'stormbutton')
-            delete(handles.stormbutton); 
-            guidata(hObject,handles);
-            handles = rmfield(handles, 'stormbutton');
-            guidata(hObject,handles);          
-    end
-     if isfield(handles,'overlaybutton')
-            delete(handles.overlaybutton); 
-            guidata(hObject,handles);
-            handles = rmfield(handles, 'overlaybutton');
-            guidata(hObject,handles);   
-            SR{handles.gui_number}.Oz = {};  
-    end
     
     SR{handles.gui_number}.fnames = SR{handles.gui_number}.allfnames(hasdata,i);
     disp('will load:');
@@ -330,15 +310,45 @@ if ~stoprun
 end
 end
 
+%~~~~~~~~~~~~~~~~~~
+ function handles=ClearAllData(hObject,eventdata,handles)
+    global SR
+     SR{handles.gui_number}.allfnames = [];
+     SR{handles.gui_number}.froots = [];
+     SR{handles.gui_number}.bins = [];
+     handles=ClearCurrentData(hObject,eventdata,handles);
 
+    function handles=ClearCurrentData(hObject,eventdata,handles)
+        % clear existing fields for these variables
+        global SR
+        SR{handles.gui_number}.mlist = [];
+        SR{handles.gui_number}.fnames = [];
+        SR{handles.gui_number}.infofile = [];
+        SR{handles.gui_number}.Oz = {};        
 
+        if isfield(handles,'stormbutton')
+                buttonhandle = handles.stormbutton;
+                if ishandle(buttonhandle)
+                    delete(buttonhandle); 
+                end
+                handles = rmfield(handles, 'stormbutton');
+                guidata(hObject,handles);        
+        end
+         if isfield(handles,'overlaybutton')
+                buttonhandle = handles.overlaybutton;
+                if ishandle(buttonhandle)
+                    delete(butthandle);
+                end
+                handles = rmfield(handles, 'overlaybutton');
+                guidata(hObject,handles);    
+        end
 
 
  %~~~~~~~
     function handles = AddStormLayer(hObject,handles,Sname,layer_number)
         % Adds a new radio button to the OverlayPanel, which can toggle this
         % channel on and off.  
-    global SR ScratchPath
+    global SR ScratchPath  %#ok<NUSED>
     % save([ScratchPath,'test2.mat']); 
     
     if ~isfield(handles,'stormbutton')
@@ -416,7 +426,7 @@ end
 
         
  function MultiBinLoad(hObject,eventdata,handles,binnames)
-     global SR ScratchPath
+     global SR ScratchPath  %#ok<NUSED>
      % ----------------------------------------------------
      % Passed Inputs:
      % binnames
@@ -461,7 +471,7 @@ end
     if isempty([SR{handles.gui_number}.LoadOps.chns{:}])
         chns = inputdlg({'Channel Names: (name must match warpmap, order match layer order)'},...
     '',1,{'750,647,561,488'});  % <--  Default channel names
-        SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1})
+        SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1});
     end
  % Automatically dealing with old vs. new style chromewarp format
     [warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
@@ -490,7 +500,7 @@ function MenuLoadOptions_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuLoadOptions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SR ScratchPath
+global SR ScratchPath  %#ok<NUSED>
 
     dlg_title = 'Update Load Options';
     num_lines = 1;
@@ -608,7 +618,7 @@ function SaveData_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global SR  %#ok<NUSED>
+global SR  
 
 I = SR{handles.gui_number}.I;
 Io = SR{handles.gui_number}.Io;
@@ -660,9 +670,9 @@ if ~isfield(SR{handles.gui_number},'savepath')
 end
 savepath=SR{handles.gui_number}.savepath;
 
-try
-[savename,savepath] = uiputfile(savepath);
-catch
+if ischar(savepath)
+    [savename,savepath] = uiputfile(savepath);
+else
     [savename,savepath] = uiputfile;
 end
 if savename ~= 0
@@ -760,8 +770,12 @@ else
     Zsteps = 1;
 end
 
-SR{handles.gui_number}.I = plotSTORM_colorZ(mlist, SR{handles.gui_number}.imaxes,'filter',SR{handles.gui_number}.infilter,'Zrange',SR{handles.gui_number}.DisplayOps.zrange,...
-    'dotsize',SR{handles.gui_number}.DisplayOps.DotScale,'Zsteps',Zsteps,'scalebar',0);
+SR{handles.gui_number}.I = plotSTORM_colorZ(mlist, SR{handles.gui_number}.imaxes,...
+    'filter',SR{handles.gui_number}.infilter,...
+    'Zrange',SR{handles.gui_number}.DisplayOps.zrange,...
+    'dotsize',SR{handles.gui_number}.DisplayOps.DotScale,...
+    'Zsteps',Zsteps,'scalebar',0,...
+    'correct drift',SR{handles.gui_number}.DisplayOps.CorrDrift);
 
 IntegrateOverlay(hObject,handles); % Integrate the Overlay, if it exists
 
@@ -832,7 +846,7 @@ loadim(hObject,eventdata, handles); % calls plotdata function
 % --- Executes on button press in ApplyFilter.
 function ApplyFilter_Callback(hObject, eventdata, handles)
 % chose filter
-  global  SR ScratchPath
+  global  SR ScratchPath  %#ok<NUSED>
   filts = SR{handles.gui_number}.filts;
     contents = cellstr(get(handles.choosefilt,'String')); % returns choosefilt contents as cell array
     par = contents{get(handles.choosefilt,'Value')}; % returns selected item from choosefilt 
@@ -872,7 +886,7 @@ disp('this function still under development');
  
  
 function update_maindisplay(hObject,handles)
-global  SR ScratchPath
+global  SR ScratchPath  %#ok<NUSED>
 
 I = SR{handles.gui_number}.I;
 imaxes = SR{handles.gui_number}.imaxes;
@@ -993,7 +1007,7 @@ global SR
 
 % ------
  function scalecolor(hObject,handles)
- global SR ScratchPath
+ global SR ScratchPath %#ok<NUSED>
  
  
  % hObject    handle to LevelsChannel (see GCBO)
@@ -1192,7 +1206,7 @@ function zoomtool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to zoomtool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SR ScratchPath
+global SR ScratchPath %#ok<NUSED>
 
 imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
@@ -1326,7 +1340,7 @@ function Render3D_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global SR
+global SR ScratchPath
 I = SR{handles.gui_number}.I;
 imaxes = SR{handles.gui_number}.imaxes;
 % currently hard-coded, should be user options 
@@ -1367,11 +1381,13 @@ channels = zeros(1,Cs); % Storm Channels
 for c = 1:Cs; % length(handles.stormbutton)
     channels(c) = get(handles.stormbutton(c),'Value');
 end
-active_channels = find(channels);
 
+% save([ScratchPath,'test.mat']);
+% load([ScratchPath,'test.mat']);
+active_channels = find(channels);
 figure; clf; 
 Im3D(I(active_channels),'resolution',res,'zStepSize',zstp,'xyStepSize',xyp,...
-    'theta',theta,'downsample',stp,'color',colr);
+    'theta',theta,'downsample',stp,'color',colr); %#ok<FNDSB> % NOT equiv! 
 set(gcf,'color','w');
 camlight left;
 xlabel('nm');
@@ -1379,6 +1395,7 @@ ylabel('nm');
 zlabel('nm');
 xlim([0,(imaxes.xmax-imaxes.xmin)*npp]);
 ylim([0,(imaxes.ymax-imaxes.ymin)*npp]);
+alpha .6;
 
 else
     disp('must set Display Ops color Z to true for 3D rendering'); 
@@ -1447,19 +1464,17 @@ end
 
 npp = 160; % should be a global in imageops or something
 vlist = MolsInView(handles);
-chns = find(cellfun(@(x) ~isempty(x),vlist));
+chns = find(cellfun(@(x) ~isempty(x),vlist))';
 Cs = length(chns); 
 cmap = hsv(Cs);
 lab = cell(Cs,1);
 if ~isempty(SR{handles.gui_number}.plt3Dfig)
-    try
-    close(SR{handles.gui_number}.plt3Dfig);
-    catch er
-        disp(er.message);
+    if ishandle(SR{handles.gui_number}.plt3Dfig)
+        close(SR{handles.gui_number}.plt3Dfig);
     end
 end
 SR{handles.gui_number}.plt3Dfig = figure; 
-% save([ScratchPath,'testdat.mat']);
+ save([ScratchPath,'testdat.mat']);
 % load([ScratchPath,'testdat.mat']);
 for c = chns
     if length(vlist{c}.x) > 2000
@@ -1715,17 +1730,17 @@ else
 end
 
 % Still need to address contrast for overlays
-imlayers = length(SR{handles.gui_number}.cmin);
 imcaxis = eval(Overlay_opts{10});
-
 SR{handles.gui_number}.omin(overlay_number) = imcaxis(1);
 SR{handles.gui_number}.omax(overlay_number) = imcaxis(2);
-
 [~,filename] = extractpath(Overlay_opts{1});
 SR{handles.gui_number}.Overlay_opts = Overlay_opts ;
+
 handles = AddOverlayLayer(hObject,handles,overlay_number,filename);
 guidata(hObject, handles);
 IntegrateOverlay(hObject,handles);
+
+
 
 
     %~~~~~~~
@@ -1768,7 +1783,7 @@ IntegrateOverlay(hObject,handles);
     %    - subfunction of MenuOverlay, also called each time image resizes
     %    in order to maintain overlay display.  
     function IntegrateOverlay(hObject,handles)
-    global   SR ScratchPath
+    global   SR ScratchPath  %#ok<NUSED>
     if isfield(SR{handles.gui_number},'Overlay_opts');
     Overlay_opts =  SR{handles.gui_number}.Overlay_opts;
     imaxes = SR{handles.gui_number}.imaxes;
@@ -1803,7 +1818,8 @@ Dprompt = {
     'Dot scale',...
     'scalebar (0 for off)',...
     'nm per pixel',...
-    'verbose'};
+    'verbose'...
+    'Correct image drift'};
 default_Dopts{1} = num2str(SR{handles.gui_number}.DisplayOps.ColorZ);
 default_Dopts{2} = num2str(SR{handles.gui_number}.DisplayOps.Zsteps);
 default_Dopts{3} = strcat('[',num2str(SR{handles.gui_number}.DisplayOps.zrange),']');
@@ -1812,7 +1828,7 @@ default_Dopts{5} = num2str(SR{handles.gui_number}.DisplayOps.DotScale);
 default_Dopts{6} = num2str(SR{handles.gui_number}.DisplayOps.scalebar);
 default_Dopts{7} = num2str(SR{handles.gui_number}.DisplayOps.npp);
 default_Dopts{8} = num2str(SR{handles.gui_number}.DisplayOps.verbose); 
-
+default_Dopts{9} = num2str(SR{handles.gui_number}.DisplayOps.CorrDrift);
 % if the menu is screwed up, reset 
 try
 default_Dopts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
@@ -1826,19 +1842,22 @@ catch er
     '4',...
     '500',...
     '160',...
+    'true',...
     'true'};
 end
-SR{handles.gui_number}.DisplayOps.ColorZ = eval(default_Dopts{1}); 
-SR{handles.gui_number}.DisplayOps.Zsteps = eval(default_Dopts{2});
-SR{handles.gui_number}.DisplayOps.zrange = eval(default_Dopts{3});
-SR{handles.gui_number}.DisplayOps.HidePoor = eval(default_Dopts{4});
-SR{handles.gui_number}.DisplayOps.DotScale = eval(default_Dopts{5});
-SR{handles.gui_number}.DisplayOps.scalebar = eval(default_Dopts{6});
-SR{handles.gui_number}.DisplayOps.npp = eval(default_Dopts{7});
-SR{handles.gui_number}.DisplayOps.verbose = eval(default_Dopts{8});
-loadim(hObject,eventdata, handles);
-guidata(hObject, handles);
-
+if length(default_Dopts) > 1 % Do nothing if canceled
+    SR{handles.gui_number}.DisplayOps.ColorZ = eval(default_Dopts{1}); 
+    SR{handles.gui_number}.DisplayOps.Zsteps = eval(default_Dopts{2});
+    SR{handles.gui_number}.DisplayOps.zrange = eval(default_Dopts{3});
+    SR{handles.gui_number}.DisplayOps.HidePoor = eval(default_Dopts{4});
+    SR{handles.gui_number}.DisplayOps.DotScale = eval(default_Dopts{5});
+    SR{handles.gui_number}.DisplayOps.scalebar = eval(default_Dopts{6});
+    SR{handles.gui_number}.DisplayOps.npp = eval(default_Dopts{7});
+    SR{handles.gui_number}.DisplayOps.verbose = eval(default_Dopts{8});
+    SR{handles.gui_number}.DisplayOps.CorrDrift= eval(default_Dopts{9});
+    loadim(hObject,eventdata, handles);
+    guidata(hObject, handles);
+end
 
 
 % --------------------------------------------------------------------

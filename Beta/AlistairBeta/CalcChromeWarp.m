@@ -827,7 +827,7 @@ saveas(fig_warperr_2d,[pathin,filesep,saveroot,'fig_warperr_2d.png']);
 chn_warp_names = cell(Nsamples,2);
 for s=1:Nsamples
     chn_warp_names{s,1} = data(s).sample(1).chn;
-    chn_warp_names{s,1} = data(s).refchn(1).chn;
+    chn_warp_names{s,2} = data(s).refchn(1).chn;
 end
 
 
@@ -838,11 +838,44 @@ disp(['wrote ',pathin,filesep,'chromewarps.mat']);
 
 disp('3D bead fitting complete');
 
-
-
+% Cleanup
 close(fig_xyerr, fig_zdist, fig_xzerr, fig_xyerr_all);
  close(fig_warperr,fig_warperr_2d)
-% 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 % Internal functions 
   
 function signalchn = remove_bleadthrough(signalchn,bkdchn,tform_start,cx_radius,verbose,sname,k)
