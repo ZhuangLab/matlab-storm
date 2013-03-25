@@ -10,7 +10,8 @@ function [diffStruct] = CompareReconstructions(varargin)
 % can be a path to this molecule list, a molecule list in compact or
 % non-compact form, or a high resolution image format structure.  
 %
-% 'MList2'/structure([]): The second molecule list to compare. 
+% 'MList2'/structure([]): The second molecule list to compare. This
+% molecule list is considered to be the 'truth'. 
 %--------------------------------------------------------------------------
 % Outputs:
 % 'diffStruct'/structure array: This structure contains information on the
@@ -47,12 +48,15 @@ verbose = true;
 foundMLists = {};
 MList1 = [];
 MList2 = [];
+foundInd = [];
 for i=1:length(varargin)
     if isstruct(varargin{i})
-        if isfield('x')
+        if isfield(varargin{i}, 'x')
             foundMLists{end+1} = varargin{i};
-        elseif isfield('pixelInd')
+            foundInd = [foundInd i];
+        elseif isfield(varargin{i}, 'pixelInd')
             foundMLists{end+1} = ConvertHRImageToMList(varargin{i}, 'verbose', true);
+            foundInd = [foundInd i];
         end
     elseif ischar(varargin{i})
         if exist(varargin{i}) == 2
@@ -60,10 +64,13 @@ for i=1:length(varargin)
             switch ext
                 case '.bin'
                     foundMLists{end+1} = ReadMasterMoleculeList(varargin{i}, 'compact', true, 'verbose', true);
+                    foundInd = [foundInd i];
+
                 case '.hrf'
                     foundMLists{end+1} = ConvertHRImageToMList( ...
                         ReadHighResImage(varargin{i}, 'verbose', true, 'returnForm', 'compact'), ...
                         'verbose', true);
+                    foundInd = [foundInd i];
             end
         end
     end
@@ -91,6 +98,7 @@ end
 if isempty(MList1) || isempty(MList2)
     error('Too few MLists provided');
 end
+varargin = varargin(setdiff(1:length(varargin), foundInd));
 
 %--------------------------------------------------------------------------
 % Parse Variable
@@ -127,9 +135,9 @@ diffStruct(maxFrame).recall = 0;
 diffStruct(maxFrame).avErrX = 0;
 diffStruct(maxFrame).avErrY = 0;
 diffStruct(maxFrame).avErr = 0;
-diffStruct(maxFrame).distX = {};
-diffStruct(maxFrame).distY = {};
-diffStruct(maxFrame).dist = {};
+diffStruct(maxFrame).distX = [];
+diffStruct(maxFrame).distY = [];
+diffStruct(maxFrame).dist = [];
 
 %--------------------------------------------------------------------------
 % Compare frames
@@ -141,7 +149,7 @@ for i=1:maxFrame
 
     % Compute recall
     N1 = length(ind1);
-    N2 = length(ind2)
+    N2 = length(ind2);
     diffStruct(i).num1 = N1;
     diffStruct(i).num2 = N2;
     diffStruct(i).recall = N1/N2;
@@ -160,16 +168,16 @@ for i=1:maxFrame
     dist = distX.^2 + distY.^2;
     
     % Find minimum distances
-    minX = min(distX);
-    minY = min(distY);
-    minTot = min(dist);
+    minX = min(distX');
+    minY = min(distY');
+    minTot = min(dist');
     
     % Record results
     diffStruct(i).avErrX = mean(minX);
     diffStruct(i).avErrY = mean(minY);
     diffStruct(i).avErr = mean(minTot);
-    diffStruct(i).distX{1} = minX;
-    diffStruct(i).distY{1} = minY;
-    diffStruct(i).dist{1} = minTot;
+    diffStruct(i).distX = minX;
+    diffStruct(i).distY = minY;
+    diffStruct(i).dist = minTot;
 end
      
