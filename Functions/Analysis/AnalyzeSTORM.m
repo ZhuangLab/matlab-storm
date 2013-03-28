@@ -74,6 +74,7 @@ verbose = true;
 overwrite = true;
 numParallel = 4;
 includeSubdir = false;
+hideterminal = false;
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -106,6 +107,8 @@ if nargin > 1
                 numParallel = CheckParameter(parameterValue, 'positive', 'numParallel');
             case 'includeSubdir'
                 includeSubdir = CheckParameter(parameterValue, 'boolean', 'includeSubdir');
+            case 'hideterminal'
+                hideterminal = CheckParameter(parameterValue, 'boolean', 'hideterminal');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -273,7 +276,7 @@ while sum(doneFlag) < length(commands)
             break;
         end
         nextInd = nextInd(1); 
-        dos(commands{nextInd});
+        prc = SystemRun(commands{nextInd},'Hidden',hideterminal); 
         if verbose
             display(['Executing ' commands{nextInd}]);
         end
