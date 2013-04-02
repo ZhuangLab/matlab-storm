@@ -221,6 +221,7 @@ end
     
   % color pixels in each subcluster 
   % (good visual/manual check on segmentation). 
+  counts = cell(Nsubclusters,1); 
    for nn=1:Nsubclusters 
       rX = voxel(1)*R3(nn).PixelList(:,1);
       rY = voxel(2)*R3(nn).PixelList(:,2);
@@ -235,12 +236,6 @@ end
       % Gaussian fit to each subcluster
       Gfxn = fit3Dgauss(xp,yp,zp,'showplot',false);
       
-      if plotson
-          figure(fig3d);    hold on;
-          plot3(xp,yp,zp,'o','color',cmap(nn,:),'MarkerSize',1);
-          plot3(Gfxn(1),Gfxn(2),Gfxn(3),'b+','MarkerSize',30);
-      end
-        
       % Save some stats on clusters
       subcluster.sigma(nn,:) = [Gfxn(4),Gfxn(5),Gfxn(6)];
       subcluster.counts(nn) = length(xp);
@@ -248,7 +243,19 @@ end
       allpix = single(R3(nn).PixelValues);
       subcluster.maxvox(nn) = max(allpix);
       subcluster.medianvox(nn) = median(allpix(allpix>0));
-      subcluster.meanvox(nn) = mean(allpix(allpix>0)); 
+      subcluster.meanvox(nn) = mean(allpix(allpix>0));  
+      
+      if plotson
+          figure(fig3d);    hold on;
+          plot3(xp,yp,zp,'o','color',cmap(nn,:),'MarkerSize',1);
+          plot3(Gfxn(1),Gfxn(2),Gfxn(3),'b+','MarkerSize',30);
+          counts{nn} = ['counts=' num2str(length(xp))]; 
+          if nn==Nsubclusters
+          title(counts);
+          end
+      end
+        
+
    end
    axis square;
    xlabel('x (nm)'); ylabel('y (nm)'); zlabel('z (nm)');

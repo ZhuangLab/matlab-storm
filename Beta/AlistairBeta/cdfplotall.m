@@ -57,6 +57,7 @@ for g=1:N
         stairs(x,f,'color',cmap(g,:),'linewidth',3);
     else
         plot(0,0,'.','color',cmap(g,:));
+        gnames{g} = '';
     end
     hold on;
 end
