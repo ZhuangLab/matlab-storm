@@ -699,29 +699,19 @@ Dopts = inputdlg(Dprompt,dlg_title,num_lines,Dopts);
 % If a parameter file with file ending is specified, call RunDotFinder with
 % that specific parameter file.  Otherwise, assume it is parameter root and
 % find automatically any parameter file with that root in the name. 
-if isempty(strfind(Dopts{3},partype))
-    parflag = 'parsroot';
-else
-    parflag = 'parsfile';
+if ~isempty(Dopts)  % dealing with cancel
+    if isempty(strfind(Dopts{3},partype))
+        parflag = 'parsroot';
+    else
+        parflag = 'parsfile';
+    end
+
+    k = strfind(daxfile,filesep);
+    fpath = daxfile(1:k(end));
+    RunDotFinder('path',fpath,'batchsize',eval(Dopts{1}),'daxroot',Dopts{2},...
+         parflag,Dopts{3},'overwrite',eval(Dopts{4}),'method',method);
 end
-    
-k = strfind(daxfile,filesep);
-fpath = daxfile(1:k(end));
-RunDotFinder('path',fpath,'batchsize',eval(Dopts{1}),'daxroot',Dopts{2},...
-     parflag,Dopts{3},'overwrite',eval(Dopts{4}),'method',method);
 
-% if DaoSTORM needs to use non_temp parameters!! 
-% ^ has this been dealt with?
-
-
-% % This may be deleted: {
-% function currentpath_Callback(hObject, eventdata, handles)
-% 
-% function currentpath_CreateFcn(hObject, eventdata, handles)
-% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%     set(hObject,'BackgroundColor','white');
-% end
-% %   }
 
 
 
@@ -835,7 +825,7 @@ function MenuChromeWarp_Callback(hObject, eventdata, handles) %#ok<*INUSL>
 % hObject    handle to MenuChromeWarp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global daxfile Zcalpars
+global daxfile chromeWarpPars
 
 FitMethod = get(handles.FitMethod,'Value');
 if FitMethod == 1
@@ -846,28 +836,31 @@ elseif FitMethod == 3
     method = 'GPUmultifit';
 end
 
-Zcalpars.OK = false;
+
+
+
+chromeWarpPars.OK = false;
 pathin = extractpath(daxfile);
-f = ZCalibrationParameters; 
+f = ChromeWarpParameters; 
 waitfor(f);
   
-if Zcalpars.OK
-    M = Zcalpars.NMovieSets;
+if chromeWarpPars.OK
+    M = chromeWarpPars.NMovieSets;
     beadset(M).chns =[];
     for m=1:M 
-        beadset(m).chns = Zcalpars.Chns{m};
-        beadset(m).refchn = Zcalpars.ReferenceChannel{m};
-        beadset(m).daxroot = Zcalpars.DaxfileRoots{m};
-        beadset(m).parsroot = Zcalpars.ParameterRoots{m};
-        beadset(m).quadview = Zcalpars.Quadview{m};
+        beadset(m).chns = chromeWarpPars.Chns{m};
+        beadset(m).refchn = chromeWarpPars.ReferenceChannel{m};
+        beadset(m).daxroot = chromeWarpPars.DaxfileRoots{m};
+        beadset(m).parsroot = chromeWarpPars.ParameterRoots{m};
+        beadset(m).quadview = chromeWarpPars.Quadview{m};
     end
 
     CalcChromeWarp(pathin,'beadset',beadset,'method',method,...
-        'QVorder',Zcalpars.QVorder,'overwrite',Zcalpars.OverwriteBin,...
-        'save root',Zcalpars.SaveNameRoot,'affine match radius',Zcalpars.AffineRadius,...
-        'polyfit match radius',Zcalpars.PolyRadius,'verbose',Zcalpars.VerboseOn,...
-        'hideterminal',Zcalpars.HideTerminal,'Noclass9',Zcalpars.ExcludePoorZ,...
-        'frames per Z',Zcalpars.FramesPerZ); 
+        'QVorder',chromeWarpPars.QVorder,'overwrite',chromeWarpPars.OverwriteBin,...
+        'save root',chromeWarpPars.SaveNameRoot,'affine match radius',chromeWarpPars.AffineRadius,...
+        'polyfit match radius',chromeWarpPars.PolyRadius,'verbose',chromeWarpPars.VerboseOn,...
+        'hideterminal',chromeWarpPars.HideTerminal,'Noclass9',chromeWarpPars.ExcludePoorZ,...
+        'frames per Z',chromeWarpPars.FramesPerZ); 
 end
 
 

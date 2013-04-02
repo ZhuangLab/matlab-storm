@@ -162,6 +162,7 @@ else
 end
 handles = AddStormLayer(hObject,handles,FileName,[]);
 guidata(hObject, handles);
+handles = guidata(hObject);
 SingleBinLoad(hObject,eventdata,handles);
 
 % --------------------------------------------------------------------
@@ -270,7 +271,7 @@ if ~stoprun
   %   based on image number, if it has not already been done
   if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
     [SR{handles.gui_number}.bins,SR{handles.gui_number}.allfnames] = ...
-        automatch_files(SR{handles.gui_number}.LoadOps.pathin,...
+        automatch_files( [SR{handles.gui_number}.LoadOps.pathin,filesep],...
            'sourceroot',SR{handles.gui_number}.LoadOps.sourceroot,...
            'filetype',SR{handles.gui_number}.LoadOps.bintype,...
            'chns',SR{handles.gui_number}.LoadOps.chnFlag);
@@ -324,8 +325,13 @@ end
         SR{handles.gui_number}.mlist = [];
         SR{handles.gui_number}.fnames = [];
         SR{handles.gui_number}.infofile = [];
-        SR{handles.gui_number}.Oz = {};        
-
+        SR{handles.gui_number}.Oz = {};     
+        SR{handles.gui_number}.O = {};
+        
+            % Clear levels  
+    set(handles.LevelsChannel,'Value',1);
+    set(handles.LevelsChannel,'String',{'channel1'});
+        
         if isfield(handles,'stormbutton')
                 buttonhandle = handles.stormbutton;
                 if ishandle(buttonhandle)
@@ -337,7 +343,7 @@ end
          if isfield(handles,'overlaybutton')
                 buttonhandle = handles.overlaybutton;
                 if ishandle(buttonhandle)
-                    delete(butthandle);
+                    delete(buttonhandle);
                 end
                 handles = rmfield(handles, 'overlaybutton');
                 guidata(hObject,handles);    
@@ -573,6 +579,7 @@ function imsetup(hObject,eventdata, handles)
        imaxes = SR{handles.gui_number}.imaxes; 
     end
     
+    
     imaxes.H = 256; % actual size of image
     imaxes.W = 256;
     imaxes.scale = 2;  % upscale on display
@@ -777,7 +784,10 @@ SR{handles.gui_number}.I = plotSTORM_colorZ(mlist, SR{handles.gui_number}.imaxes
     'Zsteps',Zsteps,'scalebar',0,...
     'correct drift',SR{handles.gui_number}.DisplayOps.CorrDrift);
 
-IntegrateOverlay(hObject,handles); % Integrate the Overlay, if it exists
+
+if ~isempty(SR{handles.gui_number}.Oz)
+    IntegrateOverlay(hObject,handles); % Integrate the Overlay, if it exists
+end
 
 update_maindisplay(hObject,handles); % converts I, applys contrast, to RBG
 guidata(hObject, handles);
@@ -825,6 +835,7 @@ function choosefilt_Callback(hObject, eventdata, handles)
 % --- Executes on button press in ClearFilters.
 function ClearFilters_Callback(hObject, eventdata, handles)
 global  SR
+
 SR{handles.gui_number}.filts = struct('custom',[]); % empty structure to store filters
 Cs = length(SR{handles.gui_number}.mlist);
     SR{handles.gui_number}.infilter = cell(Cs,1);
@@ -901,11 +912,15 @@ Cs = length(I);
 [h,w,Zs] = size(I{1});
 Noverlays = length(SR{handles.gui_number}.Oz);
 
-% save([ScratchPath,'test.mat']);
+ save([ScratchPath,'test.mat']);
 % load([ScratchPath,'test.mat']);
 % Find out which channels are toggled for display
 %------------------------------------------------------------
-    channels = zeros(1,Cs); % Storm Channels
+        disp('button =');
+        disp(handles.stormbutton)
+           
+
+channels = zeros(1,Cs); % Storm Channels
     for c = 1:Cs; % length(handles.stormbutton)
         channels(c) = get(handles.stormbutton(c),'Value');
     end
@@ -1348,59 +1363,69 @@ npp =SR{handles.gui_number}.DisplayOps.npp;
 zrange = SR{handles.gui_number}.DisplayOps.zrange; % = [-600,600];
 
 if SR{handles.gui_number}.DisplayOps.ColorZ && SR{handles.gui_number}.DisplayOps.Zsteps > 1
-disp('use cell arrays of parameters for multichannel rendering'); 
-disp('see help Im3D for more options'); 
+    disp('use cell arrays of parameters for multichannel rendering'); 
+    disp('see help Im3D for more options'); 
 
-dlg_title = 'Render3D';
-num_lines = 1;
+    dlg_title = 'Render3D. Group multichannel options in {}';
+    num_lines = 1;
 
-    Dprompt = {
-    'threshold (blank for auto)',...
-    'downsample',...
-    'smoothing (must be odd integer)',...
-    'color'};
-    default_Dopts = {
-    '[]',...
-    '3',...
-    '3',...
-    'blue'};
+        Dprompt = {
+        'threshold (blank for auto)',...
+        'downsample',...
+        'smoothing (must be odd integer)',...
+        'color',...
+        'alpha'};
+    try
+        default_Dopts = SR{handles.gui_number}.default_Dopts;
+        opts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
+    catch %#ok<CTCH>
+        default_Dopts = {
+        '[]',...
+        '3',...
+        '3',...
+        'blue',...
+        '1'};
+        opts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
+    end
 
-opts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
-Zs = SR{handles.gui_number}.DisplayOps.Zsteps;
+    if ~isempty(opts)
+        SR{handles.gui_number}.default_Dopts  = opts;
+        Zs = SR{handles.gui_number}.DisplayOps.Zsteps;
 
-xyp = npp/imaxes.scale/imaxes.zm; % nm per x/y pixel
-zstp = (zrange(2)-zrange(1))/Zs;
+        xyp = npp/imaxes.scale/imaxes.zm; % nm per x/y pixel
+        zstp = (zrange(2)-zrange(1))/Zs;
 
-theta = eval(opts{1});
-stp = eval(opts{2});
-res = eval(opts{3});
-colr = opts{4}; 
-Cs = length(I);
+        theta = eval(opts{1});
+        stp = eval(opts{2});
+        res = eval(opts{3});
+        colr = opts{4}; 
+        Cs = length(I);
 
-channels = zeros(1,Cs); % Storm Channels
-for c = 1:Cs; % length(handles.stormbutton)
-    channels(c) = get(handles.stormbutton(c),'Value');
-end
+        channels = zeros(1,Cs); % Storm Channels
+        for c = 1:Cs; % length(handles.stormbutton)
+            channels(c) = get(handles.stormbutton(c),'Value');
+        end
 
-% save([ScratchPath,'test.mat']);
-% load([ScratchPath,'test.mat']);
-active_channels = find(channels);
-figure; clf; 
-Im3D(I(active_channels),'resolution',res,'zStepSize',zstp,'xyStepSize',xyp,...
-    'theta',theta,'downsample',stp,'color',colr); %#ok<FNDSB> % NOT equiv! 
-set(gcf,'color','w');
-camlight left;
-xlabel('nm');
-ylabel('nm');
-zlabel('nm');
-xlim([0,(imaxes.xmax-imaxes.xmin)*npp]);
-ylim([0,(imaxes.ymax-imaxes.ymin)*npp]);
-alpha .6;
-
+        % save([ScratchPath,'test.mat']);
+        % load([ScratchPath,'test.mat']);
+        active_channels = find(channels);
+        figure; clf; 
+        Im3D(I(active_channels),'resolution',res,'zStepSize',zstp,'xyStepSize',xyp,...
+            'theta',theta,'downsample',stp,'color',colr); %#ok<FNDSB> % NOT equiv! 
+        set(gcf,'color','w');
+        camlight left;
+        xlabel('nm');
+        ylabel('nm');
+        zlabel('nm');
+        xlim([0,(imaxes.xmax-imaxes.xmin)*npp]);
+        ylim([0,(imaxes.ymax-imaxes.ymin)*npp]);
+        alpha( eval(opts{5}) ); 
+    end
 else
     disp('must set Display Ops color Z to true for 3D rendering'); 
     disp('Go to "More Display Ops" and set first field as "true"');
 end
+
 
 
 % --------------------------------------------------------------------

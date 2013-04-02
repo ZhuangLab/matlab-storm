@@ -106,7 +106,7 @@ global defaultDaoSTORM
 % this makes it easy to change default values
 batchsize = 1;
 overwrite = 2; % ask user
-minsize = 1E6;
+minsize = 8E6;
 daxroot = '';
 parsroot = '';
 method = 'DaoSTORM';

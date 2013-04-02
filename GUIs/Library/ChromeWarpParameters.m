@@ -1,35 +1,35 @@
-function varargout = ZCalibrationParameters(varargin)
-% ZCALIBRATIONPARAMETERS MATLAB code for ZCalibrationParameters.fig
-%      ZCALIBRATIONPARAMETERS, by itself, creates a new ZCALIBRATIONPARAMETERS or raises the existing
+function varargout = ChromeWarpParameters(varargin)
+% CHROMEWARPPARAMETERS MATLAB code for ChromeWarpParameters.fig
+%      CHROMEWARPPARAMETERS, by itself, creates a new CHROMEWARPPARAMETERS or raises the existing
 %      singleton*.
 %
-%      H = ZCALIBRATIONPARAMETERS returns the handle to a new ZCALIBRATIONPARAMETERS or the handle to
+%      H = CHROMEWARPPARAMETERS returns the handle to a new CHROMEWARPPARAMETERS or the handle to
 %      the existing singleton*.
 %
-%      ZCALIBRATIONPARAMETERS('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in ZCALIBRATIONPARAMETERS.M with the given input arguments.
+%      CHROMEWARPPARAMETERS('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in CHROMEWARPPARAMETERS.M with the given input arguments.
 %
-%      ZCALIBRATIONPARAMETERS('Property','Value',...) creates a new ZCALIBRATIONPARAMETERS or raises the
+%      CHROMEWARPPARAMETERS('Property','Value',...) creates a new CHROMEWARPPARAMETERS or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before ZCalibrationParameters_OpeningFcn gets called.  An
+%      applied to the GUI before ChromeWarpParameters_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to ZCalibrationParameters_OpeningFcn via varargin.
+%      stop.  All inputs are passed to ChromeWarpParameters_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help ZCalibrationParameters
+% Edit the above text to modify the response to help ChromeWarpParameters
 
-% Last Modified by GUIDE v2.5 12-Feb-2013 20:54:25
+% Last Modified by GUIDE v2.5 13-Mar-2013 16:23:32
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @ZCalibrationParameters_OpeningFcn, ...
-                   'gui_OutputFcn',  @ZCalibrationParameters_OutputFcn, ...
+                   'gui_OpeningFcn', @ChromeWarpParameters_OpeningFcn, ...
+                   'gui_OutputFcn',  @ChromeWarpParameters_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,16 +44,16 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before ZCalibrationParameters is made visible.
-function ZCalibrationParameters_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before ChromeWarpParameters is made visible.
+function ChromeWarpParameters_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to ZCalibrationParameters (see VARARGIN)
+% varargin   command line arguments to ChromeWarpParameters (see VARARGIN)
 
 global chromeWarpPars
-% Choose default command line output for ZCalibrationParameters
+% Choose default command line output for ChromeWarpParameters
 handles.output = hObject;
 
 % Set defaults:
@@ -74,12 +74,12 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes ZCalibrationParameters wait for user response (see UIRESUME)
+% UIWAIT makes ChromeWarpParameters wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = ZCalibrationParameters_OutputFcn(hObject, eventdata, handles) 
+function varargout = ChromeWarpParameters_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -94,7 +94,7 @@ function Cancel_Callback(hObject, eventdata, handles)
 % hObject    handle to Cancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global chromeWarpPars
+global chromeWarpPars %#ok<NUSED>
 pause(.1);
 close(ZCalibrationParameters); 
 
@@ -181,14 +181,14 @@ global chromeWarpPars
  m = get(handles.SelectSet,'Value');
  chromeWarpPars.ReferenceChannel{m} = get(handles.ReferenceChannel,'String');
  
-function ListQVorder_Callback(hObject, eventdata, handles)
+function ListQVorder_Callback(hObject, eventdata, handles) %#ok<*INUSL>
 global chromeWarpPars
  m = get(handles.SelectSet,'Value');
  chromeWarpPars.ListQVorder = get(handles.ListQVorder,'String');
 
 
 % --- Executes on button press in OverwriteBin.
-function OverwriteBin_Callback(hObject, eventdata, handles)
+function OverwriteBin_Callback(hObject, eventdata, handles)  %#ok<*DEFNU,*INUSD>
 % hObject    handle to OverwriteBin (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -414,7 +414,7 @@ end
 
 
 % --- Executes during object creation, after setting all properties.
-function ListQVorder_CreateFcn(hObject, eventdata, handles)
+function ListQVorder_CreateFcn(hObject, eventdata, handles) 
 % hObject    handle to ListQVorder (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
