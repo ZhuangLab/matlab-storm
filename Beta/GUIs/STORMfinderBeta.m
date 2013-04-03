@@ -475,7 +475,7 @@ parfile = make_temp_parameters(handles,'temp'); % if _temp.ini / .xml parameter 
 SF{handles.gui_number}.FitPars.OK = false;
 
  if FitMethod == 1 % InsightM
-    f = GUIFitParameters;
+    f = GUIFitParameters(handles.gui_number);
     waitfor(f); % need to wait until parameter selection is closed. 
     if SF{handles.gui_number}.FitPars.OK 
         new_values = struct2cell(SF{handles.gui_number}.FitPars)';
@@ -484,7 +484,7 @@ SF{handles.gui_number}.FitPars.OK = false;
     end
  %   disp(inifile);
  elseif FitMethod == 2    % DaoSTORM   
-    f = GUIDaoParameters;
+    f = GUIDaoParameters(handles.gui_number);
     waitfor(f); % need to wait until parameter selection is closed.   
     if SF{handles.gui_number}.FitPars.OK % only update parameters if user presses save button
         new_values = struct2cell(SF{handles.gui_number}.FitPars)';
@@ -492,7 +492,7 @@ SF{handles.gui_number}.FitPars.OK = false;
         SF{handles.gui_number}.xmlfile = parfile;
     end
  elseif FitMethod == 3
-    f = GUIgpuParameters;
+    f = GUIgpuParameters(handles.gui_number);
     waitfor(f);
     if SF{handles.gui_number}.FitPars.OK
         GPUmultiPars = SF{handles.gui_number}.FitPars; %#ok<NASGU>

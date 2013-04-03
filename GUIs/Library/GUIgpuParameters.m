@@ -52,17 +52,25 @@ function GUIgpuParameters_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to GUIgpuParameters (see VARARGIN)
 
-global FitPars
-set(handles.PSFsigma,'String',FitPars.PSFsigma);
-set(handles.AvePhotons,'String',FitPars.Nave);
-set(handles.Nmax,'String',FitPars.Nmax);
-set(handles.pvalue,'String',FitPars.pvalue_threshold);
-set(handles.resolution,'String',FitPars.resolution);
-set(handles.pixelsize,'String',FitPars.pixelsize);
-set(handles.boxsz,'String',FitPars.boxsz);
-set(handles.counts,'String',FitPars.counts_per_photon);
-set(handles.startFrame,'String',FitPars.startFrame);
-set(handles.endFrame,'String',FitPars.endFrame);
+global SF 
+% when called at closing there is no varargin input...  
+if ~isempty(varargin)
+    instanceID = varargin{1}; 
+    handles.instanceID = instanceID;
+else
+    instanceID = handles.instanceID;
+end
+
+set(handles.PSFsigma,'String',SF{instanceID}.FitPars.PSFsigma);
+set(handles.AvePhotons,'String',SF{instanceID}.FitPars.Nave);
+set(handles.Nmax,'String',SF{instanceID}.FitPars.Nmax);
+set(handles.pvalue,'String',SF{instanceID}.FitPars.pvalue_threshold);
+set(handles.resolution,'String',SF{instanceID}.FitPars.resolution);
+set(handles.pixelsize,'String',SF{instanceID}.FitPars.pixelsize);
+set(handles.boxsz,'String',SF{instanceID}.FitPars.boxsz);
+set(handles.counts,'String',SF{instanceID}.FitPars.counts_per_photon);
+set(handles.startFrame,'String',SF{instanceID}.FitPars.startFrame);
+set(handles.endFrame,'String',SF{instanceID}.FitPars.endFrame);
 
 
 % Choose default command line output for GUIgpuParameters
@@ -87,23 +95,24 @@ varargout{1} = handles.output;
 
 
 % --- Executes on button press in SavePars.
-function SavePars_Callback(hObject, eventdata, handles)
+function SavePars_Callback(hObject, eventdata, handles) %#ok<*INUSL>
 % hObject    handle to SavePars (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global FitPars
-FitPars.PSFsigma = get(handles.PSFsigma,'String'); 
-FitPars.Nave = get(handles.AvePhotons,'String'); 
-FitPars.Nmax = get(handles.Nmax,'String'); 
-FitPars.pvalue_threshold = get(handles.pvalue,'String'); 
-FitPars.resolution = get(handles.resolution,'String'); 
-FitPars.pixelsize = get(handles.pixelsize,'String');
-FitPars.boxsz = get(handles.boxsz,'String');
-FitPars.counts_per_photon = get(handles.counts,'String');
-FitPars.startFrame = get(handles.startFrame,'String');
-FitPars.endFrame = get(handles.endFrame,'String');
+global SF
+instanceID = handles.instanceID;
+SF{instanceID}.FitPars.PSFsigma = get(handles.PSFsigma,'String'); 
+SF{instanceID}.FitPars.Nave = get(handles.AvePhotons,'String'); 
+SF{instanceID}.FitPars.Nmax = get(handles.Nmax,'String'); 
+SF{instanceID}.FitPars.pvalue_threshold = get(handles.pvalue,'String'); 
+SF{instanceID}.FitPars.resolution = get(handles.resolution,'String'); 
+SF{instanceID}.FitPars.pixelsize = get(handles.pixelsize,'String');
+SF{instanceID}.FitPars.boxsz = get(handles.boxsz,'String');
+SF{instanceID}.FitPars.counts_per_photon = get(handles.counts,'String');
+SF{instanceID}.FitPars.startFrame = get(handles.startFrame,'String');
+SF{instanceID}.FitPars.endFrame = get(handles.endFrame,'String');
 
-FitPars.OK = true;
+SF{instanceID}.FitPars.OK = true;
 pause(.1); 
 close(GUIgpuParameters);
 
@@ -119,7 +128,7 @@ close(GUIgpuParameters);
 
 
 
-function PSFsigma_Callback(hObject, eventdata, handles)
+function PSFsigma_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSD>
 % hObject    handle to PSFsigma (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)

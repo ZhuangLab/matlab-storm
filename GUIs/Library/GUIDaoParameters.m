@@ -51,61 +51,65 @@ function GUIDaoParameters_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to GUIDaoParameters (see VARARGIN)
+% "Opening Func" actually called at opening AND closing!
+global SF 
 
-global FitPars
+% when called at closing there is no varargin input...  
+if ~isempty(varargin)
+    instanceID = varargin{1}; 
+    handles.instanceID = instanceID;
+else
+    instanceID = handles.instanceID;
+end
+
 % Set up default values based on input default pars file
    % General
-   if strcmp(FitPars.method,'2dfixed')
+   if strcmp(SF{instanceID}.FitPars.method,'2dfixed')
        Fmethod = 1;
-   elseif strcmp(FitPars.method,'2d')
+   elseif strcmp(SF{instanceID}.FitPars.method,'2d')
        Fmethod = 2;
-   elseif strcmp(FitPars.method,'3d')
+   elseif strcmp(SF{instanceID}.FitPars.method,'3d')
        Fmethod = 3;
-   elseif strcmp(FitPars.method,'Z')
+   elseif strcmp(SF{instanceID}.FitPars.method,'Z')
        Fmethod = 4;
    end
        
     set(handles.method,'Value',Fmethod);
-    set(handles.threshold,'String',FitPars.threshold);
-    set(handles.maxits,'String',FitPars.maxits);
-    set(handles.bkd,'String',FitPars.bkd );
-    set(handles.ppnm,'String',FitPars.ppnm );
-    set(handles.initwidth,'String',FitPars.initwidth );
-    set(handles.descriptor,'String',FitPars.descriptor);
-     set(handles.displacement,'String',FitPars.displacement);
-     set(handles.startFrame,'String',FitPars.startFrame);
-     set(handles.endFrame,'String',FitPars.endFrame); 
+    set(handles.threshold,'String',SF{instanceID}.FitPars.threshold);
+    set(handles.maxits,'String',SF{instanceID}.FitPars.maxits);
+    set(handles.bkd,'String',SF{instanceID}.FitPars.bkd );
+    set(handles.ppnm,'String',SF{instanceID}.FitPars.ppnm );
+    set(handles.initwidth,'String',SF{instanceID}.FitPars.initwidth );
+    set(handles.descriptor,'String',SF{instanceID}.FitPars.descriptor);
+     set(handles.displacement,'String',SF{instanceID}.FitPars.displacement);
+     set(handles.startFrame,'String',SF{instanceID}.FitPars.startFrame);
+     set(handles.endFrame,'String',SF{instanceID}.FitPars.endFrame); 
 
     % Drift
-    set(handles.CorDrift,'Value',logical(str2double(FitPars.CorDrift)));
-    set(handles.dframes,'String',FitPars.dframes);
-    set(handles.dscale,'String',FitPars.dscale );
+    set(handles.CorDrift,'Value',logical(str2double(SF{instanceID}.FitPars.CorDrift)));
+    set(handles.dframes,'String',SF{instanceID}.FitPars.dframes);
+    set(handles.dscale,'String',SF{instanceID}.FitPars.dscale );
 
     % Zcal
-   set(handles.Fit3D,'Value',logical(str2double(FitPars.Fit3D)));
-    set(handles.zcutoff,'String',FitPars.zcutoff);
-    set(handles.zstart,'String',FitPars.zstart);
-    set(handles.zend,'String',FitPars.zend );
-    set(handles.wx0,'String',FitPars.wx0 );
-    set(handles.gx,'String',FitPars.gx );
-     set(handles.zrx,'String',FitPars.zrx);
-    set(handles.Ax,'String',FitPars.Ax );
-    set(handles.Bx,'String',FitPars.Bx  );
-    set(handles.Cx,'String',FitPars.Cx );
-    set(handles.Dx,'String',FitPars.Dx );
-    set(handles.wy0,'String',FitPars.wy0 );
-     set(handles.gy,'String',FitPars.gy);
-    set(handles.zry,'String',FitPars.zry );
-     set(handles.Ay,'String',FitPars.Ay);
-    set(handles.By,'String',FitPars.By );
-    set(handles.Cy,'String',FitPars.Cy );
-    set(handles.Dy,'String',FitPars.Dy );
+   set(handles.Fit3D,'Value',logical(str2double(SF{instanceID}.FitPars.Fit3D)));
+    set(handles.zcutoff,'String',SF{instanceID}.FitPars.zcutoff);
+    set(handles.zstart,'String',SF{instanceID}.FitPars.zstart);
+    set(handles.zend,'String',SF{instanceID}.FitPars.zend );
+    set(handles.wx0,'String',SF{instanceID}.FitPars.wx0 );
+    set(handles.gx,'String',SF{instanceID}.FitPars.gx );
+     set(handles.zrx,'String',SF{instanceID}.FitPars.zrx);
+    set(handles.Ax,'String',SF{instanceID}.FitPars.Ax );
+    set(handles.Bx,'String',SF{instanceID}.FitPars.Bx  );
+    set(handles.Cx,'String',SF{instanceID}.FitPars.Cx );
+    set(handles.Dx,'String',SF{instanceID}.FitPars.Dx );
+    set(handles.wy0,'String',SF{instanceID}.FitPars.wy0 );
+     set(handles.gy,'String',SF{instanceID}.FitPars.gy);
+    set(handles.zry,'String',SF{instanceID}.FitPars.zry );
+     set(handles.Ay,'String',SF{instanceID}.FitPars.Ay);
+    set(handles.By,'String',SF{instanceID}.FitPars.By );
+    set(handles.Cy,'String',SF{instanceID}.FitPars.Cy );
+    set(handles.Dy,'String',SF{instanceID}.FitPars.Dy );
     
-
-
-    
-    
-
 
 % Choose default command line output for GUIDaoParameters
 handles.output = hObject;
@@ -118,7 +122,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = GUIDaoParameters_OutputFcn(hObject, eventdata, handles) 
+function varargout = GUIDaoParameters_OutputFcn(hObject, eventdata, handles)  %#ok<*INUSL>
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -134,56 +138,57 @@ function SavePars_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global FitPars
+global SF 
+instanceID = handles.instanceID;
 
 % General
 Fmethod =  get(handles.method,'Value');
 disp(Fmethod); 
    if  Fmethod == 1
-      FitPars.method='2dfixed';
+      SF{instanceID}.FitPars.method='2dfixed';
    elseif Fmethod == 2 
-       FitPars.method = '2d';
+       SF{instanceID}.FitPars.method = '2d';
    elseif Fmethod == 3
-       FitPars.method = '3d';
+      SF{instanceID}.FitPars.method = '3d';
    elseif Fmethod == 4
-      FitPars.method = 'Z' ;
+      SF{instanceID}.FitPars.method = 'Z' ;
    end
-FitPars.threshold = get(handles.threshold,'String');
-FitPars.maxits = get(handles.maxits,'String');
-FitPars.bkd = get(handles.bkd,'String');
-FitPars.ppnm = get(handles.ppnm,'String');
-FitPars.initwidth = get(handles.initwidth,'String');
-FitPars.descriptor = get(handles.descriptor,'String');
-FitPars.displacement =  get(handles.displacement,'String');
-FitPars.startFrame = get(handles.startFrame,'String');
-FitPars.endFrame = get(handles.endFrame,'String'); 
+SF{instanceID}.FitPars.threshold = get(handles.threshold,'String');
+SF{instanceID}.FitPars.maxits = get(handles.maxits,'String');
+SF{instanceID}.FitPars.bkd = get(handles.bkd,'String');
+SF{instanceID}.FitPars.ppnm = get(handles.ppnm,'String');
+SF{instanceID}.FitPars.initwidth = get(handles.initwidth,'String');
+SF{instanceID}.FitPars.descriptor = get(handles.descriptor,'String');
+SF{instanceID}.FitPars.displacement =  get(handles.displacement,'String');
+SF{instanceID}.FitPars.startFrame = get(handles.startFrame,'String');
+SF{instanceID}.FitPars.endFrame = get(handles.endFrame,'String'); 
 
 % Drift
-FitPars.CorDrift =  num2str(get(handles.CorDrift,'Value'));
-FitPars.dframes = get(handles.dframes,'String');
-FitPars.dscale = get(handles.dscale,'String');
+SF{instanceID}.FitPars.CorDrift =  num2str(get(handles.CorDrift,'Value'));
+SF{instanceID}.FitPars.dframes = get(handles.dframes,'String');
+SF{instanceID}.FitPars.dscale = get(handles.dscale,'String');
 
 % Zcal
-FitPars.Fit3D = num2str(get(handles.Fit3D,'Value'));
-FitPars.zcutoff = get(handles.zcutoff,'String');
-FitPars.zstart = get(handles.zstart,'String');
-FitPars.zend = get(handles.zend,'String');
-FitPars.wx0  = get(handles.wx0,'String');
-FitPars.gx  = get(handles.gx,'String');
-FitPars.zrx  = get(handles.zrx,'String');
-FitPars.Ax  = get(handles.Ax,'String');
-FitPars.Bx  = get(handles.Bx,'String');
-FitPars.Cx  = get(handles.Cx,'String');
-FitPars.Dx  = get(handles.Dx,'String');
-FitPars.wy0  = get(handles.wy0,'String');
-FitPars.gy  = get(handles.gy,'String');
-FitPars.zry  = get(handles.zry,'String');
-FitPars.Ay  = get(handles.Ay,'String');
-FitPars.By  = get(handles.By,'String');
-FitPars.Cy  = get(handles.Cy,'String');
-FitPars.Dy  = get(handles.Dy,'String');
+SF{instanceID}.FitPars.Fit3D = num2str(get(handles.Fit3D,'Value'));
+SF{instanceID}.FitPars.zcutoff = get(handles.zcutoff,'String');
+SF{instanceID}.FitPars.zstart = get(handles.zstart,'String');
+SF{instanceID}.FitPars.zend = get(handles.zend,'String');
+SF{instanceID}.FitPars.wx0  = get(handles.wx0,'String');
+SF{instanceID}.FitPars.gx  = get(handles.gx,'String');
+SF{instanceID}.FitPars.zrx  = get(handles.zrx,'String');
+SF{instanceID}.FitPars.Ax  = get(handles.Ax,'String');
+SF{instanceID}.FitPars.Bx  = get(handles.Bx,'String');
+SF{instanceID}.FitPars.Cx  = get(handles.Cx,'String');
+SF{instanceID}.FitPars.Dx  = get(handles.Dx,'String');
+SF{instanceID}.FitPars.wy0  = get(handles.wy0,'String');
+SF{instanceID}.FitPars.gy  = get(handles.gy,'String');
+SF{instanceID}.FitPars.zry  = get(handles.zry,'String');
+SF{instanceID}.FitPars.Ay  = get(handles.Ay,'String');
+SF{instanceID}.FitPars.By  = get(handles.By,'String');
+SF{instanceID}.FitPars.Cy  = get(handles.Cy,'String');
+SF{instanceID}.FitPars.Dy  = get(handles.Dy,'String');
 
-FitPars.OK = true;
+SF{instanceID}.FitPars.OK = true;
 pause(.1); 
 close(GUIDaoParameters);
 
@@ -194,11 +199,13 @@ close(GUIDaoParameters);
 
 
 % --- Executes on button press in cancel.
-function cancel_Callback(hObject, eventdata, handles)
+function cancel_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSD>
 % hObject    handle to cancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+global SF
+instanceID = handles.instanceID; 
+SF{instanceID}.FitPars.OK = false;
 close(GUIDaoParameters);
 
 
