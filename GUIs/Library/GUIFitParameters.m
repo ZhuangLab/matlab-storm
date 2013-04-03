@@ -22,10 +22,10 @@ function varargout = GUIFitParameters(varargin)
 
 % Edit the above text to modify the response to help GUIFitParameters
 
-% Last Modified by GUIDE v2.5 12-Feb-2013 22:15:41
+% Last Modified by GUIDE v2.5 02-Apr-2013 21:33:19
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
+gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
                    'gui_OpeningFcn', @GUIFitParameters_OpeningFcn, ...
