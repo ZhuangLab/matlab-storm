@@ -22,10 +22,10 @@ function varargout = GUIFitParameters(varargin)
 
 % Edit the above text to modify the response to help GUIFitParameters
 
-% Last Modified by GUIDE v2.5 02-Apr-2013 21:33:19
+% Last Modified by GUIDE v2.5 03-Apr-2013 10:53:06
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 0;
+gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
                    'gui_OpeningFcn', @GUIFitParameters_OpeningFcn, ...
@@ -57,10 +57,8 @@ global SF
 if ~isempty(varargin)
     instanceID = varargin{1}; 
     handles.instanceID = instanceID;
-else
-    instanceID = handles.instanceID;
-end
-
+    disp(['instanceID =',num2str(instanceID)]);
+    
 % Set up default values based on input default pars file
     % General
     set(handles.minheight,'String',SF{instanceID}.FitPars.minheight);
@@ -100,8 +98,7 @@ end
     set(handles.zstart,'String',SF{instanceID}.FitPars.zstart);
     set(handles.zend,'String',SF{instanceID}.FitPars.zend);
     set(handles.zstep,'String',SF{instanceID}.FitPars.zstep);
-
-
+end
 
 % Choose default command line output for GUIFitParameters
 handles.output = hObject;
@@ -169,7 +166,6 @@ SF{instanceID}.FitPars.zop  = get(handles.zop,'String');
 SF{instanceID}.FitPars.zstart = get(handles.zstart,'String');
 SF{instanceID}.FitPars.zend = get(handles.zend,'String');
 SF{instanceID}.FitPars.zstep = get(handles.zstep,'String');
-
 SF{instanceID}.FitPars.OK = true;
 
 pause(.1); 

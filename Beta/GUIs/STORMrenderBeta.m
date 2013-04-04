@@ -580,8 +580,10 @@ function imsetup(hObject,eventdata, handles)
     end
     
     
-    imaxes.H = 256; % actual size of image
-    imaxes.W = 256;
+    
+    
+    imaxes.H = SR{handles.gui_number}.infofile.frame_dimensions(1); % actual size of image
+    imaxes.W = SR{handles.gui_number}.infofile.frame_dimensions(2);
     imaxes.scale = 2;  % upscale on display
     imaxes.zm = 1;
     imaxes.cx = imaxes.W/2;

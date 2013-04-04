@@ -28,8 +28,6 @@ elseif strcmp(c,'single') == 1 || strcmp(c,'double') == 1
     m = max(v);
 end
 
-minp
-maxp
 
 if sum(I(:))~= 0
     if minp~=1
@@ -44,6 +42,11 @@ if sum(I(:))~= 0
         o2 = double(v(round(s*l)))/m;
     end
 
+    if o1 >= o2;
+        disp('warning: maxp + minp must be <= 1');
+        o2 = 1.01*o1; 
+    end
+    
     Iout = imadjust(I,[o1,o2],[0,1]); 
 else
     Iout = I;

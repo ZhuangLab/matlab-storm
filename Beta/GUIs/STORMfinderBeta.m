@@ -28,7 +28,7 @@ function varargout = STORMfinderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMfinderBeta
 
-% Last Modified by GUIDE v2.5 15-Feb-2013 22:47:11
+% Last Modified by GUIDE v2.5 04-Apr-2013 13:59:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -65,23 +65,24 @@ else
     SF = [SF;cell(1,1)];
 end
 
-handles.gui_number = length(SF);
-SF{handles.gui_number}.daxfile = daxfile; 
+gui_number = length(SF);
+
+SF{gui_number}.daxfile = daxfile; 
 % initialize other variables as empty
-SF{handles.gui_number}.inifile = ''; 
-SF{handles.gui_number}.xmlfile = ''; 
-SF{handles.gui_number}.gpufile = ''; 
-SF{handles.gui_number}.mlist = []; 
-SF{handles.gui_number}.FitPars = []; 
-SF{handles.gui_number}.impars = []; 
+SF{gui_number}.inifile = ''; 
+SF{gui_number}.xmlfile = ''; 
+SF{gui_number}.gpufile = ''; 
+SF{gui_number}.mlist = []; 
+SF{gui_number}.FitPars = []; 
+SF{gui_number}.impars = []; 
+SF{gui_number}.fullmlist = []; 
 %
-
-% set(handles.SFinstance,'String',['inst id',num2str(handles.gui_number)]);
-
+set(handles.SFinstance,'String',['inst id',num2str(gui_number)]);
 
 % Choose default command line output for STORMfinderBeta
 handles.output = hObject;
 
+handles.gui_number = gui_number;
 % Update handles structure
 guidata(hObject, handles);
 
@@ -92,10 +93,11 @@ guidata(hObject, handles);
 
 % If any daxfile has been loaded, open it along with opening the GUI.  
 try
-LoadFile_Callback(hObject, eventdata, handles)
+UpdateDax_Callback(hObject, eventdata, handles)
 catch 
     disp('please load a dax file into matlab');
-    disp('drag and drop to command window, then press Update Dax File');
+    disp('drag and drop a .dax file in the command window, then press Update Dax File');
+    disp('Or select File > Load Dax File'); 
 end
 
 % set(handles.FitMethod,'Value',2); % set default method to DaoSTORM
@@ -236,7 +238,6 @@ axis off;
 % rectangle(mlist.x(:),mlist.y(:),mlist.w(:),mlist.w(:));
 
 
-
 % --------------------------------------------------------------------
 function Plotdots3D_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to Plotdots3D (see GCBO)
@@ -259,14 +260,65 @@ end
 
 
 
-% --- Executes on button press in LoadFile.
-function LoadFile_Callback(hObject, eventdata, handles)
-% hObject    handle to LoadFile (see GCBO)
+
+% --------------------------------------------------------------------
+function MenuLoadDax_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuLoadDax (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+global SF
+if ~isempty(SF{handles.gui_number}.daxfile)
+    startfolder = extractpath(SF{handles.gui_number}.daxfile); 
+else
+     startfolder = pwd;
+end
+[FileName,PathName,FilterIndex] = uigetfile({'*.dax','Dax file (*.dax)';...
+    '*.*','All Files (*.*)'},'Select dax file',startfolder);
+if FilterIndex ~= 0 % loading operation was not canceled
+    SF{handles.gui_number}.daxfile = [PathName,FileName];
+    LoadDax(hObject,handles);
+end
+
+% --------------------------------------------------------------------
+function MenuLoadBin_Callback(hObject, eventdata, handles)
+global SF
+if ~isempty(SF{handles.gui_number}.daxfile)
+    startfolder = extractpath(SF{handles.gui_number}.daxfile); 
+else
+     startfolder = pwd;
+end
+[FileName,PathName,FilterIndex] = uigetfile({'*.bin','Bin file (*.bin)';...
+    '*.*','All Files (*.*)'},'Select molecule list',startfolder);
+if FilterIndex ~= 0 % loading operation was not canceled
+    SF{handles.gui_number}.binpath = [PathName,FileName];
+    try
+    SF{handles.gui_number}.fullmlist = ...
+        ReadMasterMoleculeList(SF{handles.gui_number}.binpath); 
+    catch er
+       disp(er.message); 
+       disp(['loading failed.  Is ',[PathName,FileName],...
+           ' a valid .bin file?']); 
+    end
+end
+
+
+% --------------------------------------------------------------------
+function MenuClearBin_Callback(hObject, eventdata, handles)
+global SF
+    SF{handles.gui_number}.fullmlist = []; 
+
+
+
+% --- Executes on button press in UpdateDax.
+function UpdateDax_Callback(hObject, eventdata, handles)
 global SF daxfile
 % reads in global daxfile from 
 SF{handles.gui_number}.daxfile = daxfile;
+LoadDax(hObject,handles);
+
+
+function LoadDax(hObject,handles)
+global SF
 % Read info menufile
     iminfo = ReadInfoFile(SF{handles.gui_number}.daxfile);
     SF{handles.gui_number}.impars.h = iminfo.frame_dimensions(1);
@@ -310,11 +362,24 @@ function UpdateFrame(hObject,handles)
      axis off; 
     set(handles.title1,'String',SF{handles.gui_number}.daxfile);
     set(handles.FrameSlider,'Value',SF{handles.gui_number}.impars.cframe); % update slider
+    
+    % If a binfile has been loaded, plot the localizations in this frame; 
+    if ~isempty(SF{handles.gui_number}.fullmlist)
+        hold on;  
+        inframe = (SF{handles.gui_number}.fullmlist.frame == cframe); 
+        plot(SF{handles.gui_number}.fullmlist.x(inframe),...
+            SF{handles.gui_number}.fullmlist.y(inframe),'yo','MarkerSize',20);
+        axis off;
+    end
+    
     guidata(hObject, handles);
     % the transpose here is merely to match insight.  
     SF{handles.gui_number}.impars.Im = Im; 
 
  
+    
+    
+    
 
 function [FitPars,parameters] = ReadParameterFile(FitMethod,handles)
 % loads contents of inifile or xmlfile into data structure FitPars
@@ -484,6 +549,7 @@ SF{handles.gui_number}.FitPars.OK = false;
     end
  %   disp(inifile);
  elseif FitMethod == 2    % DaoSTORM   
+     disp(['SF instanceID = ', num2str(handles.gui_number)]);
     f = GUIDaoParameters(handles.gui_number);
     waitfor(f); % need to wait until parameter selection is closed.   
     if SF{handles.gui_number}.FitPars.OK % only update parameters if user presses save button
@@ -714,7 +780,6 @@ end
 
 dlg_title = 'Run all dax files in folder';
 num_lines = 1;
-disp('...menu built.  select again to run');
 Dprompt = {
     'batch size';
     'all dax files containing string'; %  
@@ -939,6 +1004,8 @@ if ~isempty(i2xopts) % Dialogue was not canceled or closed
     set(handles.CurrentPars,'String',SF{handles.gui_number}.xmlfile);
     set(handles.FitMethod,'Value',2);
 end
+
+
 
 
 

@@ -41,6 +41,10 @@ function I = plotSTORM_colorZ(mlist, imaxes, varargin)
 %              -- Number of different z-levels to render
 % 'Zrange' / double / [-500,500] 
 %              -- range in nm for color axis
+% 'scalebar' / double / 500
+%              -- size of scalebar in nm.  0 for no scalebar.
+% 'correct drift' / logical / true
+%              -- plot xc/yc or x/y coordinates of mlist
 %--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
@@ -164,9 +168,17 @@ for c=chns
       for k=1:Zs
           if length(x{c}) >1
              inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax & z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
-             xi = (x{c}(inbox & infilter{c}')-imaxes.xmin);
-             yi = (y{c}(inbox & infilter{c}')-imaxes.ymin);
-             si = sig{c}(inbox & infilter{c}');
+             try
+               plotdots = inbox & infilter{c}';
+             catch %#ok<CTCH>
+                 size(inbox)
+                 size(infilter{c})
+                 plotdots = inbox & infilter{c};
+             end
+                 
+             xi = (x{c}(plotdots)-imaxes.xmin);
+             yi = (y{c}(plotdots)-imaxes.ymin);
+             si = sig{c}(plotdots);
              si(si<maxdotsize) = maxdotsize;  % 
              Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';    
              Iz(:,:,k) = Itemp;

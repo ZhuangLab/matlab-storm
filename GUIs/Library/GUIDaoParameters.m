@@ -22,10 +22,10 @@ function varargout = GUIDaoParameters(varargin)
 
 % Edit the above text to modify the response to help GUIDaoParameters
 
-% Last Modified by GUIDE v2.5 02-Apr-2013 21:33:02
+% Last Modified by GUIDE v2.5 03-Apr-2013 10:53:24
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 0;
+gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
                    'gui_OpeningFcn', @GUIDaoParameters_OpeningFcn, ...
@@ -140,10 +140,8 @@ function SavePars_Callback(hObject, eventdata, handles)
 
 global SF 
 instanceID = handles.instanceID;
-
 % General
 Fmethod =  get(handles.method,'Value');
-disp(Fmethod); 
    if  Fmethod == 1
       SF{instanceID}.FitPars.method='2dfixed';
    elseif Fmethod == 2 
@@ -206,6 +204,7 @@ function cancel_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSD>
 global SF
 instanceID = handles.instanceID; 
 SF{instanceID}.FitPars.OK = false;
+pause(.1); 
 close(GUIDaoParameters);
 
 
