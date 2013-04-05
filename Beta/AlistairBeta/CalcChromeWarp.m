@@ -935,9 +935,10 @@ end
     
     
   function  WriteDax(movie,info,tag,newpath)
-    info.hend = info.frame_dimensions(2)/2;
-    info.vend = info.frame_dimensions(1)/2;
-    info.frame_dimensions = [info.hend,info.vend];
+      % % 
+%     info.hend = info.frame_dimensions(2)/2;
+%     info.vend = info.frame_dimensions(1)/2;
+%     info.frame_dimensions = [info.hend,info.vend];
     info.localName = [tag,'_',info.localName];
     info.localPath = newpath;
     info.file = [info.localPath,info.localName(1:end-4),'.dax'];
