@@ -124,7 +124,8 @@ guidata(hObject, handles);
 
 
 if ~isempty(binfile)
-    QuickLoad_Callback(hObject, eventdata, handles);
+    QuickLoad(hObject, eventdata, handles);
+    handles = guidata(hObject); % for some reason this doesn't work if called from within QuickLoad.  
 end
 
 % Update handles structure
@@ -151,7 +152,7 @@ varargout{1} = handles.output;
 %%                               Load Data
 %========================================================================%
 % --- Executes on button press in QuickLoad.
-function QuickLoad_Callback(hObject, eventdata, handles)
+function QuickLoad(hObject, eventdata, handles)
 global binfile SR
 SR{handles.gui_number}.mlist = [];
 if isempty(binfile)
@@ -164,6 +165,8 @@ handles = AddStormLayer(hObject,handles,FileName,[]);
 guidata(hObject, handles);
 handles = guidata(hObject);
 SingleBinLoad(hObject,eventdata,handles);
+handles = guidata(hObject);
+guidata(hObject, handles);
 
 % --------------------------------------------------------------------
 function MenuOpenBin_Callback(hObject, eventdata, handles)
@@ -356,6 +359,8 @@ end
         % channel on and off.  
     global SR ScratchPath  %#ok<NUSED>
     % save([ScratchPath,'test2.mat']); 
+    
+    disp('Adding New STORM layer');
     
     if ~isfield(handles,'stormbutton')
         handles.stormbutton = [];
@@ -914,14 +919,8 @@ Cs = length(I);
 [h,w,Zs] = size(I{1});
 Noverlays = length(SR{handles.gui_number}.Oz);
 
- save([ScratchPath,'test.mat']);
-% load([ScratchPath,'test.mat']);
 % Find out which channels are toggled for display
-%------------------------------------------------------------
-        disp('button =');
-        disp(handles.stormbutton)
-           
-
+%------------------------------------------------------------        
 channels = zeros(1,Cs); % Storm Channels
     for c = 1:Cs; % length(handles.stormbutton)
         channels(c) = get(handles.stormbutton(c),'Value');
@@ -1722,51 +1721,54 @@ catch er
     '0',...
     '0',...
     '[]',...
-    '5',...
+    '4',...
     '',...
     '[0,.3]'};
     Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
 end
 
-if isempty(Overlay_opts{1})
-[filename,pathname] = uigetfile({'*.dax;*.jpg;*.png;*.tif',...
-    'Image files (*.dax, *.jpg, *.png, *.tif)';
-    '*.dax','DAX (*.dax)';
-    '*.jpg', 'JPEGS (*.jpg)';
-    '*.tif', 'TIFF (*.tif)';
-    '*.png', 'PNG (*.png)';
-    '*.*', 'All Files (*.*)'},'Choose an image file to overlay',...
-    SR{handles.gui_number}.LoadOps.pathin); % prompts user to select directory 
-sourcename = [pathname,filesep,filename];
-Overlay_opts{1} = sourcename;
-end
-k = strfind(Overlay_opts{1},'.dax');
-if isempty(k)
-    Otemp = imread(Overlay_opts{1}); % load image file;
-else
-    Otemp = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
-    Otemp = uint16(mean(Otemp,3));  % might cause problems
-end
-Noverlays = length(SR{handles.gui_number}.O);
-if isempty(Overlay_opts{9})
-    SR{handles.gui_number}.O{Noverlays+1} = Otemp; 
-    overlay_number = length(SR{handles.gui_number}.O);%  ;
-else
-    overlay_number =  eval(Overlay_opts{9});
-    SR{handles.gui_number}.O{overlay_number} = Otemp;
-end
+if ~isempty(Overlay_opts) % Load Overlay Not canceled
 
-% Still need to address contrast for overlays
-imcaxis = eval(Overlay_opts{10});
-SR{handles.gui_number}.omin(overlay_number) = imcaxis(1);
-SR{handles.gui_number}.omax(overlay_number) = imcaxis(2);
-[~,filename] = extractpath(Overlay_opts{1});
-SR{handles.gui_number}.Overlay_opts = Overlay_opts ;
+    if isempty(Overlay_opts{1})
+    [filename,pathname] = uigetfile({'*.dax;*.jpg;*.png;*.tif',...
+        'Image files (*.dax, *.jpg, *.png, *.tif)';
+        '*.dax','DAX (*.dax)';
+        '*.jpg', 'JPEGS (*.jpg)';
+        '*.tif', 'TIFF (*.tif)';
+        '*.png', 'PNG (*.png)';
+        '*.*', 'All Files (*.*)'},'Choose an image file to overlay',...
+        SR{handles.gui_number}.LoadOps.pathin); % prompts user to select directory 
+    sourcename = [pathname,filesep,filename];
+    Overlay_opts{1} = sourcename;
+    end
+    k = strfind(Overlay_opts{1},'.dax');
+    if isempty(k)
+        Otemp = imread(Overlay_opts{1}); % load image file;
+    else  % For DAX files
+        Otemp = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
+        Otemp = uint16(mean(Otemp,3));  %average all frames loaded.   might cause problems
+    end
+    Noverlays = length(SR{handles.gui_number}.O);
+    if isempty(Overlay_opts{9})
+        SR{handles.gui_number}.O{Noverlays+1} = Otemp; 
+        overlay_number = length(SR{handles.gui_number}.O);%  ;
+    else
+        overlay_number =  eval(Overlay_opts{9});
+        SR{handles.gui_number}.O{overlay_number} = Otemp;
+    end
 
-handles = AddOverlayLayer(hObject,handles,overlay_number,filename);
-guidata(hObject, handles);
-IntegrateOverlay(hObject,handles);
+    % Still need to address contrast for overlays
+    imcaxis = eval(Overlay_opts{10});
+    SR{handles.gui_number}.omin(overlay_number) = imcaxis(1);
+    SR{handles.gui_number}.omax(overlay_number) = imcaxis(2);
+    [~,filename] = extractpath(Overlay_opts{1});
+    SR{handles.gui_number}.Overlay_opts = Overlay_opts ;
 
+    % Add to Overlays List
+    handles = AddOverlayLayer(hObject,handles,overlay_number,filename);
+    guidata(hObject, handles);
+    IntegrateOverlay(hObject,handles);
+end
 
 
 
