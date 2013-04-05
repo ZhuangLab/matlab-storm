@@ -32,6 +32,7 @@ function [MosaicView,Im,box_coords] = MosaicViewer(folder,position,varargin)
 %                   advisable.  If only low res images, shrink should be at
 %                   least the ratio of 100x to the mag used (i.e. 5 for
 %                   20x images) 
+% 'showbox' / logical / false
 % 'verbose' / logical / true
 %                   -- print progress and warnings to command line. 
 %--------------------------------------------------------------------------
@@ -51,6 +52,7 @@ global ScratchPath
 %% Default Parameters
 %--------------------------------------------------------------------------
 multicolor = true;
+showbox = false;
 shrk = 1; 
 N = 30; 
 verbose = true; 
@@ -90,6 +92,8 @@ if nargin > 1
                 N = CheckParameter(parameterValue,'positive','Ntiles');
             case 'fighandle'
                 MosaicView = CheckParameter(parameterValue,'nonnegative','fighandle');
+            case 'showbox'
+                showbox = CheckParameter(parameterValue,'boolean','showbox');
             case 'verbose';
                 verbose = CheckParameter(parameterValue,'boolean','verbose');
             otherwise
@@ -250,11 +254,14 @@ end
   box_cy = my*position(1)+ by-ymin+256;
   box_cx = mx*position(2)+ bx-xmin+256;
   box_coords = [box_cx - 127,box_cy-127,256,256];
-   figure(MosaicView);  hold on;
-  rectangle('Position',box_coords,'EdgeColor','w');
-  lin = findobj(gca,'Type','patch');
-  set(lin,'color','w','linewidth',3);
-  
+   
+  if showbox
+      figure(MosaicView);  hold on;
+      rectangle('Position',box_coords,'EdgeColor','w');
+      lin = findobj(gca,'Type','patch');
+      set(lin,'color','w','linewidth',3);
+      hold off;
+  end
 %   
 %       % % For troubleshooting:   
 %   sy = median(y(mag==1)./xu(mag==1));
