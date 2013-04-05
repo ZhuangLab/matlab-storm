@@ -613,9 +613,11 @@ default_opts = {
      num2str(SF{handles.gui_number}.impars.cmax)};
  
 default_opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
+if ~isempty(default_opts) % was not canceled
 SF{handles.gui_number}.impars.cmin = str2double(default_opts{1});
 SF{handles.gui_number}.impars.cmax = str2double(default_opts{2});
 UpdateFrame(hObject, handles);
+end
 
 % --------------------------------------------------------------------
 function AutoContrast_ClickedCallback(hObject, eventdata, handles)
@@ -750,7 +752,43 @@ function MenuAnalyzeRegion_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuAnalyzeRegion (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-disp('sorry, function not available yet'); 
+global SF
+
+[x,y] = ginput(2); 
+x = round(x);
+y = round(y); % need to cut at even pixels
+xmin = min(x); 
+xmax = max(x);
+ymin = min(y);
+ymax = max(y); 
+xsize = xmax - xmin;
+ysize = ymax - ymin; 
+[xmin,xmax,ymin,ymax]
+
+axes(handles.axes1); hold on;
+rectangle('Position',[xmin,ymin,xsize,ysize],'EdgeColor','w');
+axis off; 
+hold off;   
+pause(.1); 
+[movie, infoFile] = ReadDaxBeta(SF{handles.gui_number}.daxfile,...
+    'subregion',[xmin,xmax,ymin,ymax]);
+disp('grabbing region...')
+infoFile.localName = ['Reg_x',num2str(xmin),'to',num2str(xmax),...
+    'y',num2str(ymin),'to',num2str(ymax),infoFile.localName];
+WriteDAXFiles(movie,infoFile);
+daxname = [infoFile.localPath,infoFile.localName(1:end-4),'.dax'];
+ FitMethod = get(handles.FitMethod,'Value');
+if FitMethod == 1
+ RunDotFinder('daxfile',daxname,'parsfile',...
+     SF{handles.gui_number}.inifile,'method','insight');
+elseif FitMethod == 2
+ RunDotFinder('daxfile',daxname,'parsfile',...
+     SF{handles.gui_number}.xmlfile,'method','DaoSTORM'); 
+elseif FitMethod == 3
+ RunDotFinder('daxfile',daxname,'parsfile',...
+     SF{handles.gui_number}.gpufile,'method','GPUmultifit'); 
+end
+
 
 % --------------------------------------------------------------------
 function MenuAnalyzeAll_Callback(hObject, eventdata, handles)
