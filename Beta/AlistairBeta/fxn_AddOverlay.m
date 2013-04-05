@@ -154,10 +154,10 @@ end
 % scale and then cut (more precise but more memory)
 sc = imaxes.zm*imaxes.scale;
 Oz = imresize(O,sc,'nearest');
-x1 = round(imaxes.xmin*sc)+xshift;
-x2 = round(imaxes.xmax*sc)+xshift;
-y1 = round(imaxes.ymin*sc)+yshift;
-y2 = round(imaxes.ymax*sc)+yshift;
+x1 = round((imaxes.xmin-.5+xshift)*sc);
+x2 = round((imaxes.xmax-.5+xshift)*sc);
+y1 = round((imaxes.ymin-.5+yshift)*sc);
+y2 = round((imaxes.ymax-.5+yshift)*sc);
 
 [Hmax,Wmax,C] = size(Oz);
 h1 = max(1,y1);
