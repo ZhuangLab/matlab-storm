@@ -14,9 +14,10 @@ a. The goal here is to lower the number dependencies and also the number of path
 3. Develop work around for current GPU code for rendering
 a. Write c-code to render quickly (Jeff)
 4. Extend molecule list format
-5. Create matlab wrapper for daostorm
+
 
 ## Recently Finished
 6. Convert all globals in GUIs to be cell arrays indexed by the ID# of the GUI
+5. Create matlab wrapper for daostorm
 
  

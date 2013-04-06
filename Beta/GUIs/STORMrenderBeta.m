@@ -1166,8 +1166,8 @@ function zoomin_Callback(hObject, eventdata, handles)
 global SR
 imaxes = SR{handles.gui_number}.imaxes;
 imaxes.zm = imaxes.zm*2; 
-if imaxes.zm > 64
-    imaxes.zm = 64;
+if imaxes.zm > 128
+    imaxes.zm = 128;
     disp('max zoom reached...');
 end
 SR{handles.gui_number}.imaxes = imaxes;
@@ -1238,8 +1238,8 @@ imaxes.cy = mean(yim); % y is indexed bottom to top for plotting
 xdiff = abs(xim(2) - xim(1));
 ydiff = abs(yim(2) - yim(1));
 imaxes.zm =   min(imaxes.W/xdiff, imaxes.H/ydiff); 
-if imaxes.zm > 64
-    imaxes.zm = 64;
+if imaxes.zm > 128
+    imaxes.zm = 128;
     disp('max zoom reached...');
 end
 set(handles.displayzm,'String',num2str(imaxes.zm,2));

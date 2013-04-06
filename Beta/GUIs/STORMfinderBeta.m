@@ -763,18 +763,17 @@ ymin = min(y);
 ymax = max(y); 
 xsize = xmax - xmin;
 ysize = ymax - ymin; 
-[xmin,xmax,ymin,ymax]
 
 axes(handles.axes1); hold on;
 rectangle('Position',[xmin,ymin,xsize,ysize],'EdgeColor','w');
-axis off; 
-hold off;   
+axis off;   
 pause(.1); 
 [movie, infoFile] = ReadDaxBeta(SF{handles.gui_number}.daxfile,...
     'subregion',[xmin,xmax,ymin,ymax]);
 disp('grabbing region...')
 infoFile.localName = ['Reg_x',num2str(xmin),'to',num2str(xmax),...
-    'y',num2str(ymin),'to',num2str(ymax),infoFile.localName];
+    'y',num2str(ymin),'to',num2str(ymax),'_',infoFile.localName];
+
 WriteDAXFiles(movie,infoFile);
 daxname = [infoFile.localPath,infoFile.localName(1:end-4),'.dax'];
  FitMethod = get(handles.FitMethod,'Value');
