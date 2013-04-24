@@ -34,4 +34,4 @@ Everyone is welcome to contribute to matlab-storm but any code contributed must 
 
 =======
 ## Additional Software for Analysis
-Some aspects of this analysis package depend on the Insight and DAO-STORM software packages written by others. These packages can be found online (DAO-STORM; http://zhuang.harvard.edu/software/3d_daostorm.html) or can be provided by request (Insight; Matt Kilroy kilroy at chem.harvard.edu). For instructions on integrating this software with matlab-storm, contact Alistair or Jeff. 
+Some aspects of this analysis package depend on the Insight and 3D-DAOSTORM software packages written by others. These packages can be found online (3D-DAOSTORM; http://zhuang.harvard.edu/software/3d_daostorm.html) or can be provided by request (Insight; Matt Kilroy kilroy at chem.harvard.edu). For instructions on integrating this software with matlab-storm, contact Alistair or Jeff. 
