@@ -106,7 +106,7 @@ global defaultDaoSTORM
 % this makes it easy to change default values
 batchsize = 1;
 overwrite = 2; % ask user
-minsize = 1E6;
+minsize = 20E6;
 daxroot = '';
 parsroot = '';
 method = 'DaoSTORM';
@@ -309,12 +309,12 @@ for s=1:Sections % loop through all dax movies in que
          % Actually launch insightM and poll computer for number of processes
             if runinMatlab % 
                 if printprogress  % Print fitting progress to command line
-                    system([defaultInsightPath,' ',daxfile,' ',parsfile]);  
+                    system([defaultInsightPath,' "',daxfile,'" "',parsfile,'"']);  
                 else  % Don't print to command line (save output in text file)
-                    system([defaultInsightPath,' ',daxfile,' ',parsfile,' >' dpath,'\newlog',num2str(s),'.txt']); 
+                    system([defaultInsightPath,' "',daxfile,'" "',parsfile,'" >' dpath,'\newlog',num2str(s),'.txt']); 
                 end
             else
-               system_command = [defaultInsightPath,' ',daxfile,' ',parsfile, ' && exit &']; 
+               system_command = [defaultInsightPath,' "',daxfile,'" ',parsfile, '" && exit &']; 
                prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
                batchwait = true;
             end
@@ -322,12 +322,12 @@ for s=1:Sections % loop through all dax movies in que
             binfile = [dpath,filesep,daxroots{s},datatype];
             if runinMatlab % 
                 if printprogress  % Print fitting progress to command line
-                    system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile]);  
+                    system([defaultDaoSTORM,' "',daxfile,'" "',binfile,'" "',parsfile,'"']);  
                 else  % Don't print to command line (save output in text file)
-                    system([defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile,' >' dpath,'\newlog',num2str(s),'.txt']); 
+                    system([defaultDaoSTORM,' "',daxfile,'" "',binfile,'" "',parsfile,'" >' dpath,'\newlog',num2str(s),'.txt']); 
                 end
             else  % Launch silently in the background
-                system_command = [defaultDaoSTORM,' ',daxfile,' ',binfile,' ',parsfile, ' && exit &']; 
+                system_command = [defaultDaoSTORM,' "',daxfile,'" "',binfile,'" "',parsfile, '" && exit &']; 
                 prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
                 batchwait = true;
             end          

@@ -232,7 +232,9 @@ if ~Quadviewsplit
             'Offset', (startFrame-1)*frameSize, ...
             'Repeat', numFrames*frameSize);  
        region.sr = [xi,xe,yi,ye];
+       
        movie = multiparse(memoryMap,orientation,region);
+       infoFile = UpdateInfo(infoFile,region);
        
 %     [ri,ci,zi] = meshgrid(xi:xe,yi:ye,region.frame1:region.nframes);
 %     ind = sub2ind([frameDim(1),frameDim(2),TFrames],ri(:),ci(:),zi(:));
@@ -267,7 +269,9 @@ else
     lowerleft = multiparse(memoryMap,orientation,region); % lowerleft
     region.sr = uint32([frameDim(1)/2+1,frameDim(1),frameDim(2)/2+1,frameDim(2)]);
     lowerright = multiparse(memoryMap,orientation,region); % lowerright
+    
     movie = {upperleft,upperright,lowerleft,lowerright};
+    infoFile = UpdateInfo(infoFile,region);
     %--------------------------------------------------
 end
 
@@ -290,6 +294,14 @@ function movie = multiparse(memoryMap,orientation,region)
      movie = permute(reshape(movie, [xs,ys,region.nframes]), [2 1 3]);
     end
 
+function  info = UpdateInfo(info,region)
+    xs = region.sr(2)-region.sr(1)+uint32(1);
+    ys = region.sr(4)-region.sr(3)+uint32(1);
+    info.hend = xs;
+    info.vend = ys;
+    info.frame_dimensions = [info.hend,info.vend];
+    info.file = [info.localPath,info.localName(1:end-4),'.dax'];
+    
 
 %  % Old memory maps (to delete in later update) 
 % 

@@ -22,7 +22,7 @@ function varargout = GUIFitParameters(varargin)
 
 % Edit the above text to modify the response to help GUIFitParameters
 
-% Last Modified by GUIDE v2.5 12-Feb-2013 22:15:41
+% Last Modified by GUIDE v2.5 03-Apr-2013 10:53:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,48 +52,53 @@ function GUIFitParameters_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to GUIFitParameters (see VARARGIN)
 
-global FitPars
+global SF 
+% when called at closing there is no varargin input...  
+if ~isempty(varargin)
+    instanceID = varargin{1}; 
+    handles.instanceID = instanceID;
+    disp(['instanceID =',num2str(instanceID)]);
+    
 % Set up default values based on input default pars file
     % General
-    set(handles.minheight,'String',FitPars.minheight);
-    set(handles.maxheight,'String',FitPars.maxheight);
-    set(handles.bkd,'String',FitPars.bkd);
-    set(handles.minwidth,'String',FitPars.minwidth);
-    set(handles.maxwidth,'String',FitPars.maxwidth);
-    set(handles.initwidth,'String',FitPars.initwidth);
-    set(handles.maxaxratio,'String',FitPars.maxaxratio);
-    set(handles.fitROI,'String',FitPars.fitROI);
-    set(handles.displacement,'String',FitPars.displacement);
-    set(handles.startFrame,'String',FitPars.startFrame);
+    set(handles.minheight,'String',SF{instanceID}.FitPars.minheight);
+    set(handles.maxheight,'String',SF{instanceID}.FitPars.maxheight);
+    set(handles.bkd,'String',SF{instanceID}.FitPars.bkd);
+    set(handles.minwidth,'String',SF{instanceID}.FitPars.minwidth);
+    set(handles.maxwidth,'String',SF{instanceID}.FitPars.maxwidth);
+    set(handles.initwidth,'String',SF{instanceID}.FitPars.initwidth);
+    set(handles.maxaxratio,'String',SF{instanceID}.FitPars.maxaxratio);
+    set(handles.fitROI,'String',SF{instanceID}.FitPars.fitROI);
+    set(handles.displacement,'String',SF{instanceID}.FitPars.displacement);
+    set(handles.startFrame,'String',SF{instanceID}.FitPars.startFrame);
 
     % Drift
-    if  strmatch(FitPars.CorDrift,'1')
+    if  strcmp(SF{instanceID}.FitPars.CorDrift,'1')
         set(handles.CorDrift,'Value',true);
     else 
        set(handles.CorDrift,'Value',false);
     end
-    set(handles.xymols,'String',FitPars.xymols);
-    set(handles.zmols,'String',FitPars.zmols);
-    set(handles.minframes,'String',FitPars.minframes);
-    set(handles.maxframes,'String',FitPars.maxframes);
-    set(handles.xygridxy,'String',FitPars.xygridxy);
-    set(handles.xygridz,'String',FitPars.xygridz);
-    set(handles.movAxy,'String',FitPars.movAxy);
-    set(handles.movAz,'String',FitPars.movAz);
+    set(handles.xymols,'String',SF{instanceID}.FitPars.xymols);
+    set(handles.zmols,'String',SF{instanceID}.FitPars.zmols);
+    set(handles.minframes,'String',SF{instanceID}.FitPars.minframes);
+    set(handles.maxframes,'String',SF{instanceID}.FitPars.maxframes);
+    set(handles.xygridxy,'String',SF{instanceID}.FitPars.xygridxy);
+    set(handles.xygridz,'String',SF{instanceID}.FitPars.xygridz);
+    set(handles.movAxy,'String',SF{instanceID}.FitPars.movAxy);
+    set(handles.movAz,'String',SF{instanceID}.FitPars.movAz);
 
     % Zcal
-    if strmatch(FitPars.Fit3D,'2')
+    if strcmp(SF{instanceID}.FitPars.Fit3D,'2')
        set(handles.Fit3D,'Value',1);
     else 
         set(handles.Fit3D,'Value',0);
     end
-    set(handles.zcaltxt,'String',FitPars.zcaltxt);
-    set(handles.zop,'String',FitPars.zop);
-    set(handles.zstart,'String',FitPars.zstart);
-    set(handles.zend,'String',FitPars.zend);
-    set(handles.zstep,'String',FitPars.zstep);
-
-
+    set(handles.zcaltxt,'String',SF{instanceID}.FitPars.zcaltxt);
+    set(handles.zop,'String',SF{instanceID}.FitPars.zop);
+    set(handles.zstart,'String',SF{instanceID}.FitPars.zstart);
+    set(handles.zend,'String',SF{instanceID}.FitPars.zend);
+    set(handles.zstep,'String',SF{instanceID}.FitPars.zstep);
+end
 
 % Choose default command line output for GUIFitParameters
 handles.output = hObject;
@@ -117,50 +122,51 @@ varargout{1} = handles.output;
 
 
 % --- Executes on button press in SavePars.
-function SavePars_Callback(hObject, eventdata, handles)
+function SavePars_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSL>
 % hObject    handle to SavePars (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global FitPars
+global SF
+
+instanceID = handles.instanceID; 
 
 % General
-FitPars.minheight = get(handles.minheight,'String');
-FitPars.maxheight = get(handles.maxheight,'String');
-FitPars.bkd = get(handles.bkd,'String');
-FitPars.minwidth = get(handles.minwidth,'String');
-FitPars.maxwidth = get(handles.maxwidth,'String');
-FitPars.initwidth = get(handles.initwidth,'String');
-FitPars.maxaxratio = get(handles.maxaxratio,'String');
-FitPars.fitROI = get(handles.fitROI,'String');
-FitPars.displacement =  get(handles.displacement,'String');
-FitPars.startFrame = get(handles.startFrame,'String'); 
+SF{instanceID}.FitPars.minheight = get(handles.minheight,'String');
+SF{instanceID}.FitPars.maxheight = get(handles.maxheight,'String');
+SF{instanceID}.FitPars.bkd = get(handles.bkd,'String');
+SF{instanceID}.FitPars.minwidth = get(handles.minwidth,'String');
+SF{instanceID}.FitPars.maxwidth = get(handles.maxwidth,'String');
+SF{instanceID}.FitPars.initwidth = get(handles.initwidth,'String');
+SF{instanceID}.FitPars.maxaxratio = get(handles.maxaxratio,'String');
+SF{instanceID}.FitPars.fitROI = get(handles.fitROI,'String');
+SF{instanceID}.FitPars.displacement =  get(handles.displacement,'String');
+SF{instanceID}.FitPars.startFrame = get(handles.startFrame,'String'); 
 
 % Drift
-FitPars.CorDrift =  num2str(get(handles.CorDrift,'Value'));
-FitPars.xymols = get(handles.xymols,'String');
-FitPars.zmols = get(handles.zmols,'String');
-FitPars.minframes = get(handles.minframes,'String');
-FitPars.maxframes = get(handles.maxframes,'String');
-FitPars.xygridxy = get(handles.xygridxy,'String');
-FitPars.xygridz = get(handles.xygridz,'String');
-FitPars.movAxy = get(handles.movAxy,'String');
-FitPars.movAz = get(handles.movAz,'String');
+SF{instanceID}.FitPars.CorDrift =  num2str(get(handles.CorDrift,'Value'));
+SF{instanceID}.FitPars.xymols = get(handles.xymols,'String');
+SF{instanceID}.FitPars.zmols = get(handles.zmols,'String');
+SF{instanceID}.FitPars.minframes = get(handles.minframes,'String');
+SF{instanceID}.FitPars.maxframes = get(handles.maxframes,'String');
+SF{instanceID}.FitPars.xygridxy = get(handles.xygridxy,'String');
+SF{instanceID}.FitPars.xygridz = get(handles.xygridz,'String');
+SF{instanceID}.FitPars.movAxy = get(handles.movAxy,'String');
+SF{instanceID}.FitPars.movAz = get(handles.movAz,'String');
 
 % Zcal
 fit3d = get(handles.Fit3D,'Value');
 if fit3d == 1   
-    FitPars.Fit3D = '2';
+    SF{instanceID}.FitPars.Fit3D = '2';
 else 
-    FitPars.Fit3D = '0';
+    SF{instanceID}.FitPars.Fit3D = '0';
 end
-FitPars.zcaltxt = get(handles.zcaltxt,'String');
-FitPars.zop  = get(handles.zop,'String');
-FitPars.zstart = get(handles.zstart,'String');
-FitPars.zend = get(handles.zend,'String');
-FitPars.zstep = get(handles.zstep,'String');
-
-FitPars.OK = true;
+SF{instanceID}.FitPars.zcaltxt = get(handles.zcaltxt,'String');
+SF{instanceID}.FitPars.zop  = get(handles.zop,'String');
+SF{instanceID}.FitPars.zstart = get(handles.zstart,'String');
+SF{instanceID}.FitPars.zend = get(handles.zend,'String');
+SF{instanceID}.FitPars.zstep = get(handles.zstep,'String');
+SF{instanceID}.FitPars.OK = true;
 
 pause(.1); 
 close(GUIFitParameters);
@@ -170,13 +176,15 @@ function Cancel_Callback(hObject, eventdata, handles)
 % hObject    handle to Cancel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-FitPars.OK = false;
+global SF
+instanceID = handles.instanceID; 
+SF{instanceID}.FitPars.OK = false;
 close(GUIFitParameters);
 
 
 
 % --- Executes on button press in CorDrift.
-function CorDrift_Callback(hObject, eventdata, handles)
+function CorDrift_Callback(hObject, eventdata, handles) %#ok<*INUSD>
 % hObject    handle to CorDrift (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)

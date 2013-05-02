@@ -58,11 +58,11 @@ end
 
 
 %--------------------------------------------------------------------------
-% Parse Variable Input Arguments
+%% Main Function
 %--------------------------------------------------------------------------
 if ispc
     gotpaused = false;
-    [~,load] = dos('wmic cpu get loadpercentage');
+    [~,load] = dos('wmic cpu get loadpercentage');  % the key line. 
     load = str2double(regexp(load,'[0-9]+','match'));
     while load> MaxLoad
         if verbose

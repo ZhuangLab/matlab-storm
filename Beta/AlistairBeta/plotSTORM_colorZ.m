@@ -41,6 +41,10 @@ function I = plotSTORM_colorZ(mlist, imaxes, varargin)
 %              -- Number of different z-levels to render
 % 'Zrange' / double / [-500,500] 
 %              -- range in nm for color axis
+% 'scalebar' / double / 500
+%              -- size of scalebar in nm.  0 for no scalebar.
+% 'correct drift' / logical / true
+%              -- plot xc/yc or x/y coordinates of mlist
 %--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
@@ -79,6 +83,7 @@ Zs = 20;
 Zrange = [-500,500]; % range in nm 
 npp = 160; 
 scalebar = 500;
+CorrectDrift = true;
 %--------------------------------------------------------------------------
 
 
@@ -111,6 +116,8 @@ if nargin > 2
                 npp = CheckParameter(parameterValue,'positive','nm per pixel');
             case 'scalebar'
                 scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
+            case 'correct drift'
+                CorrectDrift = CheckParameter(parameterValue,'nonnegative','correct drift');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -132,9 +139,15 @@ z = cell(Cs,1);
 
 
 for c=chns
-    x{c} = mlist{c}.xc;
-    y{c} = mlist{c}.yc;
-    z{c} = mlist{c}.zc;
+    if CorrectDrift
+        x{c} = mlist{c}.xc;
+        y{c} = mlist{c}.yc;
+        z{c} = mlist{c}.zc;
+    else
+        x{c} = mlist{c}.x;
+        y{c} = mlist{c}.y;
+        z{c} = mlist{c}.z;
+    end
     a = mlist{c}.a;
     sig{c} = real(dotsize./sqrt(a)); % 5
 end
@@ -155,9 +168,17 @@ for c=chns
       for k=1:Zs
           if length(x{c}) >1
              inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax & z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
-             xi = (x{c}(inbox & infilter{c}')-imaxes.xmin);
-             yi = (y{c}(inbox & infilter{c}')-imaxes.ymin);
-             si = sig{c}(inbox & infilter{c}');
+             try
+               plotdots = inbox & infilter{c}';
+             catch %#ok<CTCH>
+                 size(inbox)
+                 size(infilter{c})
+                 plotdots = inbox & infilter{c};
+             end
+                 
+             xi = (x{c}(plotdots)-imaxes.xmin);
+             yi = (y{c}(plotdots)-imaxes.ymin);
+             si = sig{c}(plotdots);
              si(si<maxdotsize) = maxdotsize;  % 
              Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';    
              Iz(:,:,k) = Itemp;

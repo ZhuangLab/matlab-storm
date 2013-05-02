@@ -1,4 +1,4 @@
-function MosaicView = MosaicViewer(folder,position,varargin)
+function [MosaicView,Im,box_coords] = MosaicViewer(folder,position,varargin)
 %--------------------------------------------------------------------------
 % MosaicView = MosaicViewer(folder,position,varargin)
 % 
@@ -13,6 +13,8 @@ function MosaicView = MosaicViewer(folder,position,varargin)
 %--------------------------------------------------------------------------
 % Outputs:
 % MosaicView / handle to figure created. 
+% Im / image matrix plotted in figure
+% box / coordinates of box
 %--------------------------------------------------------------------------
 % Optional Inputs:
 % 'Ntiles' / double / 30
@@ -30,6 +32,7 @@ function MosaicView = MosaicViewer(folder,position,varargin)
 %                   advisable.  If only low res images, shrink should be at
 %                   least the ratio of 100x to the mag used (i.e. 5 for
 %                   20x images) 
+% 'showbox' / logical / false
 % 'verbose' / logical / true
 %                   -- print progress and warnings to command line. 
 %--------------------------------------------------------------------------
@@ -49,6 +52,7 @@ global ScratchPath
 %% Default Parameters
 %--------------------------------------------------------------------------
 multicolor = true;
+showbox = false;
 shrk = 1; 
 N = 30; 
 verbose = true; 
@@ -88,6 +92,8 @@ if nargin > 1
                 N = CheckParameter(parameterValue,'positive','Ntiles');
             case 'fighandle'
                 MosaicView = CheckParameter(parameterValue,'nonnegative','fighandle');
+            case 'showbox'
+                showbox = CheckParameter(parameterValue,'boolean','showbox');
             case 'verbose';
                 verbose = CheckParameter(parameterValue,'boolean','verbose');
             otherwise
@@ -139,15 +145,14 @@ mag= cellfun(@str2double,M(:,6));
 
 [frames,~] = knnsearch([xu,yu],position,'k',N);
 
-% % For troubleshooting:   
-%   sy = median(y(mag==1)./xu(mag==1));
-%   sx = median(x(mag==1)./yu(mag==1));
+
 
 % get dimensions of grid to plot:
 xmin = min(x(frames));
 xmax = max(x(frames));
 ymin = min(y(frames));
 ymax = max(y(frames));
+
 
 xs = round(xmax - xmin + 256); 
 ys = round(ymax - ymin + 256);
@@ -202,9 +207,9 @@ for k = 1:length(frames);
     h2 = round(h/2); % avoid integer operands for colon operator warning
     w2 = round(w/2); 
     
-    if k==1
-        chn=1;
-    end
+%     if k==1  % Highlight the closest frame in red
+%         chn=1;
+%     end
   y1 = Y(i)+1-h2;
   y2 = Y(i)+h2;
   x1 = X(i)+1-w2;
@@ -225,10 +230,41 @@ for k = 1:length(frames);
   end
 end
 
+
+
 if isempty(MosaicView)
     MosaicView = figure; clf;
 else
     figure(MosaicView); 
 end
   image(imresize(Im,1)); 
+  
+% Plot box
+  my = (y(end)-y(1)) / (xu(end)-xu(1));
+  by = -128;
+  
+ %  x2 = linspace(-800,600); y2 = m*x2-128;
+ % figure(2); clf; plot(xu(mag==1),y(mag==1),'k');
+  %hold on; plot(x2,y2);
+  
+  mx = (x(end)-x(1)) / (yu(end)-yu(1));
+  bx = -128; 
+  %figure(2); clf; plot(yu,x,'k');
+
+  box_cy = my*position(1)+ by-ymin+256;
+  box_cx = mx*position(2)+ bx-xmin+256;
+  box_coords = [box_cx - 127,box_cy-127,256,256];
+   
+  if showbox
+      figure(MosaicView);  hold on;
+      rectangle('Position',box_coords,'EdgeColor','w');
+      lin = findobj(gca,'Type','patch');
+      set(lin,'color','w','linewidth',3);
+      hold off;
+  end
+%   
+%       % % For troubleshooting:   
+%   sy = median(y(mag==1)./xu(mag==1));
+%   sx = median(x(mag==1)./yu(mag==1));
+  
 
