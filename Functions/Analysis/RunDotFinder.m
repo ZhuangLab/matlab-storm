@@ -327,7 +327,7 @@ for s=1:Sections % loop through all dax movies in que
                     system([defaultDaoSTORM,' "',daxfile,'" "',binfile,'" "',parsfile,'" >' dpath,'\newlog',num2str(s),'.txt']); 
                 end
             else  % Launch silently in the background
-                system_command = [defaultDaoSTORM,'" "',daxfile,'" "',binfile,'" "',parsfile, '" && exit &']; 
+                system_command = [defaultDaoSTORM,' "',daxfile,'" "',binfile,'" "',parsfile, '" && exit &']; 
                 prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
                 batchwait = true;
             end          
