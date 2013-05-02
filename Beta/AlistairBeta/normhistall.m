@@ -1,9 +1,18 @@
 
 function fighand = normhistall(data,varargin)
-
-% normhistall(data)      -- histograms of the data in each cell of data
+%--------------------------------------------------------------------------
+% normhistall(data)       -- histograms of the data in each cell of data
 % normhistall(data,bins)  -- histograms of the data in each cell of data
-% normhistall(data,x)
+% normhistall(data,x)     -- break data evenly into x bins
+% normhistall(...,'groupnames',cell) -- cell of names for figure legend
+% normhistall(...,'xlabel',string)   -- string for xlabel
+% normhistall(...,'alpha',alphavalue) -- zero for alpha off
+% normhistall(...,'colormap',colormap-name) -- colormap (e.g. 'hsv')
+%--------------------------------------------------------------------------
+% Alistair Boettiger
+% CC BY 04/25/13
+%--------------------------------------------------------------------------
+% 
 
 %--------------------------------------------------------------------------
 %% Default Parameters
@@ -53,8 +62,6 @@ if nargin > 2
                 xlab = CheckParameter(parameterValue, 'string', 'xlabel');
             case 'colormap'
                 clrmap = CheckParameter(parameterValue,'string','colormap'); 
-            case 'fighandle'
-                fighand = CheckParameter(parameterValue, 'positive', 'fighandle');
             case 'alpha'
                 alphavalue = CheckParameter(parameterValue, 'nonnegative', 'alpha');
             otherwise
@@ -63,12 +70,6 @@ if nargin > 2
                     mfilename '''.' '  See help ' mfilename]);
         end
     end
-end
-
-if isempty(fighand)
-    fighand = figure; clf;
-else
-    figure(fighand); 
 end
 
 %--------------------------------------------------------------------------

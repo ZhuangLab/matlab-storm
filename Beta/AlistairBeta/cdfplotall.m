@@ -1,4 +1,17 @@
 function fighand = cdfplotall(data,varargin)
+%--------------------------------------------------------------------------
+% cdfplotall(data)       -- histograms of the data in each cell of data
+% cdfplotall(data,bins)  -- histograms of the data in each cell of data
+% cdfplotall(data,x)     -- break data evenly into x bins
+% cdfplotall(...,'groupnames',cell) -- cell of names for figure legend
+% cdfplotall(...,'xlabel',string)   -- string for xlabel
+% cdfplotall(...,'alpha',alphavalue) -- zero for alpha off
+% cdfplotall(...,'colormap',colormap-name) -- colormap (e.g. 'hsv')
+%--------------------------------------------------------------------------
+% Alistair Boettiger
+% CC BY 04/25/13
+%--------------------------------------------------------------------------
+% 
 
 %--------------------------------------------------------------------------
 %% Default Parameters
@@ -27,8 +40,6 @@ if nargin > 1
                 xlab = CheckParameter(parameterValue, 'string', 'xlabel');
             case 'colormap'
                 clrmap = CheckParameter(parameterValue,'string','colormap'); 
-            case 'fighandle'
-                fighand= CheckParameter(parameterValue, 'positive', 'fighandle');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -37,11 +48,7 @@ if nargin > 1
     end
 end
 
-if isempty(fighand)
-    fighand = figure; clf;
-else
-    figure(fighand); 
-end
+
 
 %--------------------------------------------------------------------------
 %% Main function
