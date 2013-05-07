@@ -232,7 +232,7 @@ end
 
 %% ~~~~ Decide if existing data files should be skipped or overwritten ~~~~~%    
 % structure containing names of all bin files in folder 
-    all_prev_bin = dir([dpath,'\','*',daxroot,'*',datatype]);
+    all_prev_bin = dir([dpath,filesep,'*',daxroot,'*',datatype]);
     binnames = {all_prev_bin(:).name};
     binroots = regexprep(binnames,datatype,''); % strip off file endings
 
@@ -260,16 +260,17 @@ if sum(hasbin) ~= 0
         disp(overwrite)
         disp('is not a valid value for overwrite'); 
     end
-    if overwritefiles==1
+    if overwritefiles==1    
         % files must be physically deleted to enable a fresh daoSTORM
         % analysis.  
-        if strcmp('method','daoSTORM')
-            allextra = daxroots(logical(hasbin));
-            for a = 1:length(allextra)
-                delete(strcat(allextra{a},datatype));
-                alist = dir(strcat(allextra{a},'_alist.bin'));
+        if strcmp(method,'DaoSTORM')
+            disp('overwritefiles = 1');
+            for a = find(logical(hasbin));
+                disp(['deleting ',dpath,filesep,strcat(daxroots{a},'_alist.bin')]);          
+                delete([dpath,filesep,strcat(daxroots{a},datatype)]);
+                alist = dir([dpath,filesep,strcat(daxroots{a},'_alist.bin')]);     
                 if length(alist)>1
-                    delete(strcat(allextra{a},'_alist.bin'));
+                    delete([dpath,filesep,strcat(daxroots{a},'_alist.bin')]);
                 end
             end
         end

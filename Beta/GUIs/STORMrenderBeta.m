@@ -1128,17 +1128,17 @@ set(handles.MaxIntBox,'String',num2str(maxin));
   
 % --- Executes on update of MinIntBox  
 function MinIntBox_Callback(hObject, eventdata, handles) %#ok<*INUSL>
- minin = str2double(get(handles.MinIntBox,'Value'));
+ minin = str2double(get(handles.MinIntBox,'String'));
  set(handles.MinIntSlider,'Value',minin);
  scalecolor(hObject,handles);
  guidata(hObject, handles); 
 
  % --- Executes on update of MaxIntBox
 function MaxIntBox_Callback(hObject, eventdata, handles)      
- maxin = str2double(get(handles.MaxIntBox,'Value'));
+ maxin = str2double(get(handles.MaxIntBox,'String'))
  set(handles.MaxIntSlider,'Value',maxin);
- scalecolor(hObject,handles);
- guidata(hObject, handles); 
+  scalecolor(hObject,handles);
+  guidata(hObject, handles); 
  
 % --- Executes on slider movement.
 function MaxIntSlider_Callback(hObject, eventdata, handles)
@@ -1730,7 +1730,7 @@ end
 if ~isempty(Overlay_opts) % Load Overlay Not canceled
 
     if isempty(Overlay_opts{1})
-    [filename,pathname] = uigetfile({'*.dax;*.jpg;*.png;*.tif',...
+    [filename,pathname,selected] = uigetfile({'*.dax;*.jpg;*.png;*.tif',...
         'Image files (*.dax, *.jpg, *.png, *.tif)';
         '*.dax','DAX (*.dax)';
         '*.jpg', 'JPEGS (*.jpg)';
@@ -1741,33 +1741,36 @@ if ~isempty(Overlay_opts) % Load Overlay Not canceled
     sourcename = [pathname,filesep,filename];
     Overlay_opts{1} = sourcename;
     end
-    k = strfind(Overlay_opts{1},'.dax');
-    if isempty(k)
-        Otemp = imread(Overlay_opts{1}); % load image file;
-    else  % For DAX files
-        Otemp = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
-        Otemp = uint16(mean(Otemp,3));  %average all frames loaded.   might cause problems
-    end
-    Noverlays = length(SR{handles.gui_number}.O);
-    if isempty(Overlay_opts{9})
-        SR{handles.gui_number}.O{Noverlays+1} = Otemp; 
-        overlay_number = length(SR{handles.gui_number}.O);%  ;
-    else
-        overlay_number =  eval(Overlay_opts{9});
-        SR{handles.gui_number}.O{overlay_number} = Otemp;
-    end
+    
+    if selected~=0;
+        k = strfind(Overlay_opts{1},'.dax');
+        if isempty(k)
+            Otemp = imread(Overlay_opts{1}); % load image file;
+        else  % For DAX files
+            Otemp = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
+            Otemp = uint16(mean(Otemp,3));  %average all frames loaded.   might cause problems
+        end
+        Noverlays = length(SR{handles.gui_number}.O);
+        if isempty(Overlay_opts{9})
+            SR{handles.gui_number}.O{Noverlays+1} = Otemp; 
+            overlay_number = length(SR{handles.gui_number}.O);%  ;
+        else
+            overlay_number =  eval(Overlay_opts{9});
+            SR{handles.gui_number}.O{overlay_number} = Otemp;
+        end
 
-    % Still need to address contrast for overlays
-    imcaxis = eval(Overlay_opts{10});
-    SR{handles.gui_number}.omin(overlay_number) = imcaxis(1);
-    SR{handles.gui_number}.omax(overlay_number) = imcaxis(2);
-    [~,filename] = extractpath(Overlay_opts{1});
-    SR{handles.gui_number}.Overlay_opts = Overlay_opts ;
+        % Still need to address contrast for overlays
+        imcaxis = eval(Overlay_opts{10});
+        SR{handles.gui_number}.omin(overlay_number) = imcaxis(1);
+        SR{handles.gui_number}.omax(overlay_number) = imcaxis(2);
+        [~,filename] = extractpath(Overlay_opts{1});
+        SR{handles.gui_number}.Overlay_opts = Overlay_opts ;
 
-    % Add to Overlays List
-    handles = AddOverlayLayer(hObject,handles,overlay_number,filename);
-    guidata(hObject, handles);
-    IntegrateOverlay(hObject,handles);
+        % Add to Overlays List
+        handles = AddOverlayLayer(hObject,handles,overlay_number,filename);
+        guidata(hObject, handles);
+        IntegrateOverlay(hObject,handles);
+    end
 end
 
 
