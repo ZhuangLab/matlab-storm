@@ -35,19 +35,20 @@ for c = channels
     %--------------------------------------------------------------------
     % convert a user defined string into a filter (see examples)
     if strcmp(par,'custom') % apply custom filter
-          disp({'custom filter: f = logical function of m.*';
-              'examples';
-              '"f = [m.a] > 100" % returns molecules with parameter a > 100';
-              ' "f =  ([m.i] ./ [m.a]) > .5 & ([m.i] ./ [m.a]) <5 ; | [m.i] > 1000" returns  ';       
-           ' "[idx,dist] = knnsearch(transpose([[m.xc];[m.yc]]),transpose([m.xc,m.yc]),"k",4); f = (max(dist,[],2) < 5);  %  this returns molecules with more than k=4 neighbors in a radius of dmax=5. note: need to change double " to single to eval.'});                        
+%           disp({'custom filter: f = logical function of m.*';
+%               'examples';
+%               '"f = [m.a] > 100" % returns molecules with parameter a > 100';
+%               ' "f =  ([m.i] ./ [m.a]) > .5 & ([m.i] ./ [m.a]) <5 ; | [m.i] > 1000" returns  ';       
+%            ' "[idx,dist] = knnsearch(transpose([[m.xc];[m.yc]]),transpose([m.xc,m.yc]),"k",4); f = (max(dist,[],2) < 5);  %  this returns molecules with more than k=4 neighbors in a radius of dmax=5. note: need to change double " to single to eval.'});                        
 
         m = mlist{c}; % allow for shorthand entry (see above)
-        eval(myfilt); 
+        eval([myfilt,';']); 
      
         
         infilter{c} = infilter{c} & logical(f);
         filts.custom = myfilt;
-        
+          disp([num2str(sum(logical(f))/length([logical(f)])*100),'% of localizations kept']);
+   
     %--------------------------------------------------------------------
     % only render localization which are inside a user defined box
     elseif strcmp(par,'region');
@@ -81,8 +82,8 @@ for c = channels
         disp(v);
         infilter{c} = infilter{c} & (datarange > v(1) & datarange < v(2));
 
-        disp(['keeping ', num2str(sum( (datarange > v(1) & datarange < v(2)) )/N*100,4),'% of values']);
-        disp(['Now showing ',num2str(sum(infilter{c})/N*100,4),'% of localizations']); 
+        disp(char(['keeping ', num2str(sum( (datarange > v(1) & datarange < v(2)) )/N*100,4),'% of values']));
+        disp(char(['Now showing ',num2str(sum(infilter{c})/N*100,4),'% of localizations'])); 
         
         % save and display filter bounds
       % filts = setfield(filts,par,v); % old (functional/tested cmd)

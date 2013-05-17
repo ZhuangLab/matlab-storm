@@ -1682,7 +1682,7 @@ function MenuOverlay_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuOverlay (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SR
+global SR binfile
 
 if ~isfield(SR{handles.gui_number},'Overlay_opts')
     SR{handles.gui_number}.Overlay_opts = [];
@@ -1730,6 +1730,16 @@ end
 if ~isempty(Overlay_opts) % Load Overlay Not canceled
 
     if isempty(Overlay_opts{1})
+        
+        if ~isempty(SR{handles.gui_number}.LoadOps.pathin)
+            startfolder = SR{handles.gui_number}.LoadOps.pathin;
+        elseif ~isempty(binfile)
+            startfolder = extractpath(binfile);
+        else
+            startfolder = pwd;
+        end
+        
+        
     [filename,pathname,selected] = uigetfile({'*.dax;*.jpg;*.png;*.tif',...
         'Image files (*.dax, *.jpg, *.png, *.tif)';
         '*.dax','DAX (*.dax)';
@@ -1737,9 +1747,11 @@ if ~isempty(Overlay_opts) % Load Overlay Not canceled
         '*.tif', 'TIFF (*.tif)';
         '*.png', 'PNG (*.png)';
         '*.*', 'All Files (*.*)'},'Choose an image file to overlay',...
-        SR{handles.gui_number}.LoadOps.pathin); % prompts user to select directory 
+        startfolder); % prompts user to select directory 
     sourcename = [pathname,filesep,filename];
     Overlay_opts{1} = sourcename;
+    else 
+        selected = 1;
     end
     
     if selected~=0;
