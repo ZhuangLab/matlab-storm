@@ -174,9 +174,6 @@ end
 numFrames = endFrame - startFrame + 1;
 
 fileName = [infoFile.localName(1:(end-4)) '.dax'];
-if verbose
-    display(['Loading ' infoFile.localPath fileName ]);
-end
 
 % Read File
 fid = fopen([infoFile.localPath fileName]);
@@ -188,7 +185,6 @@ fseek(fid,(frameSize*(startFrame - 1))*16/8,'bof'); % bits/(bytes per bit)
 dataSize = frameSize*numFrames;
 movie = fread(fid, dataSize, '*uint16', 'b');
 fclose(fid);
-
 
 try % Catch corrupt files
     if numFrames == 1
@@ -207,7 +203,7 @@ catch
 end
 
 if verbose
-    display(['Loaded ' infoFile.localPath fileName ]);
+    display(['Loaded: ' infoFile.localPath fileName ]);
     display([num2str(numFrames) ' ' num2str(frameDim(1)) ' x ' num2str(frameDim(2)) ...
         ' frames loaded']);
 end

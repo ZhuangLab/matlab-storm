@@ -148,6 +148,10 @@ switch returnForm
         display(['Error: ' returnForm ' is not a valid option for returnForm']);
 end
 
+if verbose
+    display(['Loaded: ' fileName]);
+end
+
 %--------------------------------------------------------------------------
 % Organization of the .hrf files
 %--------------------------------------------------------------------------

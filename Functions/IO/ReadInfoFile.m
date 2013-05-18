@@ -198,5 +198,5 @@ for j=1:length(text)
 end
 
 if verbose
-    display(['Loaded ' infFilePath name]);
+    display(['Loaded Info File: ' infFilePath '\' name]);
 end
