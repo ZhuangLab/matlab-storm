@@ -961,7 +961,7 @@ function MenuChromeWarp_Callback(hObject, eventdata, handles) %#ok<*INUSL>
 % hObject    handle to MenuChromeWarp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SF
+global SF chromeWarpPars
 
 FitMethod = get(handles.FitMethod,'Value');
 if FitMethod == 1
@@ -972,10 +972,11 @@ elseif FitMethod == 3
     method = 'GPUmultifit';
 end
 
-SF{handles.gui_number}.chromeWarpPars.OK = false;
+chromeWarpPars.OK = false; 
 pathin = extractpath(SF{handles.gui_number}.daxfile);
 f = ChromeWarpParameters; 
 waitfor(f);
+SF{handles.gui_number}.chromeWarpPars = chromeWarpPars;   
   
 if SF{handles.gui_number}.chromeWarpPars.OK
     M = SF{handles.gui_number}.chromeWarpPars.NMovieSets;
