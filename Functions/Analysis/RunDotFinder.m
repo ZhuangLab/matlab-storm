@@ -315,7 +315,7 @@ for s=1:Sections % loop through all dax movies in que
                     system([defaultInsightPath,' "',daxfile,'" "',parsfile,'" >' dpath,'\newlog',num2str(s),'.txt']); 
                 end
             else
-               system_command = [defaultInsightPath,' "',daxfile,'" ',parsfile, '" && exit &']; 
+               system_command = [defaultInsightPath,' "',daxfile,'" "',parsfile, '" && exit &']; 
                prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
                batchwait = true;
             end
