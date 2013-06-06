@@ -105,8 +105,14 @@ end
 
 % Read in .mat files and get list
 %-----------------------------------
-mtiles = dir([Mosaic_folder,'*.mat']);
+mtiles = dir([Mosaic_folder,filesep,'*.mat']);
 M = length(mtiles); 
+if M==0
+    disp(['found ',num2str(M),' tiles in folder ',Mosaic_folder]); 
+end
+if verbose
+    disp(['found ',num2str(M),' tiles in folder ',Mosaic_folder]);
+end
 
 xu = zeros(M,1);
 yu = zeros(M,1);
@@ -116,14 +122,16 @@ z = zeros(M,1);
 mag = zeros(M,1);
 
 for m=1:M
-     load([Mosaic_folder,mtiles(m).name]);
+     load([Mosaic_folder,filesep,mtiles(m).name]);
          xp(m) = x_pix;
          xu(m) = x_um;
          yp(m) = y_pix;
          yu(m) = y_um;
          mag(m) = magnification;
          z(m) = zvalue;
-         disp(['sorting data... ',num2str(100*m/M,3),'%']);
+         if verbose
+            disp(['sorting data... ',num2str(100*m/M,3),'%']);
+         end
 end
 
 N = min(N,M); 
@@ -136,10 +144,10 @@ else
     magmin = 1;
 end
     
-xmin = min(xp(frames)-magmin*128);
-xmax = max(xp(frames)+magmin*128);
-ymin = min(yp(frames)-magmin*128);
-ymax = max(yp(frames)+magmin*128);
+xmin = min(xp(frames)-magmin*256);
+xmax = max(xp(frames)+magmin*256);
+ymin = min(yp(frames)-magmin*256);
+ymax = max(yp(frames)+magmin*256);
 
 xs = round(xmax - xmin); 
 ys = round(ymax - ymin);
@@ -170,7 +178,7 @@ else
 end
 for k = 1:length(frames); 
     i = frames(k);
-    load([Mosaic_folder,mtiles(i).name]);
+    load([Mosaic_folder,filesep,mtiles(i).name]);
     im = data;
 
     % for plotting the 4x images, need to scale up:
@@ -189,6 +197,7 @@ for k = 1:length(frames);
     y2 = Y(i)+h2;
     x1 = X(i)+1-w2;
     x2 = X(i)+w2;
+    
     if showall
         Im(y1:y2,x1:x2) = uint16(im);
     else
@@ -216,8 +225,8 @@ end
 mx = ( max(xp(mag==1)) - min(xp(mag==1)) )/( max(xu(mag==1)) - min(xu(mag==1)) ) ;
 my = ( max(yp(mag==1)) - min(yp(mag==1)) )/( max(yu(mag==1)) - min(yu(mag==1)) ) ;
 
-box_cx = mx*position(1)-xmin;
-box_cy = my*position(2)-ymin;
+box_cx = mx*position(1)-xmin-256;
+box_cy = my*position(2)-ymin-256;
 box_coords = [box_cx,box_cy,256,256];
    
 if showbox && nargout==0;
