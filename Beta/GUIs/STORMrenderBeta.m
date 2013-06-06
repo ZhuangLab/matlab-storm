@@ -659,7 +659,7 @@ end
 if isempty(I) || isempty(SR{handles.gui_number}.cmax) || isempty(SR{handles.gui_number}.cmin)
     disp('no image data to save');
 end
-if isempty(Ozoom)
+if isempty(Oz)
     disp('no overlay to save');
 end
 
@@ -883,7 +883,9 @@ function ApplyFilter_Callback(hObject, eventdata, handles)
  for c=1:channels;
     local_filter{c} = vlist{c}.locinfilter;
  end
-  [newfilter,filts] = applyfilter(vlist,local_filter, filts, channels, par, myfilt); 
+  axes(handles.axes2);  
+  [newfilter,filts] = applyfilter(vlist,local_filter, filts, channels, par, myfilt,...
+      SR{handles.gui_number}.imaxes); 
   
   
   for c=1:channels
@@ -1868,7 +1870,7 @@ default_Dopts{1} = num2str(SR{handles.gui_number}.DisplayOps.ColorZ);
 default_Dopts{2} = num2str(SR{handles.gui_number}.DisplayOps.Zsteps);
 default_Dopts{3} = strcat('[',num2str(SR{handles.gui_number}.DisplayOps.zrange),']');
 default_Dopts{4} = num2str(SR{handles.gui_number}.DisplayOps.HidePoor);
-default_Dopts{5} = num2str(SR{handles.gui_number}.DisplayOps.DotScale);
+default_Dopts{5} = strcat('[',num2str(SR{handles.gui_number}.DisplayOps.DotScale),']');
 default_Dopts{6} = num2str(SR{handles.gui_number}.DisplayOps.scalebar);
 default_Dopts{7} = num2str(SR{handles.gui_number}.DisplayOps.npp);
 default_Dopts{8} = num2str(SR{handles.gui_number}.DisplayOps.verbose); 
@@ -1921,7 +1923,10 @@ if isempty(SR{handles.gui_number}.Mosaicfolder)
     end
 end    
 position = [infofile.Stage_X,infofile.Stage_Y];
-MosaicViewer(SR{handles.gui_number}.Mosaicfolder,position);
+% MosaicViewer(SR{handles.gui_number}.Mosaicfolder,position);
+figure;
+viewSteveMosaic(SR{handles.gui_number}.Mosaicfolder,position,'showbox',true);
+
 
 %%
 

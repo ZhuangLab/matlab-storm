@@ -54,6 +54,9 @@ function Clust = findclusters(mlist,nuc_chn,clust_chn,varargin)
 % minD / scalar / 1 
 %                            -- min density of localizations to be
 %                            considered 'nuclear' region
+% minC / scalar / 0 
+%                            -- number of localization per 'background
+%                            pixel' between clusters.
 %-------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
@@ -72,6 +75,7 @@ cluster_scale = 40; % nm - pixel size at which to discritize clusters
 nuc_scale = 1; 
 min_nuc = 50; % minimum size (in downsampled pixeles) to be considered a nucleus
 minD = 1;
+minC = 0; 
 mask = [];
 %--------------------------------------------------------------------------
 % parse variable inputs
@@ -93,6 +97,8 @@ if nargin > 3
                 min_nuc = parameterValue;  
             case 'min density'
                 minD = parameterValue;
+            case 'bkd density'
+                minC = parameterValue; 
             case 'mask'
                 mask = parameterValue;
             otherwise
@@ -112,8 +118,15 @@ npp = 160; % nm per pixel
 %% Main Function
 %--------------------------------------------------------------------------
 
-    xr = [mlist{nuc_chn}.xc]'; yr = [mlist{nuc_chn}.yc]';
-    x = [mlist{clust_chn}.xc]'; y = [mlist{clust_chn}.yc]';
+if isempty(nuc_chn)
+    x = mlist.xc;
+    y = mlist.yc;
+else
+    xr = [mlist{nuc_chn}.xc]'; 
+    yr = [mlist{nuc_chn}.yc]';
+    x = [mlist{clust_chn}.xc]'; 
+    y = [mlist{clust_chn}.yc]';
+end
 
 %% get region mask
 if isempty(mask) 
@@ -129,7 +142,6 @@ if isempty(mask)
     hold on;
     plot(xr,yr,'r.');
     plot(x,y,'m.');
-
 end
 
     % use a mask that is passed to the function
@@ -138,14 +150,24 @@ end
     allIdx = cat(1,R.PixelIdxList);
     allArea = sum([R.Area]);
     
-    yind = round(yr); yind(yind>H) = H; yind(yind<1) = 1;
-    xind = round(xr); xind(xind>W) = W; xind(xind<1) = 1;
-    allN = sub2ind([H,W],yind,xind);
-    Ninds = ismember(allN,allIdx);
-    figure(3); hold on; plot(xr(Ninds),yr(Ninds),'ro');
+    if ~isempty(nuc_chn)
+        yind = round(yr); 
+        yind(yind>H) = H; 
+        yind(yind<1) = 1;
+        xind = round(xr); 
+        xind(xind>W) = W; 
+        xind(xind<1) = 1;
+        allN = sub2ind([H,W],yind,xind);
+        Ninds = ismember(allN,allIdx);
+        figure(3); hold on; plot(xr(Ninds),yr(Ninds),'ro');
+    end
     
-    yind = round(y); yind(yind>H) = H; yind(yind<1) = 1;
-    xind = round(x); xind(xind>W) = W; xind(xind<1) = 1;
+    yind = round(y); 
+    yind(yind>H) = H;
+    yind(yind<1) = 1;
+    xind = round(x); 
+    xind(xind>W) = W;
+    xind(xind<1) = 1;
     allD = sub2ind([H,W],yind,xind);
     inds = ismember(allD,allIdx);
     figure(3); hold on; plot(x(inds),y(inds),'g.');
@@ -158,7 +180,7 @@ end
         
         M = hist3([y_good,x_good],{1:1/cluster_scale:H,1:1/cluster_scale:W});
         % figure(4); clf; imagesc(M); colormap(hot); caxis([0,5]);
-        mask = M>0;
+        mask = M>minC;
         R = regionprops(mask,M,'PixelValues','PixelList','PixelIdxList'); 
         Nclusters = length(R);
 
@@ -171,8 +193,9 @@ end
         
         Clust.Area = allArea;
         Clust.cinds = inds;
-        Clust.ninds = Ninds;
-        
+        if ~isempty(nuc_chn)
+            Clust.ninds = Ninds;
+        end
 %         valid = Clust.Counts > 10; 
 %         figure(1); clf; hist(Clust.Counts(valid),linspace(10,1000,100)); xlim([10,1000]);
 %         figure(2); clf; hist(Clust.Sizes(valid),linspace(100,10000,100)); xlim([100,10000]);
