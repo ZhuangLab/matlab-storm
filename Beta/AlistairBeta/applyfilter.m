@@ -1,6 +1,7 @@
 
 
-function [infilter,filts] = applyfilter(mlist, infilter, filts, channels, par, myfilt)
+function [infilter,filts] = applyfilter(mlist, infilter, filts, channels, par, myfilt,imaxes)
+
 % Routine from the STORMrender GUI
 %
 %--------------------------------------------------------------------------
@@ -27,7 +28,7 @@ function [infilter,filts] = applyfilter(mlist, infilter, filts, channels, par, m
 
 % Global variables
 
-global imaxes ScratchPath
+global  ScratchPath
 
 %% Main Function
 
@@ -52,7 +53,6 @@ for c = channels
     %--------------------------------------------------------------------
     % only render localization which are inside a user defined box
     elseif strcmp(par,'region');
-            figure(1); 
             [x,y] = ginput(2);  % These are relative to the current axis
             disp('x,y grabbed');
             disp([x,y]);
@@ -62,10 +62,10 @@ for c = channels
             disp([xim,yim]);
 
             % plot box
-            figure(1); hold on;
+            hold on;
             rectangle('Position',[min(x),min(y),abs(x(2)-x(1)),abs(y(2)-y(1))],'EdgeColor','w'); hold off;
             inregion = [mlist{c}.xc] > xim(1) & [mlist{c}.xc] < xim(2) & [mlist{c}.yc] > yim(1) & [mlist{c}.yc] < yim(2);
-            infilter{c} = infilter{c} & inregion'; 
+            infilter{c} = infilter{c} & inregion; 
             disp([num2str(sum(inregion)/length([mlist{c}.xc])*100),'% of localizations kept']);
             
 %             figure(3); clf; plot([mlist{c}.xc],[mlist{c}.yc],'k.');

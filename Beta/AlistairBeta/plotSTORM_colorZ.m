@@ -103,7 +103,7 @@ if nargin > 2
             case 'filter'
                 infilter = parameterValue;
             case 'dotsize'
-                dotsize = CheckParameter(parameterValue,'positive','dotsize');
+                dotsize = parameterValue;
             case 'maxblobs'
                 maxblobs = CheckParameter(parameterValue,'positive','maxblobs');
             case 'maxdotsize'
@@ -123,6 +123,12 @@ if nargin > 2
         end
     end
 end
+
+% dotsize = 4;
+if length(dotsize) < Cs
+    dotsize = repmat(dotsize,Cs,1);
+end
+
 
 %% Main Function
 %--------------------------------------------------------------------------
@@ -149,7 +155,7 @@ for c=chns
         z{c} = mlist{c}.z;
     end
     a = mlist{c}.a;
-    sig{c} = real(dotsize./sqrt(a)); % 5
+    sig{c} = real(dotsize(c)./sqrt(a)); % 5
 end
 xsize = W/zm; 
 ysize = H/zm; 

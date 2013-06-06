@@ -173,10 +173,11 @@ end
 %------------------------------------------------------------------------
 
 time_run = tic;
+
 %~~~~~~~~~~~~~~~~~~~~~~~ Find all dax files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if isempty(daxfile)
     % Get all dax files in folder        
-    alldax = dir([dpath,'\','*',daxroot,'*.dax']);
+    alldax = dir([dpath,filesep,'*',daxroot,'*.dax']);
     daxnames = {alldax(:).name};
     % remove all short dax files from list
     daxsizes = [alldax(:).bytes];
