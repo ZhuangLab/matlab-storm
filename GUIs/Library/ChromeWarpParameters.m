@@ -79,7 +79,6 @@ if init
     chromeWarpPars.Quadview{2} = 1;
     chromeWarpPars.ListQVorder = '647,561,750,488';
 end
-chromeWarpPars
 % Update handles structure
 guidata(hObject, handles);
 

@@ -299,65 +299,82 @@ for m=1:Nmovies
      newpath = [pathin,filesep];
  end
     
-    beadmovie(m).binname = cell(Nchns,Nfields);
- % Loop through all split off movies and run appropriate parameters on them   
-    for n=1:Nfields
-        % Check to see if split dax movies already exist in target folder
-        % if not found for all channels, load original dax and split again.
-        try
-            splitdax = dir([newpath,'*',alldax(n).name]); 
-            notsplit = length(splitdax) < Nchns;
-            if   notsplit
-                daxfile = [pathin,filesep,alldax(n).name];
-                [movies,info] = ReadDaxBeta(daxfile,'Quadviewsplit',true);
-            end
-            for c=1:Nchns
-                if notsplit
-                    QVframe = strcmp(QVorder,beadmovie(m).chns{c});
-                    WriteDax(movies{QVframe},info,beadmovie(m).chns{c},newpath);     
-                end
+ % build list of binfiles
+    beadmovie(m).binname = cell(Nchns,Nfields);   
+    for c=1:Nchns
+        for n=1:Nfields
                 if beadmovie(m).quadview
                 daxfile = [newpath,filesep,beadmovie(m).chns{c},'_',alldax(n).name];
                 else
                 daxfile = [newpath,filesep,alldax(n).name];
                 end
-                beadmovie(m).binname{c,n} = [daxfile(1:end-4),datatype]; 
-                RunDotFinder('method',method,'parsfile',beadmovie(m).parsfile{c},...
-                   'daxfile',daxfile,'hideterminal',hideterminal,...
-                   'overwrite',overwrite,'batchsize',2); 
-               % batchsize 2 implies RunDotFinder will return control to
-               % CalcChromeWarp without waiting for analysis to finish
-            end
-        catch er
-            disp(er.message); 
-            disp(['skipping field: ',num2str(n)]);
+            beadmovie(m).binname{c,n} = [daxfile(1:end-4),datatype]; 
         end
     end
-end
-
-% Wait until all movies have finished being analyzed before proceeding
-for m=1:Nmovies
-    max_wait = 100; 
-    waitT = 0;
-    Nbinfiles_complete = length(dir([newpath,'*', beadmovie(m).daxroot,'*',datatype]));
-    Nbinfiles_started = length(beadmovie(m).chns)*beadmovie(m).Nfields;
-    while Nbinfiles_complete < Nbinfiles_started && waitT < max_wait
-       Nbinfiles_complete = length(dir([newpath,'*', beadmovie(m).daxroot,'*',datatype]));
-       Nbinfiles_started = length(beadmovie(m).chns)*beadmovie(m).Nfields; 
-       pause(1);
-       waitT = waitT+1; 
+    
+    allbin = dir([newpath,'*','.bin']);
+    if overwrite ~= 1 && length(allbin) > .9*Nfields*Nchns
+        disp('found existing bin files, skipping dotfinding...')
+    else
+     % Loop through all split off movies and run appropriate parameters on them   
+        for n=1:Nfields
+            % Check to see if split dax movies already exist in target folder
+            % if not found for all channels, load original dax and split again.
+            try
+                splitdax = dir([newpath,'*',alldax(n).name]); 
+                notsplit = length(splitdax) < Nchns;
+                if   notsplit
+                    daxfile = [pathin,filesep,alldax(n).name];
+                    [movies,info] = ReadDaxBeta(daxfile,'Quadviewsplit',true);
+                end
+                for c=1:Nchns
+                    if notsplit
+                        QVframe = strcmp(QVorder,beadmovie(m).chns{c});
+                        WriteDax(movies{QVframe},info,beadmovie(m).chns{c},newpath);     
+                    end
+                end
+            catch er
+                disp(er.message); 
+                disp(['skipping field: ',num2str(n)]);
+            end
+        end
+    
+        % Run Dotfinding in batch mode (default is silent batches)
+        for c=1:Nchns
+            if beadmovie(m).quadview
+                daxroot = [beadmovie(m).chns{c},'*',beadmovie(m).daxroot];
+            else
+                 daxroot =  beadmovie(m).daxroot;
+            end
+            RunDotFinder('method',method,'parsfile',beadmovie(m).parsfile{c},...
+               'path',newpath,'daxroot',daxroot,'hideterminal',hideterminal,...
+               'overwrite',overwrite,'batchsize',10,'minsize',1); 
+        end
+       
+        
+    % Wait until all movies have finished being analyzed before proceeding
+            max_wait = 10*60; % 100; 
+            waitT = 0;
+            Nbinfiles_complete = length(dir([newpath,'*', beadmovie(m).daxroot,'*',datatype]));
+            Nbinfiles_started = length(beadmovie(m).chns)*beadmovie(m).Nfields;
+            while Nbinfiles_complete < Nbinfiles_started && waitT < max_wait
+               Nbinfiles_complete = length(dir([newpath,'*', beadmovie(m).daxroot,'*',datatype]));
+               Nbinfiles_started = length(beadmovie(m).chns)*beadmovie(m).Nfields; 
+               pause(1);
+               waitT = waitT+1; 
+            end
+        
     end
 end
 
+
+save([ScratchPath,'trouble1.mat']);
 
 
 % split data into reference channels and samples 
 
 % Nsamples is number of channels minus 1 reference channel for every movie 
 Nsamples = length([beadmovie.chns]) - Nmovies; 
-
-
-
 data(Nsamples).sample(Nfields).x = [];
 data(Nsamples).sample(Nfields).y = [];
 data(Nsamples).sample(Nfields).z = [];
@@ -416,7 +433,7 @@ for m=1:Nmovies
                 
                 catch er
                     disp(er.message); 
-                    warning(['failed to load ',pathin,filesep, beadmovie(m).binname{c,n}]);
+                    disp(['failed to load ',pathin,filesep, beadmovie(m).binname{c,n}]);
                     disp(['skipping field: ',num2str(n)]); 
                 end 
           end  
@@ -427,18 +444,20 @@ end
  %% match molecules in each section
 % (much less ambiguious than matching superimposed selection list). 
 
+% load([ScratchPath, 'troubleshoot.mat']);
+
 cx_radius = match_radius;
 
 % for plotting
 cmap = hsv(Nsamples);
 mark = {'o','o','.'};
       
-% % plots for troubleshooting
+% plots for troubleshooting
 % k = 1; 
 % figure(1); clf; 
 % for s=1:Nsamples
 %     plot(data(s).refchn(k).x,data(s).refchn(k).y,mark{s},'color',cmap(s,:)); hold on;
-%       plot(data(s).sample(k).x,data(s).sample(k).y,'+','color',cmap(s,:)); hold on;
+%     plot(data(s).sample(k).x,data(s).sample(k).y,'+','color',cmap(s,:)); hold on;
 % end
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
@@ -448,7 +467,7 @@ set1 = cell(Nsamples,1);
 set2 = cell(Nsamples,1);
 % set1{s}.x{k} provides the set1 matches for sample s in frame k.  
 for s=1:Nsamples
-    for k = 1:Nfields   
+    for k = 1:Nfields   % k = 217  k=15;
     [set1{s},set2{s}] = matchmols(data(s).refchn(k),data(s).sample(k),...
         tform_start, match_radius1,verbose,data(s).sample(k).chn,k,...
         set1{s},set2{s},Nfields);
@@ -480,7 +499,9 @@ for s=1:Nsamples
     method = 'nonreflective similarity';
     tform_1{s} = maketform('affine',[1 0 0; 0 1 0; 0 0 1]); % 
     if  ~isempty(dat(s).refchn.x)
-        tform_1{s} = cp2tform([dat(s).refchn.x dat(s).refchn.y], [dat(s).sample.x dat(s).sample.y ],method); % compute warp
+        refdata = [dat(s).refchn.x dat(s).refchn.y];
+        basedata = [dat(s).sample.x dat(s).sample.y ];
+        tform_1{s} = cp2tform(refdata,basedata,method); % compute warp
     end 
 end
 
@@ -876,7 +897,7 @@ close(fig_xyerr, fig_zdist, fig_xzerr, fig_xyerr_all);
  
  
  
-% Internal functions 
+%% Internal functions 
   
 function signalchn = remove_bleadthrough(signalchn,bkdchn,tform_start,cx_radius,verbose,sname,k)
        
@@ -896,34 +917,43 @@ function signalchn = remove_bleadthrough(signalchn,bkdchn,tform_start,cx_radius,
 
        
 function [set1,set2] = matchmols(ref,sample,tform, match_radius,verbose,sname,k,set1,set2,Nfields)
-    
-if isempty(set1); % initialize on the first time through; 
-    set1.x = cell(Nfields,1); set1.y = cell(Nfields,1); set1.z = cell(Nfields,1);
-    set2.x = cell(Nfields,1); set2.y = cell(Nfields,1); set2.z = cell(Nfields,1);
-end
-    
-       [matched, unmatched] = corr_mols(ref, sample,tform, match_radius);  
-         set1.x{k} = ref.x( matched.set1_inds ); % points in ref channel
-         set1.y{k} = ref.y( matched.set1_inds );
-         set1.z{k} = ref.z( matched.set1_inds );
-         set2.x{k} = sample.x( matched.set2_inds ); % points in 750 channel
-         set2.y{k} = sample.y( matched.set2_inds );
-         set2.z{k} = sample.z( matched.set2_inds );   
-         if verbose
-         disp(['frame ',num2str(k),':  ', num2str(length(matched.set2_inds)), filesep...
-           num2str( length(matched.set2_inds) + length(unmatched.set2_inds) ),...
-           ' ', sname ,' molecules matched'])   
-         end
-        if isempty(set1.x{k})
-            set1.x{k} = []; % handling  Empty [0x1] not concat with Empty 1x0 matrix errors  
-            set1.y{k} = [];
-            set1.z{k} = [];
-        end
-        if isempty(set2.x{k})
-            set2.x{k} = []; % handling  Empty [0x1] not concat with Empty 1x0 matrix errors  
-            set2.y{k} = [];
-            set2.z{k} = [];
-        end
+    if isempty(set1); % initialize on the first time through; 
+        set1.x = cell(Nfields,1); set1.y = cell(Nfields,1); set1.z = cell(Nfields,1);
+        set2.x = cell(Nfields,1); set2.y = cell(Nfields,1); set2.z = cell(Nfields,1);
+    end
+
+    [matched, unmatched] = corr_mols(ref, sample,tform, match_radius);  
+     set1.x{k} = ref.x( matched.set1_inds ); % points in ref channel
+     set1.y{k} = ref.y( matched.set1_inds );
+     set1.z{k} = ref.z( matched.set1_inds );
+     set2.x{k} = sample.x( matched.set2_inds ); % points in 750 channel
+     set2.y{k} = sample.y( matched.set2_inds );
+     set2.z{k} = sample.z( matched.set2_inds );   
+    if verbose
+     disp(['frame ',num2str(k),':  ', num2str(length(matched.set2_inds)), filesep...
+       num2str( length(matched.set2_inds) + length(unmatched.set2_inds) ),...
+       ' ', sname ,' molecules matched'])   
+    end
+    if isempty(set1.x{k})
+        set1.x{k} = []; % handling  Empty [0x1] not concat with Empty 1x0 matrix errors  
+        set1.y{k} = [];
+        set1.z{k} = [];
+    else
+        set1.x{k} = set1.x{k}(:);
+        set1.y{k} = set1.y{k}(:);
+        set1.z{k} = set1.z{k}(:);
+    end
+    if isempty(set2.x{k})
+        set2.x{k} = []; % handling  Empty [0x1] not concat with Empty 1x0 matrix errors  
+        set2.y{k} = [];
+        set2.z{k} = [];
+    else
+        set2.x{k} = set2.x{k}(:);
+        set2.y{k} = set2.y{k}(:);
+        set2.z{k} = set2.z{k}(:);
+    end
+ 
+ 
          
          
  function [za,ps] = level_data(fit,apply)
