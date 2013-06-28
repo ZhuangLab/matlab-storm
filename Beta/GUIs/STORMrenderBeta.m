@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 03-Mar-2013 21:14:19
+% Last Modified by GUIDE v2.5 26-Jun-2013 16:20:37
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -484,18 +484,22 @@ end
     '',1,{'750,647,561,488'});  % <--  Default channel names
         SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1});
     end
- % Automatically dealing with old vs. new style chromewarp format
+ % Automatically dealing with old or new style chromewarp format
     [warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
+    if ~isempty(SR{handles.gui_number}.LoadOps.warpfile)
     if ~isempty(strfind(warpname,'tform'))
-    for c=1:length(mlist)
-        mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
-            mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
-    end        
+        for c=1:length(mlist)
+            mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
+                mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
+        end        
     else  % Run new style
         mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
             SR{handles.gui_number}.LoadOps.warpfile,...
             'warpD',SR{handles.gui_number}.LoadOps.warpD,...
             'names',SR{handles.gui_number}.fnames);    
+    end
+    else
+        disp('warning, no warp file found to align color channels');
     end
     % Cleanup settings from any previous data and render image:
     SR{handles.gui_number}.mlist = mlist; 
@@ -641,14 +645,15 @@ if ~isfield(SR{handles.gui_number},'savepath')
     SR{handles.gui_number}.savepath = '';    
 end
 savepath=SR{handles.gui_number}.savepath;
-
 vlist = MolsInView(handles); %#ok<NASGU>
 
 try
 [savename,savepath] = uiputfile(savepath);
+disp(['unable to open savepath ',savepath]);
 catch %#ok<CTCH>
     [savename,savepath] = uiputfile;
 end
+SR{handles.gui_number}.savepath = savepath;
 
 % strip extra file endings, the script will put these on appropriately. 
 k = strfind(savename,'.');
@@ -1502,7 +1507,7 @@ if ~isempty(SR{handles.gui_number}.plt3Dfig)
     end
 end
 SR{handles.gui_number}.plt3Dfig = figure; 
- save([ScratchPath,'testdat.mat']);
+% save([ScratchPath,'testdat.mat']);
 % load([ScratchPath,'testdat.mat']);
 for c = chns
     if length(vlist{c}.x) > 2000
@@ -1522,9 +1527,91 @@ title(lab);
 
 
 
+% --------------------------------------------------------------------
+function plotColorByFrame_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to plotColorByFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SR ScratchPath
+
+if ~isfield(SR{handles.gui_number},'pltColorByFramefig')
+SR{handles.gui_number}.pltColorByFramefig =[];
+end
+
+npp = 160; % should be a global in imageops or something
+vlist = MolsInView(handles);
+chns = find(cellfun(@(x) ~isempty(x),vlist))';
+Cs = length(chns); 
+lab = cell(Cs,1);
+if ~isempty(SR{handles.gui_number}.pltColorByFramefig)
+    if ishandle(SR{handles.gui_number}.pltColorByFramefig)
+        close(SR{handles.gui_number}.pltColorByFramefig);
+    end
+end
+SR{handles.gui_number}.pltColorByFramefig = figure; 
+% save([ScratchPath,'testdat.mat']);
+% load([ScratchPath,'testdat.mat']);
+for c = chns
+    if length(vlist{c}.x) > 2000
+        msize = 1;
+    else
+        msize = 5; 
+    end
+    subplot(length(chns),1,c);
+            %  Indicate color as time. 
+        dxc = vlist{c}.xc;
+        dyc = vlist{c}.yc;
+        Nframes = length(vlist{c}.frame);
+        % let n be the number of points you have
+        cmp = jet(Nframes); % create the color maps changed as in jet color map
+        scatter(dxc*npp, dyc*npp, msize, cmp, 'filled');
+        set(gcf,'color','w'); 
+        xlabel('nm'); 
+        ylabel('nm'); 
+end
+xlabel('x (nm)'); ylabel('y (nm)');
+title(lab); 
+
+
+
+
+
 
 % --------------------------------------------------------------------
 function plot2Ddots_ClickedCallback(hObject, eventdata, handles) %#ok<*INUSD,*DEFNU>
+global SR ScratchPath
+
+if ~isfield(SR{handles.gui_number},'plt3Dfig')
+SR{handles.gui_number}.plt3Dfig =[];
+end
+
+npp = 160; % should be a global in imageops or something
+vlist = MolsInView(handles);
+chns = find(cellfun(@(x) ~isempty(x),vlist))';
+Cs = length(chns); 
+cmap = hsv(Cs);
+lab = cell(Cs,1);
+if ~isempty(SR{handles.gui_number}.plt3Dfig)
+    if ishandle(SR{handles.gui_number}.plt3Dfig)
+        close(SR{handles.gui_number}.plt3Dfig);
+    end
+end
+SR{handles.gui_number}.plt3Dfig = figure; 
+% save([ScratchPath,'testdat.mat']);
+% load([ScratchPath,'testdat.mat']);
+for c = chns
+    if length(vlist{c}.x) > 2000
+        msize = 1;
+    else
+        msize = 5; 
+    end
+    plot(vlist{c}.xc*npp,vlist{c}.yc*npp,'.','color',cmap(c,:),...
+        'MarkerSize',msize);
+    lab{c} = ['channel ',num2str(c)', ' # loc:',num2str(length(vlist{c}.x))];
+    hold on;
+end
+xlabel('x (nm)'); ylabel('y (nm)');
+title(lab); 
 
 
     
@@ -1923,11 +2010,19 @@ if isempty(SR{handles.gui_number}.Mosaicfolder)
     end
 end    
 position = [infofile.Stage_X,infofile.Stage_Y];
-% MosaicViewer(SR{handles.gui_number}.Mosaicfolder,position);
-figure;
-viewSteveMosaic(SR{handles.gui_number}.Mosaicfolder,position,'showbox',true);
 
 
+try
+    figure;
+    viewSteveMosaic(SR{handles.gui_number}.Mosaicfolder,position,'showbox',true);
+catch er
+    disp(er.message); 
+    disp('trying old MosaicViewer...');
+    MosaicViewer(SR{handles.gui_number}.Mosaicfolder,position,'showbox',true,'Ntiles',6);
+    figure;
+    MosaicViewer(SR{handles.gui_number}.Mosaicfolder,position,'showbox',true,'Ntiles',36);
+end
+    
 %%
 
 % --------------------------------------------------------------------
@@ -1957,4 +2052,6 @@ function LevelsChannel_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
 

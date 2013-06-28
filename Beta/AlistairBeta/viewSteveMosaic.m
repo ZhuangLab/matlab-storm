@@ -109,6 +109,7 @@ mtiles = dir([Mosaic_folder,filesep,'*.mat']);
 M = length(mtiles); 
 if M==0
     disp(['found ',num2str(M),' tiles in folder ',Mosaic_folder]); 
+    error('no .mat mosaic files found');
 end
 if verbose
     disp(['found ',num2str(M),' tiles in folder ',Mosaic_folder]);

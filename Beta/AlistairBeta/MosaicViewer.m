@@ -250,17 +250,22 @@ end
   mx = (x(end)-x(1)) / (yu(end)-yu(1));
   bx = -128; 
   %figure(2); clf; plot(yu,x,'k');
-
+% 
   box_cy = my*position(1)+ by-ymin+256;
   box_cx = mx*position(2)+ bx-xmin+256;
   box_coords = [box_cx - 127,box_cy-127,256,256];
    
+ 
   if showbox
-      figure(MosaicView);  hold on;
+      if verbose
+          disp('drawing box');
+      end
+      box_coords
+      figure(MosaicView); hold on;
       rectangle('Position',box_coords,'EdgeColor','w');
       lin = findobj(gca,'Type','patch');
       set(lin,'color','w','linewidth',3);
-      hold off;
+      hold off; title('Mosaic');
   end
 %   
 %       % % For troubleshooting:   
