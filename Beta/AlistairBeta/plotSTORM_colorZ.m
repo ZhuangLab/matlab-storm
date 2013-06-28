@@ -162,7 +162,7 @@ ysize = H/zm;
 
 I = cell(max(chns),1); 
 for c=chns
-  I{c} = zeros(ceil(xsize*zm*scale),ceil(ysize*zm*scale),Zs,'uint16'); 
+  I{c} = zeros(ceil(ysize*zm*scale),ceil(xsize*zm*scale),Zs,'uint16'); 
   zmin = Zrange(1);
   zmax = Zrange(2); 
 
@@ -170,7 +170,7 @@ for c=chns
   Zsteps = [-inf,Zsteps,inf];
 
       maxint = 0;
-      Iz = zeros(ceil(xsize*zm*scale),ceil(ysize*zm*scale),Zs,'single');
+      Iz = zeros(ceil(ysize*zm*scale),ceil(xsize*zm*scale),Zs,'single');
       for k=1:Zs
           if length(x{c}) >1
              inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax & z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
@@ -188,7 +188,7 @@ for c=chns
              si(si<maxdotsize) = maxdotsize;  % 
              Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';    
              Iz(:,:,k) = Itemp;
-             maxint = max(Itemp(:)) + maxint; 
+             maxint = max(Itemp(:)) + maxint;
           end
       end
       
