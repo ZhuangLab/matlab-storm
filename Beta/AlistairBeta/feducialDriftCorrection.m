@@ -29,14 +29,15 @@ function [dxc,dyc] = feducialDriftCorrection(input1,varargin)
 % 
 %--------------------------------------------------------------------------
 % Outputs
-% 
-% 
+% dxc,dyc -- computed drift per frame.  To correct drift, write:
+%             mlist.xc = mlist.x - dxc(mlist.frame);
+%             mlist.yc = mlist.y - dyc(mlist.frame); 
 %--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
-% October 10th, 2012
+% June 10th, 2013
 %
-% Version 1.2
+% Version 1.0
 %--------------------------------------------------------------------------
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
@@ -125,6 +126,9 @@ end
 %-------------------------------------------------
 
 % Step 1, find all molecules that are "ON" in startframe.
+if startframe == 1
+    startframe = min(mlist.frame);
+end
 p1s = mlist.frame==startframe;
 x1s = mlist.x(p1s);
 y1s = mlist.y(p1s); 
@@ -145,6 +149,9 @@ for i=1:length(x1s)
    Tframes(i) = sum(inbox);
 end
 feducials = Tframes > fmin*(max(mlist.frame)-startframe); 
+if sum(feducials) == 0 
+   error('no feducials found. Try changing fmin or startframe');  
+end
 x1s = x1s(feducials);
 y1s = y1s(feducials);
 fb = fb(feducials,:);
