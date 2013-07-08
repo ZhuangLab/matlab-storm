@@ -11,6 +11,8 @@ function [dxc,dyc] = feducialDriftCorrection(input1,varargin)
 % or 
 % mlist / structure 
 % 
+% mlist.xc = mlist.x - dxc(mlist.frame);
+% mlist.yc = mlist.y - dyc(mlist.frame); 
 %--------------------------------------------------------------------------
 % Optional Inputs
 % 
@@ -203,9 +205,13 @@ sigma = zeros(Nfeducials,1);
 for j=1:Nfeducials
     xc1 = xc(~isnan(xc(:,j)),j);
     yc1 = yc(~isnan(yc(:,j)),j);
-    sf = fit2Dgauss(xc1,yc1,'showmap',false);
-    fwhm(j) = (sf.sigmax+sf.sigmay)/2*(2*sqrt(2*log(2)))*npp;
-    sigma(j) = (sf.sigmax+sf.sigmay)/2*npp;
+    try
+        sf = fit2Dgauss(xc1,yc1,'showmap',false);
+        fwhm(j) = (sf.sigmax+sf.sigmay)/2*(2*sqrt(2*log(2)))*npp;
+        sigma(j) = (sf.sigmax+sf.sigmay)/2*npp;
+    catch er
+        disp(er.message);
+    end
 end
 [drift_error,guide_dot] = min(sigma); 
 disp(['residual drift error = ', num2str(drift_error),' nm']); 

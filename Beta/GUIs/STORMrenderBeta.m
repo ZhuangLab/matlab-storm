@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 26-Jun-2013 16:20:37
+% Last Modified by GUIDE v2.5 07-Jul-2013 14:34:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -485,19 +485,19 @@ end
         SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1});
     end
  % Automatically dealing with old or new style chromewarp format
-    [warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
-    if ~isempty(SR{handles.gui_number}.LoadOps.warpfile)
-    if ~isempty(strfind(warpname,'tform'))
-        for c=1:length(mlist)
-            mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
-                mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
-        end        
-    else  % Run new style
-        mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
-            SR{handles.gui_number}.LoadOps.warpfile,...
-            'warpD',SR{handles.gui_number}.LoadOps.warpD,...
-            'names',SR{handles.gui_number}.fnames);    
-    end
+    if ~isempty(SR{handles.gui_number}.LoadOps.warpfile)   
+        [warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
+        if ~isempty(strfind(warpname,'tform'))
+            for c=1:length(mlist)
+                mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
+                    mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
+            end        
+        else  % Run new style
+            mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
+                SR{handles.gui_number}.LoadOps.warpfile,...
+                'warpD',SR{handles.gui_number}.LoadOps.warpD,...
+                'names',SR{handles.gui_number}.fnames);    
+        end
     else
         disp('warning, no warp file found to align color channels');
     end
@@ -2054,4 +2054,95 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+
+
+
+% --------------------------------------------------------------------
+function AnalysisMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to AnalysisMenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuFeducialDrift_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuFeducialDrift (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%--------------------------------------------------------------------------
+% feducialDriftCorrection(binname)
+% feducialDriftCorrection(mlist)
+% feducialDriftCorrection([],'daxname',daxname,'mlist',mlist,...);
+%
+%--------------------------------------------------------------------------
+% Required Inputs
+%
+% daxname / string - name of daxfile to correct drift
+% or 
+% mlist / structure 
+% 
+%--------------------------------------------------------------------------
+% Optional Inputs
+% 
+% 'startframe' / double / 1  
+%               -- first frame to find feducials in
+% 'maxdrift' / double / 2.5 
+%               -- max distance a feducial can get from its starting 
+%                  position and still be considered the same molecule
+% 'integrateframes' / double / 500
+% 'fmin' / double / .5
+%               -- fraction of frames which must contain feducial
+% 'nm per pixel' / double / 158 
+%               -- nm per pixel in camera
+% 'showplots' / boolean / true
+% 'showextraplots' / boolean / false
+% 
+global SR
+
+dlg_title = 'Feducial Drift Correction Options';
+num_lines = 1;
+Dprompt = {
+    'feducial binfile (STORM-chn or binfile string)',... 1
+    'correct STORM chn: ',... 2
+    'startframe',...        3
+    'maxdrift',...          4
+    'integrateframes',...   5
+    'fmin',...              6
+    'nm per pixel',...      7 
+    'showplots'...          8
+    'showextraplots'};     %9   
+Opts{1} = num2str(1);
+Opts{2} = num2str(1);
+Opts{3} = num2str(1);
+Opts{4} = num2str(2.5);
+Opts{5} = num2str(500);
+Opts{6} = num2str(0.5);
+Opts{7} = num2str(SR{handles.gui_number}.DisplayOps.npp);
+Opts{8} = 'true';
+Opts{9} = 'false';
+Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
+
+if length(Opts) > 1 % Do nothing if canceled
+    if length(Opts{1}) < 2;
+        c = str2double(Opts{1});
+        input1 = SR{handles.gui_number}.mlist{c};
+    else
+        input1 = Opts{1};
+    end
+    [dxc,dyc] = feducialDriftCorrection(input1,...        
+        'startframe',eval(Opts{3}),...     3
+        'maxdrift',eval(Opts{4}),...          4
+        'integrateframes',eval(Opts{5}),...
+        'fmin',eval(Opts{6}),...
+        'nm per pixel',eval(Opts{7}),...
+        'showplots',eval(Opts{8}),...
+        'showextraplots',eval(Opts{9}) );
+    
+    % apply correction
+    c = str2double(Opts{2});
+    SR{handles.gui_number}.mlist{c}.xc = ...
+        SR{handles.gui_number}.mlist{c}.x - dxc(SR{handles.gui_number}.mlist{c}.frame);
+    SR{handles.gui_number}.mlist{c}.yc = ...
+        SR{handles.gui_number}.mlist{c}.y - dyc(SR{handles.gui_number}.mlist{c}.frame);    
+end
 
