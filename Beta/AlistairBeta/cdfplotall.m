@@ -39,7 +39,7 @@ if nargin > 1
             case 'xlabel'
                 xlab = CheckParameter(parameterValue, 'string', 'xlabel');
             case 'colormap'
-                clrmap = CheckParameter(parameterValue,'string','colormap'); 
+                clrmap =parameterValue ; % string name of colormap or a colormap matrix.
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -56,7 +56,12 @@ end
 
 N = length(data); 
 gnames = cell(N,1); 
-cmap =eval([clrmap,'(N+1)']);
+if ischar(clrmap)
+    cmap =eval([clrmap,'(N+1)']);
+else
+    cmap = clrmap;
+end
+
 for g=1:N
     if ~isempty(data{g})
         [f,x]=ecdf(data{g}); 

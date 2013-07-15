@@ -133,14 +133,16 @@ if startframe == 1
 end
 p1s = mlist.frame==startframe;
 x1s = mlist.x(p1s);
-y1s = mlist.y(p1s); 
+y1s = mlist.y(p1s);
 
 % Reject molecules that are too close to other molecules
-[~,dist] = knnsearch([x1s,y1s],[x1s,y1s],'K',2);
-nottooclose = dist(:,2)>2*maxdrift;
-x1s = x1s(nottooclose);
-y1s = y1s(nottooclose);
-    
+if length(x1s) > 1
+    [~,dist] = knnsearch([x1s,y1s],[x1s,y1s],'K',2);
+    nottooclose = dist(:,2)>2*maxdrift;
+    x1s = x1s(nottooclose);
+    y1s = y1s(nottooclose);
+end    
+
 % Feducials must be ID'd in at least fmin fraction of total frames
 fb =[x1s-maxdrift, x1s + maxdrift,y1s-maxdrift, y1s + maxdrift];
 Tframes = zeros(length(x1s),1);

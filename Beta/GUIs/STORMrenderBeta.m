@@ -1829,13 +1829,14 @@ if ~isempty(Overlay_opts) % Load Overlay Not canceled
         end
         
         
-    [filename,pathname,selected] = uigetfile({'*.dax;*.jpg;*.png;*.tif',...
-        'Image files (*.dax, *.jpg, *.png, *.tif)';
+    [filename,pathname,selected] = uigetfile(...
+        {'*.dax;*.jpg;*.png;*.tif','Image files (*.dax, *.jpg, *.png, *.tif)';
         '*.dax','DAX (*.dax)';
         '*.jpg', 'JPEGS (*.jpg)';
         '*.tif', 'TIFF (*.tif)';
         '*.png', 'PNG (*.png)';
-        '*.*', 'All Files (*.*)'},'Choose an image file to overlay',...
+        '*.*', 'All Files (*.*)'},...
+        'Choose an image file to overlay',...
         startfolder); % prompts user to select directory 
     sourcename = [pathname,filesep,filename];
     Overlay_opts{1} = sourcename;
@@ -2123,6 +2124,21 @@ Opts{9} = 'false';
 Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
 
 if length(Opts) > 1 % Do nothing if canceled
+    if isempty(Opts{1})
+        startfolder = SR{handles.gui_number}.LoadOps.pathin;
+        if isempty(startfolder)
+            startfolder = extractpath(SR{handles.gui_number}.infofile.localPath);
+        end
+        [filename,pathname,selected] = uigetfile(...
+            {'*.bin', 'Molecule List (*.bin)';
+            '*.*', 'All Files (*.*)'},...
+            'Choose bin file with feducials',...
+            startfolder); % prompts user to select directory 
+        if selected > 0
+            sourcename = [pathname,filesep,filename];
+            Opts{1} = sourcename;
+        end
+    end
     if length(Opts{1}) < 2;
         c = str2double(Opts{1});
         input1 = SR{handles.gui_number}.mlist{c};
