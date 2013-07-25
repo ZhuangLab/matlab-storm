@@ -433,6 +433,8 @@ for m=1:Nmovies
                 
                 catch er
                     disp(er.message); 
+                    save([ScratchPath, filesep, 'troubleshoot.mat']); 
+                    % load([ScratchPath, filesep, 'troubleshoot.mat']); 
                     disp(['failed to load ',pathin,filesep, beadmovie(m).binname{c,n}]);
                     disp(['skipping field: ',num2str(n)]); 
                 end 

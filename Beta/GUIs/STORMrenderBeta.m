@@ -22,7 +22,7 @@ function varargout = STORMrenderBeta(varargin)
 
 % Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 07-Jul-2013 14:34:36
+% Last Modified by GUIDE v2.5 22-Jul-2013 11:16:17
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -2161,4 +2161,80 @@ if length(Opts) > 1 % Do nothing if canceled
     SR{handles.gui_number}.mlist{c}.yc = ...
         SR{handles.gui_number}.mlist{c}.y - dyc(SR{handles.gui_number}.mlist{c}.frame);    
 end
+update_maindisplay(hObject,handles);
 
+
+% --------------------------------------------------------------------
+function MenuCorrelDrift_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuCorrelDrift (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%--------------------------------------------------------------------------
+% mlist = XcorrDriftCorrect(binfile)
+% mlist = XcorrDriftCorrect(mlist)
+%
+%--------------------------------------------------------------------------
+% Required Inputs
+% mlist (molecule list structure)
+% OR
+% binfile (string)
+% 
+%
+%--------------------------------------------------------------------------
+% Optional Inputs
+% 'imagesize' / double 2-vector / [256 256] -- size of image
+% 'scale' / double / 5 -- upsampling factor for binning localizations
+% 'stepframe' / double / 10E3 -- number of frames to average
+% 'nm per pixel' / double / 158 -- nm per pixel in original data
+% 'showplots' / logical / true -- plot computed drift?
+%--------------------------------------------------------------------------
+% Outputs
+% mlist (molecule list structure) 
+%           -- mlist.xc and mlist.yc are overwritten with the new drift
+%           corrected values.  
+% 
+%--------------------------------------------------------------------------
+global SR ScratchPath
+
+%--------------------------------------------------------------------------
+% Get parameters: 
+imagesize = [SR{handles.gui_number}.imaxes.H,...
+    SR{handles.gui_number}.imaxes.W];
+
+
+dlg_title = 'Correlation-based Drift Correction';
+num_lines = 1;
+Dprompt = {
+    'stepframe',... 1
+    'channel',... 2
+    'scale',...        3
+    'nm per pixel',...
+    'showplots'};     %5   
+Opts{1} = num2str(10E3);
+Opts{2} = num2str(1);
+Opts{3} = num2str(4);
+Opts{4} = num2str(SR{handles.gui_number}.DisplayOps.npp);
+Opts{5} = 'true';
+Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
+
+c = str2double(Opts{2});
+
+[dxc,dyc] =  XcorrDriftCorrect( ...
+    SR{handles.gui_number}.mlist{ c },...
+    'imagesize',imagesize,...
+    'scale',eval(Opts{3}),...
+    'stepframe',eval(Opts{1}),...
+    'nm per pixel',eval(Opts{4}),...
+    'showplots',eval(Opts{5}) );
+  
+% save([ScratchPath,'troubleshoot.mat'],'-v7.3'); 
+
+    % apply correction  
+    SR{handles.gui_number}.mlist{c}.xc = ...
+        SR{handles.gui_number}.mlist{c}.x + dxc(SR{handles.gui_number}.mlist{c}.frame)';
+    SR{handles.gui_number}.mlist{c}.yc = ...
+        SR{handles.gui_number}.mlist{c}.y + dyc(SR{handles.gui_number}.mlist{c}.frame)';    
+
+ update_maindisplay(hObject,handles);
+ 
+ 

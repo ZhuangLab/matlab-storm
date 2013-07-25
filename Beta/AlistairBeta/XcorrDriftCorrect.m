@@ -1,8 +1,13 @@
-function mlist = XcorrDriftCorrect(mlist,varargin)
+function [x_drift,y_drift] = XcorrDriftCorrect(mlist,varargin)
 %--------------------------------------------------------------------------
-% mlist = XcorrDriftCorrect(binfile)
-% mlist = XcorrDriftCorrect(mlist)
-%
+% [x_drift,y_drift] =  XcorrDriftCorrect(binfile)
+% [x_drift,y_drift] =  XcorrDriftCorrect(mlist)
+% 
+% [x_drift,y_drift] =  XcorrDriftCorrect(mlist,'imagesize',value,...
+%    'scale',value,'stepframe',value,'nm per pixel',value,'showplots',...
+%     value)
+% mlist.xc = mlist.x + x_drift(mlist.frame)';
+% mlist.yc = mlist.y + y_drift(mlist.frame)';
 %--------------------------------------------------------------------------
 % Required Inputs
 % mlist (molecule list structure)
@@ -152,8 +157,7 @@ pause(1);
 
 end
 
-mlist.xc = mlist.x + x_drift(mlist.frame)';
-mlist.yc = mlist.y + y_drift(mlist.frame)';
+
 
 
 

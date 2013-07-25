@@ -58,8 +58,7 @@ elseif isstruct(input1)
 end
 
 % daxname = 'K:\2013-05-15_AATAT\647storm_0_2.dax';
-k = regexp(binname,'_');
-daxname = [binname(1:k(end)-1),'.dax'];
+
 startframe = 1; % frame to use to find feducials
 maxdrift = 2.5; % max distance a feducial can get from its starting position and still be considered the same molecule
 integrateframes = 500; % number of frames to integrate
@@ -116,10 +115,15 @@ end
 %% Main Function
 %--------------------------------------------------------------------------
 
+if ~isempty(binname)
+    k = regexp(binname,'_');
+    daxname = [binname(1:k(end)-1),'.dax'];
+end
+
 if isempty(mlist)
     mlist = ReadMasterMoleculeList(binname);
 end
-if ~isempty(binname)
+if ~isempty(binname) && ~isempty(daxname)
     daxfile = ReadDax(daxname,'startFrame',startframe,'endFrame',startframe+100);
 end
 %%
@@ -164,7 +168,9 @@ feducial_boxes = [fb(:,1),fb(:,3),...
 
 if showplots
     figure(1); clf; 
-    imagesc(daxfile(:,:,1));
+    if ~isempty(daxname)
+        imagesc(daxfile(:,:,1));
+    end
     colormap gray;
     figure(1); hold on; 
     plot(x1s,y1s,'k.');

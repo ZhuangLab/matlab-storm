@@ -4,10 +4,11 @@
 *.asv
 *.m~
 
+
 #################
-## Externals
+## log-files
 #################
-\External
+*.log
 
 #################
 ## Externals
