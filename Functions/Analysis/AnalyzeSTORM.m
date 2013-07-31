@@ -109,6 +109,8 @@ if nargin > 1
                 includeSubdir = CheckParameter(parameterValue, 'boolean', 'includeSubdir');
             case 'hideterminal'
                 hideterminal = CheckParameter(parameterValue, 'boolean', 'hideterminal');
+            case 'numFrames'
+                numFrames = CheckParameter(parameterValue, 'positive', 'numFrames');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
