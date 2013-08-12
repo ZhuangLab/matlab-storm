@@ -162,7 +162,7 @@ global  SF defaultInsightPath defaultDaoSTORM ScratchPath
         InfoFile_temp.localPath = ScratchPath;
         WriteInfoFiles(InfoFile_temp,'verbose',false);
         % call insight 
-        ccall = ['!', insight,' "',daxtemp,'" ',SF{handles.gui_number}.inifile];
+        ccall = ['!', insight,' "',daxtemp,'" ',' "',SF{handles.gui_number}.inifile,'" '];
         disp(ccall); 
         eval(ccall); 
         binfile = regexprep([ScratchPath,'mov_temp.dax'],'\.dax','_list.bin');

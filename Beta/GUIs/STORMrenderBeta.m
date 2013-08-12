@@ -2015,7 +2015,7 @@ position = [infofile.Stage_X,infofile.Stage_Y];
 
 try
     figure;
-    viewSteveMosaic(SR{handles.gui_number}.Mosaicfolder,position,'showbox',true);
+    viewSteveMosaic(SR{handles.gui_number}.Mosaicfolder,position,'showbox',true,'Ntiles',100);
 catch er
     disp(er.message); 
     disp('trying old MosaicViewer...');

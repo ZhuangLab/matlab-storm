@@ -105,36 +105,55 @@ end
 
 % Read in .mat files and get list
 %-----------------------------------
-mtiles = dir([Mosaic_folder,filesep,'*.mat']);
-M = length(mtiles); 
-if M==0
-    disp(['found ',num2str(M),' tiles in folder ',Mosaic_folder]); 
-    error('no .mat mosaic files found');
-end
-if verbose
-    disp(['found ',num2str(M),' tiles in folder ',Mosaic_folder]);
-end
+qstart = dir([Mosaic_folder,filesep,'quickstart.mat']);
 
-xu = zeros(M,1);
-yu = zeros(M,1);
-xp = zeros(M,1);
-yp = zeros(M,1); 
-z = zeros(M,1); 
-mag = zeros(M,1);
+if isempty(qstart); 
+    mtiles = dir([Mosaic_folder,filesep,'*.mat']);
+    M = length(mtiles); 
+    if M==0
+        disp(['found ',num2str(M),' tiles in folder ',Mosaic_folder]); 
+        error('no .mat mosaic files found');
+    end
+    if verbose
+        disp(['found ',num2str(M),' tiles in folder ',Mosaic_folder]);
+    end
 
-for m=1:M
-     load([Mosaic_folder,filesep,mtiles(m).name]);
-         xp(m) = x_pix;
-         xu(m) = x_um;
-         yp(m) = y_pix;
-         yu(m) = y_um;
-         mag(m) = magnification;
-         z(m) = zvalue;
-         if verbose
-            disp(['sorting data... ',num2str(100*m/M,3),'%']);
-         end
+
+    xu = zeros(M,1);
+    yu = zeros(M,1);
+    xp = zeros(M,1);
+    yp = zeros(M,1); 
+    z = zeros(M,1); 
+    mag = zeros(M,1);
+
+    for m=1:M
+         load([Mosaic_folder,filesep,mtiles(m).name]);
+             xp(m) = x_pix;
+             xu(m) = x_um;
+             yp(m) = y_pix;
+             yu(m) = y_um;
+             mag(m) = magnification;
+             z(m) = zvalue;
+             if verbose
+                disp(['sorting data... ',num2str(100*m/M,3),'%']);
+             end
+    end
+
+    save([Mosaic_folder,filesep,'quickstart.mat'],'xu','yu','xp','yp','z','mag','mtiles','M'); 
+%     Mdata = [xu,yu,xp,yp,z,mag];
+%     dlmwrite([Mosaic_folder,filesep,'quickstart.txt'],Mdata);
+else
+    load([Mosaic_folder,filesep,'quickstart.mat']); 
+%     Mdata = dlmread([Mosaic_folder,filesep,'quickstart.txt']);
+%     [M,~] = size(Mdata);
+%     xu = Mdata(:,1);
+%     yu = Mdata(:,2);
+%     xp = Mdata(:,3);
+%     yp = Mdata(:,4); 
+%     z = Mdata(:,5); 
+%     mag = Mdata(:,6);
 end
-
+    
 N = min(N,M); 
 [frames,~] = knnsearch([xu,yu],position,'k',N);
 
