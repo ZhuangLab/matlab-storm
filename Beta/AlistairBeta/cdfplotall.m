@@ -54,6 +54,18 @@ end
 %% Main function
 %--------------------------------------------------------------------------
 
+% If data is a matrix, convert it to a cell-array
+% If NaNs are used to pad variable length entries, strip these out. 
+if ~iscell(data)
+    [N,~] = size(data);
+    data2 = cell(N,1); 
+    for d=1:N
+        nnan = logical(true - isnan(data(d,:)));
+        data2{d} = data(d,nnan);
+    end
+    data = data2; 
+end
+
 N = length(data); 
 gnames = cell(N,1); 
 if ischar(clrmap)

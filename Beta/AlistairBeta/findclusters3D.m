@@ -71,6 +71,7 @@ sigmablur=[6,6,3];
 minvoxels = [];      
 plotson = true;
 plotboundingbox = false;
+figh = [];
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Parameters
@@ -93,8 +94,10 @@ if nargin > 3
                 datarange = CheckParameter(parameterValue, 'cell', 'datarange');
             case 'sigmablur'
                 sigmablur = CheckParameter(parameterValue, 'positive', 'sigmablur');
-            case 'fighandle'
-                fighandle = CheckParameter(parameterValue, 'nonnegative', 'fighandle');
+            case 'figh'
+                figh = CheckParameter(parameterValue, 'nonnegative', 'figh');
+            case 'plotson'
+                plotson = CheckParameter(parameterValue, 'boolean', 'plotson');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -121,8 +124,8 @@ if isempty(minvoxels)
 end
 
 
-if ~isempty(fighandle)
-    fig3d = fighandle;
+if ~isempty(figh)
+    fig3d = figh;
 else
     if plotson
         fig3d = figure; 

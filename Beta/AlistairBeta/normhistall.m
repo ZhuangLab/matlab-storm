@@ -29,13 +29,25 @@ alphavalue = .15;
 % normhistall(data) 
 % normhistall(data,'option',value);
 if nargin == 1  || (nargin > 1 && ischar(varargin{1})) 
-    alldat = cat(1,data{:});
+    [h,w] = size(data{1});
+    if h>w
+        catdim = 1;
+    else
+        catdim = 2;
+    end
+    alldat = cat(catdim,data{:});
     x = linspace(min(alldat),max(alldat),10);
     
 % normhistall(data,bins)   
 % normhistall(data,bins,'option',value)
 elseif nargin > 1 && length(varargin{1}) == 1  
-    alldat = cat(1,data{:});
+    [h,w] = size(data{1});
+    if h>w
+        catdim = 1;
+    else
+        catdim = 2;
+    end
+    alldat = cat(catdim,data{:});
     x = linspace(min(alldat),max(alldat),varargin{1}); 
     varargin(1) = [];
     
@@ -61,7 +73,7 @@ if nargin > 2
             case 'xlabel'
                 xlab = CheckParameter(parameterValue, 'string', 'xlabel');
             case 'colormap'
-                clrmap = CheckParameter(parameterValue,'string','colormap'); 
+                clrmap = parameterValue; 
             case 'alpha'
                 alphavalue = CheckParameter(parameterValue, 'nonnegative', 'alpha');
             otherwise
@@ -72,9 +84,13 @@ if nargin > 2
     end
 end
 
-%--------------------------------------------------------------------------
-%% Main function
-%--------------------------------------------------------------------------
+% more automatic parsing of input
+D = length(data);
+if ischar(clrmap)
+    cmap =eval([clrmap,'(D+1)']);
+else
+    cmap = clrmap;
+end
 
 if alphavalue == 0
     face = 0;
@@ -82,7 +98,10 @@ else
     face = 1;
 end
 
-D = length(data);
+%--------------------------------------------------------------------------
+%% Main function
+%--------------------------------------------------------------------------
+
 for d=1:D
     h1 = hist(data{d},x);
     hnorm = sum(h1);
@@ -93,7 +112,7 @@ end
  h = findobj(gca,'Type','patch');
  lh = findobj(legend_hand,'Type','patch');
 
-cmap =eval([clrmap,'(D+1)']);
+
 for d=1:D
     if face ==1 
     set(h(D-d+1),'FaceColor',cmap(d,:),'EdgeColor',cmap(d,:),'LineWidth',2);
