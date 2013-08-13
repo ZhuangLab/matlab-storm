@@ -43,4 +43,6 @@ end
 matched.set1_inds = find(matching_set2_inds>0);
 matched.set2_inds = matching_set2_inds(matched.set1_inds);
 unmatched.set1_inds = find(matching_set2_inds==0);
-unmatched.set2_inds = setdiff(1:length(set2_pos),matched.set2_inds);
+unmatched.set2_inds = setdiff(1:length(set2_pos.x),matched.set2_inds);
+
+

@@ -368,7 +368,7 @@ for m=1:Nmovies
 end
 
 
-save([ScratchPath,'trouble1.mat']);
+% save([ScratchPath,'trouble1.mat']);
 
 
 % split data into reference channels and samples 
