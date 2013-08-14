@@ -1,7 +1,7 @@
 
 
 function mlist = ApplyChromeWarp(mlist,chns,warpfile,varargin)
-% mlist = chromewarp(chn,mlist,Bead_folder,warpD)
+% mlist = ApplyChromeWarp(mlist,chns,warpfile)
 % applies chromatic warp to .xc .yc .zc and overwrites those values with
 %   the new values. Should consider overwiting .x .y .z instead, chromatic
 %   warp differences are usually bigger than drift. 
@@ -79,7 +79,7 @@ if nargin > 1
             case 'names'
                 fnames = CheckParameter(parameterValue,'cell','names'); 
             case 'verbose'
-                verbose = CheckParameter(parameterValue,'string','verbose');                
+                verbose = CheckParameter(parameterValue,'boolean','verbose');                
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
