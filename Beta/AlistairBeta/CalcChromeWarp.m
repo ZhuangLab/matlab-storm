@@ -124,6 +124,7 @@ method ='insight'; %  'DaoSTORM';
 hideterminal = true;
 Noclass9 = true;
 verbose = true;
+veryverbose = true;
 
 % Defaults for beadmovie:
     beadmovie(1).chns = {'750','647'};
@@ -262,7 +263,8 @@ for m=1:Nmovies
             parsname = dir([pathin,filesep,'*',parsroot, '*',parstype]);
             if length(parsname) > 1 || isempty(parsname)
                 disp(['Too many or no ',parstype,...
-                    ' files in directory.  Please chose a parameters file for']);
+                    ' files in directory.  Please chose a parameters file']);
+                
                getfileprompt = {['*',parstype],[method,' pars (*',parstype,')']};
                [filename, filepath] = uigetfile(getfileprompt,...
                    ['Select Parameter File for ',beadmovie(m).parsroot,...
@@ -303,8 +305,13 @@ for m=1:Nmovies
     beadmovie(m).binname = cell(Nchns,Nfields);   
     for c=1:Nchns
         for n=1:Nfields
+            
                 if beadmovie(m).quadview
                 daxfile = [newpath,filesep,beadmovie(m).chns{c},'_',alldax(n).name];
+                    if veryverbose
+                        disp('daxfile to write:'); 
+                        disp(daxfile)
+                    end
                 else
                 daxfile = [newpath,filesep,alldax(n).name];
                 end
@@ -312,20 +319,36 @@ for m=1:Nmovies
         end
     end
     
+    
+    
+       
     allbin = dir([newpath,'*','.bin']);
-    if overwrite ~= 1 && length(allbin) > .9*Nfields*Nchns
+    if overwrite ~= 1 && length(allbin) > .9*Nfields*length([beadmovie(:).chns])
         disp('found existing bin files, skipping dotfinding...')
     else
      % Loop through all split off movies and run appropriate parameters on them   
         for n=1:Nfields
+            if veryverbose; disp('running splitdax'); end; 
+            
             % Check to see if split dax movies already exist in target folder
             % if not found for all channels, load original dax and split again.
             try
-                splitdax = dir([newpath,'*',alldax(n).name]); 
-                notsplit = length(splitdax) < Nchns;
+                splitdax = dir([newpath,'*',alldax(n).name]);      
+                notsplit = length(splitdax) < Nchns; 
+                
+                if veryverbose
+                     disp([newpath,'*',alldax(n).name])   % 
+                     disp(['already split = ',num2str(notsplit)])  % 
+                end
+                
                 if   notsplit
                     daxfile = [pathin,filesep,alldax(n).name];
                     [movies,info] = ReadDaxBeta(daxfile,'Quadviewsplit',true);
+                    
+                    if veryverbose
+                        disp('splitting dax');
+                    end
+                    
                 end
                 for c=1:Nchns
                     if notsplit

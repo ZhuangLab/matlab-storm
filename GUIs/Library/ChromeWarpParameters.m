@@ -104,7 +104,7 @@ function Cancel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global chromeWarpPars %#ok<NUSED>
 pause(.1);
-close(ZCalibrationParameters); 
+close(ChromeWarpParameters); 
 
 % --- Executes on button press in SavePars.
 function SavePars_Callback(hObject, eventdata, handles)
