@@ -168,7 +168,9 @@ if isempty(endFrame)
     endFrame = TFrames;
 end
 if endFrame > TFrames;
-    warning('input endFrame greater than total frames in dax_file.  Using all available frames after startFrame');
+    if verbose
+        warning('input endFrame greater than total frames in dax_file.  Using all available frames after startFrame');
+    end
     endFrame = TFrames;  
 end
 numFrames = endFrame - startFrame + 1;

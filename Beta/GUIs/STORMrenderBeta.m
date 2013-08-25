@@ -649,8 +649,8 @@ vlist = MolsInView(handles); %#ok<NASGU>
 
 try
 [savename,savepath] = uiputfile(savepath);
-disp(['unable to open savepath ',savepath]);
 catch %#ok<CTCH>
+    disp(['unable to open savepath ',savepath]);
     [savename,savepath] = uiputfile;
 end
 SR{handles.gui_number}.savepath = savepath;
@@ -665,7 +665,7 @@ if isempty(I) || isempty(SR{handles.gui_number}.cmax) || isempty(SR{handles.gui_
     disp('no image data to save');
 end
 if isempty(Oz)
-    disp('no overlay to save');
+    disp('no overlay(s) to save');
 end
 
 if savename ~= 0 % save was not 'canceled'

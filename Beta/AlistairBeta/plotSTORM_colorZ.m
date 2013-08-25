@@ -66,14 +66,17 @@ W = imaxes.W;
 zm = imaxes.zm;
 Cs = length(mlist);
 chns = find(true - cellfun(@isempty,mlist))';
+[ch,cw] = size(chns); 
+if ch>cw; chns = chns'; end % must be row vector! 
 showScalebar = true;
 
 %--------------------------------------------------------------------------
 %% Default inputs
 %--------------------------------------------------------------------------
 infilter = cell(1,Cs);
+
 for c=chns
-    infilter{c} = true(length(mlist{c}),1);
+    infilter{c} = true(length(mlist{c}.xc),1);
 end
 
 dotsize = 4;
@@ -162,7 +165,7 @@ ysize = H/zm;
 
 I = cell(max(chns),1); 
 for c=chns
-  I{c} = zeros(ceil(ysize*zm*scale),ceil(xsize*zm*scale),Zs,'uint16'); 
+  I{c} = zeros(round(ysize*zm*scale),round(xsize*zm*scale),Zs,'uint16'); 
   zmin = Zrange(1);
   zmax = Zrange(2); 
 
@@ -170,15 +173,15 @@ for c=chns
   Zsteps = [-inf,Zsteps,inf];
 
       maxint = 0;
-      Iz = zeros(ceil(ysize*zm*scale),ceil(xsize*zm*scale),Zs,'single');
+      Iz = zeros(round(ysize*zm*scale),round(xsize*zm*scale),Zs,'single');
       for k=1:Zs
           if length(x{c}) >1
              inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax & z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
              try
                plotdots = inbox & infilter{c}';
              catch %#ok<CTCH>
-                 size(inbox)
-                 size(infilter{c})
+%                  size(inbox)
+%                  size(infilter{c})
                  plotdots = inbox & infilter{c};
              end
                  
@@ -187,7 +190,14 @@ for c=chns
              si = sig{c}(plotdots);
              si(si<maxdotsize) = maxdotsize;  % 
              Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';    
+             try
              Iz(:,:,k) = Itemp;
+             catch
+                 [hnew,wnew] = size(Itemp);
+                 Iz = zeros(hnew,wnew,Zs,'single');
+                 I{c} = zeros(hnew,wnew,Zs,'single');
+                 Iz(:,:,k) = Itemp;
+             end
              maxint = max(Itemp(:)) + maxint;
           end
       end
