@@ -127,7 +127,7 @@ for d=1:D
         fid = fopen([infoOut{c}.localPath daxnames{c}], 'w+');
         if fid<0
             warning(['Unable to open ' infoOut{c}.localPath daxnames{c}]);
-        elseif verobse
+        elseif verbose
             disp(['Parsing ' infoOut{c}.localPath daxnames{c},'...']);
         end
         

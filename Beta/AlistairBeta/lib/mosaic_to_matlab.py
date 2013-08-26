@@ -26,7 +26,7 @@ file_number = 1
 while 1:
     image_name = fp.readline().rstrip()
     if not image_name: break
-
+	image_name = image_name[8:]
     print "converting:", image_name
 
     image_dict = pickle.load(open(directory + "/" + image_name))
