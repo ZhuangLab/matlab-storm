@@ -58,7 +58,7 @@ elseif isstruct(input1)
 end
 
 % daxname = 'K:\2013-05-15_AATAT\647storm_0_2.dax';
-
+daxname = [];
 startframe = 1; % frame to use to find feducials
 maxdrift = 2.5; % max distance a feducial can get from its starting position and still be considered the same molecule
 integrateframes = 500; % number of frames to integrate
