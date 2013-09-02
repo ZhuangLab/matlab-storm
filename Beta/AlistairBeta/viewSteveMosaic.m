@@ -56,6 +56,9 @@ shrk = 1;
 N = 30; 
 verbose = true; 
 showall = false;
+max4 = 30;
+max8 = 50;
+max16 = 100;
 
 % % some test parameters:
 % infofile = ReadInfoFile('L:\2013-05-03_en_emb\STORM\647_en_emb_storm_0_10.dax');
@@ -90,6 +93,12 @@ if nargin > 1
                 showall = CheckParameter(parameterValue,'boolean','showall');
             case 'showbox'
                 showbox = CheckParameter(parameterValue,'boolean','showbox');
+            case 'max4'
+                max4 = CheckParameter(parameterValue,'positive','max4');
+            case 'max8'
+                max8 = CheckParameter(parameterValue,'positive','max8');
+            case 'max16'
+                max16 = CheckParameter(parameterValue,'positive','max16');
             case 'verbose';
                 verbose = CheckParameter(parameterValue,'boolean','verbose');
             otherwise
@@ -174,13 +183,14 @@ ys = round(ymax - ymin);
 X = round(xp-xmin);
 Y = round(yp-ymin);
 
-if xs > 256*30 && shrk < 4
+
+if xs > 256*max4 && shrk < 4
     shrk = 4;
     disp(['warning: image downscaled ',num2str(shrk),' fold']);
-elseif xs > 256*50 && shrk < 8
+elseif xs > 256*max8 && shrk < 8
     shrk = 8;
     disp(['warning: image downscaled ',num2str(shrk),' fold']);
-elseif xs > 256*100 && shrk < 16
+elseif xs > 256*max16 && shrk < 16
     shrk = 16;
     disp(['warning: image downscaled ',num2str(shrk),' fold']);
 end
