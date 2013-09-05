@@ -223,8 +223,10 @@ for j=1:Nfeducials
 end
 [drift_error,guide_dot] = min(sigma); 
 disp(['residual drift error = ', num2str(drift_error),' nm']); 
-figure(1); hold on;
-plot(xc(:,guide_dot),yc(:,guide_dot),'w.','MarkerSize',1);
+if showplots
+    figure(1); hold on;
+    plot(xc(:,guide_dot),yc(:,guide_dot),'w.','MarkerSize',1);
+end
 %plot(x1s(guide_dot),y1s(guide_dot),'w*'); 
 
 

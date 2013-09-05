@@ -157,7 +157,7 @@ fclose(fid);
 infoFile = CreateInfoFileStructure();
 [infFilePath, name, extension] = fileparts(infFileName);
 infoFile.localName = [name extension];
-infoFile.localPath = [infFilePath '\'];
+infoFile.localPath = [infFilePath, filesep];
 infoFile.uniqueID = now;
 
 %--------------------------------------------------------------------------
@@ -198,5 +198,5 @@ for j=1:length(text)
 end
 
 if verbose
-    display(['Loaded ' infFilePath name]);
+    display(['Loaded ' infFilePath, filesep, name, '.inf']);
 end
