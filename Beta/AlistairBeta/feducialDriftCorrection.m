@@ -1,4 +1,4 @@
-function [dxc,dyc] = feducialDriftCorrection(input1,varargin)
+function [dxc,dyc,fedCoords] = feducialDriftCorrection(input1,varargin)
 %--------------------------------------------------------------------------
 % feducialDriftCorrection(binname)
 % feducialDriftCorrection(mlist)
@@ -48,24 +48,22 @@ function [dxc,dyc] = feducialDriftCorrection(input1,varargin)
 %--------------------------------------------------------------------------
 %% Default Parameters
 %--------------------------------------------------------------------------
+
+daxname = [];
+startframe = 1; % frame to use to find feducials
+maxdrift = 2.5; % max distance a feducial can get from its starting position and still be considered the same molecule
+integrateframes = 200; % number of frames to integrate
+fmin = .5; 
+npp = 158;
+showplots = true;
+showextraplots = false; 
 binname = '';
 mlist = []; 
-
 if ischar(input1)
     binname = input1;
 elseif isstruct(input1)
     mlist = input1;
 end
-
-% daxname = 'K:\2013-05-15_AATAT\647storm_0_2.dax';
-daxname = [];
-startframe = 1; % frame to use to find feducials
-maxdrift = 2.5; % max distance a feducial can get from its starting position and still be considered the same molecule
-integrateframes = 500; % number of frames to integrate
-fmin = .5; 
-npp = 158;
-showplots = true;
-showextraplots = false; 
 
 % abinname = [daxname(1:end-4),'_alist.bin'];
 % alist = ReadMasterMoleculeList(abinname);
@@ -274,7 +272,11 @@ if showextraplots
     figure(3); clf; plot(dx(startframe:end,:),'MarkerSize',1);
 end
 
-
-
+% export feducial coordinates if desired
+fedCoords = zeros(length(dxc),Nfeducials,2);
+for n = 1:Nfeducials;
+    fedCoords(:,n,1) = Fed_traj(:,n,1)- dxc;
+    fedCoords(:,n,2) = Fed_traj(:,n,2)- dyc;
+end
 
 

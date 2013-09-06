@@ -34,7 +34,7 @@ QVorder = {'647', '561', '750', '488'};
 chns = {'750','647','561','488'};    
 savepath = '';
 maxFrames = 1E10;
-step = 100;
+step = 1000;
 verbose = true; 
 % pathin = 'H:\2013-08-21_AbdA\QVdax\';
 
@@ -106,6 +106,7 @@ for d=1:D
     end
 
     name = infoFile.localName;
+    Nframes = infoFile.frame_size;
     infoOut = cell(C,1); 
     daxnames = cell(C,1); 
     daxname = regexprep(name,'\.inf','\.dax');
@@ -131,13 +132,18 @@ for d=1:D
             disp(['Parsing ' infoOut{c}.localPath daxnames{c},'...']);
         end
         
-        for n=1:step:maxFrames  % n = 3;
+        for n=1:step:Nframes  % n = 3;
             % write movie 2 frames at a time;
             try
                 movie = ReadDax(dax,'startFrame',n,'endFrame',n+step-1,'verbose',false);
     %             figure(1); clf; subplot(1,2,1); imagesc( int16(movie(QVc{c,1},QVc{c,2},1)) );
     %             subplot(1,2,2); imagesc( int16(movie(QVc{c,1},QVc{c,2},2)) );
                 fwrite(fid, ipermute(int16(movie(QVc{c,1},QVc{c,2},:)), [2 1 3]), 'int16', 'b');
+                if verbose
+                   disp(['Movie ',num2str(d),' of ',num2str(D),' ',...
+                         'Panel', num2str(c),' of ',num2str(C),' ',...
+                         num2str(n/Nframes*100,3),'% complete']) 
+                end
             catch
                 if verbose
                     disp('end of movie reached'); 
