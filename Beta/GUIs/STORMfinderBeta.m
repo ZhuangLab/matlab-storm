@@ -321,8 +321,8 @@ function LoadDax(hObject,handles)
 global SF
 % Read info menufile
     iminfo = ReadInfoFile(SF{handles.gui_number}.daxfile);
-    SF{handles.gui_number}.impars.h = iminfo.frame_dimensions(1);
-    SF{handles.gui_number}.impars.w = iminfo.frame_dimensions(2);
+    SF{handles.gui_number}.impars.h = iminfo.frame_dimensions(2);
+    SF{handles.gui_number}.impars.w = iminfo.frame_dimensions(1);
     SF{handles.gui_number}.impars.infofile = iminfo; 
 % setup default intensities
     fid = fopen(SF{handles.gui_number}.daxfile);
