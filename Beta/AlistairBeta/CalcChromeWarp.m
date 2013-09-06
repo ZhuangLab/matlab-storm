@@ -319,11 +319,14 @@ for m=1:Nmovies
         end
     end
     
-    
+    expectedMovies = 0;
+    for mm=1:length(beadmovie)
+        expectedMovies = expectedMovies + beadmovie(mm).Nfields*length(beadmovie(mm).chns);
+    end
     
        
     allbin = dir([newpath,'*','.bin']);
-    if overwrite ~= 1 && length(allbin) > .9*Nfields*length([beadmovie(:).chns])
+    if overwrite ~= 1 && length(allbin) > .9*expectedMovies;%  Nfields*length([beadmovie(:).chns])
         disp('found existing bin files, skipping dotfinding...')
     else
      % Loop through all split off movies and run appropriate parameters on them   
