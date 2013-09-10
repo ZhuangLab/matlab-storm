@@ -104,7 +104,7 @@ global defaultDaoSTORM
 % Define default parameters
 %--------------------------------------------------------------------------
 % this makes it easy to change default values
-batchsize = 1;
+batchsize = 2;
 overwrite = 2; % ask user
 minsize = 20E6;
 daxroot = '';

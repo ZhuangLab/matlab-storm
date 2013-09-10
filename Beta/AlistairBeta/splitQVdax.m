@@ -33,9 +33,9 @@ alldax = [];
 QVorder = {'647', '561', '750', '488'};
 chns = {'750','647','561','488'};    
 savepath = '';
-maxFrames = 1E10;
 step = 1000;
 verbose = true; 
+promptoverwrite = true;
 % pathin = 'H:\2013-08-21_AbdA\QVdax\';
 
 QVc{1,1} = 1:256;  QVc{1,2} = 1:256;
@@ -106,7 +106,7 @@ for d=1:D
     end
 
     name = infoFile.localName;
-    Nframes = infoFile.frame_size;
+    Nframes = infoFile.number_of_frames;
     infoOut = cell(C,1); 
     daxnames = cell(C,1); 
     daxname = regexprep(name,'\.inf','\.dax');
@@ -124,7 +124,30 @@ for d=1:D
     end
 
     for c=1:C
-        % Open dax for writing 
+        %---- Open dax for writing 
+        % check if file exists, if it does, ask user to overwrite
+        if exist([infoOut{c}.localPath daxnames{c}],'file') && promptoverwrite
+            ow = input('file exists, overwrite? 0=skip, 1=yes, 2=skip all, 3=overwrite all,  ');
+            if ow==0
+                owrite = false;
+                continue
+            elseif ow==1
+                owrite = true;
+            elseif ow==2
+              owrite = false;
+              promptoverwrite = false;
+              continue
+            elseif ow==3
+              owrite = true;
+              promptoverwrite = true;
+            end
+        elseif exist([infoOut{c}.localPath daxnames{c}],'file')
+            if ~owrite
+                continue
+            end
+        end
+        
+        
         fid = fopen([infoOut{c}.localPath daxnames{c}], 'w+');
         if fid<0
             warning(['Unable to open ' infoOut{c}.localPath daxnames{c}]);
@@ -140,9 +163,10 @@ for d=1:D
     %             subplot(1,2,2); imagesc( int16(movie(QVc{c,1},QVc{c,2},2)) );
                 fwrite(fid, ipermute(int16(movie(QVc{c,1},QVc{c,2},:)), [2 1 3]), 'int16', 'b');
                 if verbose
+                    progress = min([(n)/Nframes*100,100]);
                    disp(['Movie ',num2str(d),' of ',num2str(D),' ',...
-                         'Panel', num2str(c),' of ',num2str(C),' ',...
-                         num2str(n/Nframes*100,3),'% complete']) 
+                         'Panel ', num2str(c),' of ',num2str(C),' ',...
+                         num2str(progress,3),'% complete']) 
                 end
             catch
                 if verbose
