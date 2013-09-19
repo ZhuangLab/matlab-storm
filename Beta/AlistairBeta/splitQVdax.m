@@ -139,7 +139,7 @@ for d=1:D
               continue
             elseif ow==3
               owrite = true;
-              promptoverwrite = true;
+              promptoverwrite = false;
             end
         elseif exist([infoOut{c}.localPath daxnames{c}],'file')
             if ~owrite
