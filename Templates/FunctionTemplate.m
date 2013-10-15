@@ -1,6 +1,6 @@
-function params = ReadXMLParameters(fileName, vargin)
+function params = ReadXMLParameters(fileName, varargin)
 %--------------------------------------------------------------------------
-% params = ReadXMLParameters(fileName, vargin)
+% params = ReadXMLParameters(fileName, varargin)
 % This program loads an xml parameters file and returns a parameter
 % structure
 %--------------------------------------------------------------------------

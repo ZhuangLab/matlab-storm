@@ -845,7 +845,7 @@ if ~isempty(Dopts)  % dealing with cancel
     fpath = SF{handles.gui_number}.daxfile(1:k(end));
     RunDotFinder('path',fpath,'batchsize',eval(Dopts{1}),'daxroot',Dopts{2},...
          parflag,Dopts{3},'overwrite',eval(Dopts{4}),'method',method,...
-         'minsize',eval(Dopts{5}) );
+         'minsize',eval(Dopts{5}));
 end
 
 
