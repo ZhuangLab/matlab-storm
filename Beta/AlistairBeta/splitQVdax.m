@@ -36,7 +36,7 @@ savepath = '';
 step = 1000;
 verbose = true; 
 promptoverwrite = true;
-% pathin = 'H:\2013-08-21_AbdA\QVdax\';
+% pathin = 'H:\2013-10-07_F09\';
 
 QVc{1,1} = 1:256;  QVc{1,2} = 1:256;
 QVc{2,1} = 1:256;  QVc{2,2} = 257:512;
@@ -99,12 +99,21 @@ for d=1:D
         continue;
     end
     
+    % Determine which frames of the QV are present in the image
+    fin = infoFile.frame_dimensions;
+    chns_id = [true, fin(1)>256, fin(2)>257, fin(1)>256 && fin(2)>257];
+    chns_in = 1:4;
+    chns_in = chns_in(chns_id);
+    
     C = length(chns); 
     chns_out = zeros(1,C);
     for c=1:C
         chns_out(c) = find(1-cellfun(@isempty,strfind(QVorder,chns{c})));
     end
-
+    
+    chns_out = intersect(chns_out,chns_in); % can't have more channels out than channels in; 
+    C = length(chns_out);
+ 
     name = infoFile.localName;
     Nframes = infoFile.number_of_frames;
     infoOut = cell(C,1); 
@@ -117,13 +126,15 @@ for d=1:D
         infoOut{c}.x_end = 256;
         infoOut{c}.y_end = 256;
         infoOut{c}.frame_dimensions = [256,256];
+        infoOut{c}.frame_size = 256*256; 
         infoOut{c}.localName = [QVorder{c},'quad_',name];   
         infoOut{c}.localPath = savepath; 
         daxnames{c} = [QVorder{c},'quad_',daxname];
         WriteInfoFiles(infoOut{c}, 'verbose', true);
     end
 
-    for c=1:C
+    
+    for c=chns_out
         %---- Open dax for writing 
         % check if file exists, if it does, ask user to overwrite
         if exist([infoOut{c}.localPath daxnames{c}],'file') && promptoverwrite

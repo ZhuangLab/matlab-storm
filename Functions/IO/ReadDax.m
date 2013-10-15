@@ -149,8 +149,9 @@ end
 %--------------------------------------------------------------------------
 
 TFrames = infoFile.number_of_frames;
-frameSize = infoFile.frame_size;
+% frameSize = infoFile.frame_size; % this is stupid and dangerous
 frameDim = infoFile.frame_dimensions;
+frameSize = infoFile.frame_dimensions(1)*infoFile.frame_dimensions(2);
 
 % Determine number of frames to load
 
