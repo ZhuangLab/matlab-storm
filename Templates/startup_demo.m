@@ -25,38 +25,17 @@ disp('Base path set to:')
 disp(['     ',basePath]);
 display('------------------------------------------------------------------');
 
-functionPaths = {'Functions', ...
-    'Functions\Analysis', ...
-    'Functions\File Conversion', ...
-    'Functions\IO', ...
-    'Functions\Plotting and Display', ...
-    'Functions\Simulation', ...
-    'Functions\Misc', ...
-    };
+functionpaths = genpath([basePath,filesep,'Functions']); 
 display('Adding Function Paths');
-for i=1:length(functionPaths)
-    addpath([basePath,filesep,functionPaths{i}], '-begin');
-    display(['    ' functionPaths{i}]);
-end
+addpath(functionpaths);
 
-display('------------------------------------------------------------------');
-GUIpaths = {'GUIs', ...
-    'GUIs\library', ...
-    };
+GUIpaths = genpath([basePath,filesep,'GUIs']);
 display('Adding GUI Paths');
-for i=1:length(GUIpaths)
-    addpath([basePath,filesep,GUIpaths{i}], '-begin');
-    display(['    ' GUIpaths{i}]);
-end
+addpath(GUIpaths);
 
-display('------------------------------------------------------------------');
-defaultPaths = {'Defaults', ...   
-    };
-display('Adding Default Settings Paths');
-for i=1:length(defaultPaths)
-    addpath([basePath,filesep,defaultPaths{i}], '-begin');
-    display(['    ' defaultPaths{i}]);
-end
+BetaPaths = genpath([basePath,filesep,'Beta']);
+display('Adding Beta Paths');
+addpath(BetaPaths); 
 display('------------------------------------------------------------------');
 cd(basePath);
 %% Define Global Variables
@@ -67,9 +46,10 @@ global defaultDaoSTORM; % .bat file to set paths needed for DaoSTORM.
 global defaultIniFile; % path to default .ini file for InsightM parameters
 global defaultXmlFile; % path to default .xml file for DaoSTORM parameters
 global defaultGPUmFile; % path to default .mat file for GPU parameters
-
+global ScratchPath;
 
 % MODIFY THESE PATHS 
+ScratchPath = [basePath,filesep,'ScratchFolder'];
 defaultDataPath = 'N:\';
 defaultSavePath = 'D:\Users\JeffMoffitt\Dropbox\ZhuangLab\Coding\Matlab\Data';
 defaultIniFile = [basePath, filesep, 'Defaults\647data_pars.ini'];
@@ -85,6 +65,7 @@ setpath = ['PATH=',PythonPath,';',DllPath,';%PATH%',' & ',PythonPath,'python.exe
 defaultDaoSTORM = [setpath, DaoSTORMPath];
 defaultInsightPath = [basePath,filesep,'External', filesep,'Insight3', filesep, 'InsightM.exe'];
 
+display(['    Scratch Path Set: ' ScratchPath]);
 display(['    Default Data Path Set: ' defaultDataPath]);
 display(['    Default Save Path Set: ' defaultSavePath]);
 display(['    Default Insight Path Set: ' defaultInsightPath]);
@@ -94,6 +75,4 @@ display(['    Default .xml File Set: ' defaultXmlFile]);
 display(['    Default gpu parameters: ' defaultGPUmFile]);
 display('------------------------------------------------------------------');
 
-%% Run local startup
-startup_local
 
