@@ -1,7 +1,7 @@
 function [dxc,dyc,fedCoords] = feducialDriftCorrection(input1,varargin)
 %--------------------------------------------------------------------------
-% feducialDriftCorrection(binname)
-% feducialDriftCorrection(mlist)
+% [dxc,dyc] = feducialDriftCorrection(binname)
+% [dxc,dyc] =  feducialDriftCorrection(mlist)
 % feducialDriftCorrection([],'daxname',daxname,'mlist',mlist,...);
 %
 %--------------------------------------------------------------------------
@@ -15,7 +15,8 @@ function [dxc,dyc,fedCoords] = feducialDriftCorrection(input1,varargin)
 % mlist.yc = mlist.y - dyc(mlist.frame); 
 %--------------------------------------------------------------------------
 % Optional Inputs
-% 
+%
+%  'Option Name' / Class / Default 
 % 'startframe' / double / 1  
 %               -- first frame to find feducials in
 % 'maxdrift' / double / 2.5 

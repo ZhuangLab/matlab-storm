@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 02-Oct-2013 16:26:24
+% Last Modified by GUIDE v2.5 15-Oct-2013 16:31:39
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -138,13 +138,14 @@ global CC
      H = CC{handles.gui_number}.pars0.H;
      W = CC{handles.gui_number}.pars0.W;
      npp = CC{handles.gui_number}.pars0.npp;
-
-     % 3D clustering parameters    [Not Currently Used]
-        minvoxels = 200;
-        gblur = [7,7,3.5];
-        bins3d = [128,128,40];
-        Zs=10;
-        zrange = [-500,500];
+    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
+    
+%      % 3D clustering parameters    [Not Currently Used]
+%         minvoxels = 200;
+%         gblur = [7,7,3.5];
+%         bins3d = [128,128,40];
+%         Zs=10;
+%         zrange = [-500,500];
 
      % Image properties 
         imaxes.H = H;
@@ -152,6 +153,12 @@ global CC
         imaxes.scale = 1;
         
 
+    set(handles.subaxis1,'Visible','off');
+    set(handles.subaxis2,'Visible','off'); 
+    set(handles.subaxis3,'Visible','off');
+    set(handles.subaxis4,'Visible','off'); 
+    
+        
 
 
 % If first time running, find all bin files in folder        
@@ -244,11 +251,7 @@ elseif step == 2
 elseif step == 3
      % load variables from previous steps
      daxMask = CC{handles.gui_number}.daxMask;
-    
   
-     
-     
-     cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
      maxsize = CC{handles.gui_number}.pars3.maxsize;
      minsize = CC{handles.gui_number}.pars3.minsize;
      mindots = CC{handles.gui_number}.pars3.mindots; 
@@ -315,7 +318,12 @@ elseif step == 4
     showPlots = CC{handles.gui_number}.pars4.showPlots; 
     showExtraPlots = CC{handles.gui_number}.pars4.showExtraPlots; 
     
-    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
+    
+    % Initialize subplots Clean up main figure window
+    set(handles.subaxis1,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+    set(handles.subaxis2,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+    set(handles.subaxis3,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+    set(handles.subaxis4,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
     
     % Apply Drift Correction
     beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
@@ -335,107 +343,49 @@ elseif step == 4
     % Conventional image in finder window
      axes(handles.axes2); cla;
      imagesc(conv0); colormap hot;
-     set(gca,'color','k');
-     set(gca,'XTick',[],'YTick',[]);
+     set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
 
-     % STORM plots in main figure window
-     S = 2*W + 1;
-     Imap = 2^16*ones(513,513,1,'uint16');
-     p0 = 1; p1 = floor(S/2); p2 = p1+2; p3=S;
-     reg = {p0:p1,p0:p1;p0:p1,p2:p3;p2:p3,p0:p1;p2:p3,p2:p3};
-    
-     % auxilliary plots in new figures
-     convIm = figure; clf; set(gcf,'color','w');
-     dottime = figure; clf; set(gcf,'color','w');
-     cellIm = figure; clf;  set(gcf,'color','w');
-     dotHist = figure; clf; set(gcf,'color','w');
-     if Nclusters > 4
-         stormAux  = figure; clf; set(gcf,'color','w');
-         convAux  = figure; clf; set(gcf,'color','w');
-         dottimeAux  = figure; clf; set(gcf,'color','w');
-         cellAux  = figure; clf; set(gcf,'color','w');
-         dotHistAux = figure; clf; set(gcf,'color','w'); 
-     end
      
-      % Arrays to store image data in
+  %------------------ Split and Analyze Clusters   -----------------------
+      % Arrays to store data in
        Istorm = cell(Nclusters,1);
        Iconv = cell(Nclusters,1); 
        Itime = cell(Nclusters,1);
        Ihist = cell(Nclusters,1);
        Icell = cell(Nclusters,1); 
+       cmp = cell(Nclusters,1); 
+       vlists = cell(Nclusters,1); 
        
      for n=1:Nclusters % n=3    
-           % For dsiplay and judgement purposes 
-           TCounts = sum(R(n).PixelValues);
-           DotSize = length(R(n).PixelValues);
-           MaxD = max(R(n).PixelValues);
-           MeanD = mean(R(n).PixelValues); 
-            
-            imaxes.zm = 20;
-            imaxes.cx = R(n).Centroid(1)/cluster_scale;
-            imaxes.cy = R(n).Centroid(2)/cluster_scale;
-            imaxes.xmin = imaxes.cx - imaxes.W/2/imaxes.zm;
-            imaxes.xmax = imaxes.cx + imaxes.W/2/imaxes.zm;
-            imaxes.ymin = imaxes.cy - imaxes.H/2/imaxes.zm;
-            imaxes.ymax = imaxes.cy + imaxes.H/2/imaxes.zm;
-            
-            
-           I = plotSTORM_colorZ({mlist},imaxes,'filter',{infilt'},...
-               'Zsteps',Zs,'scalebar',500,'correct drift',true,'Zsteps',1); 
-           Istorm{n} = I{1};  % save image; 
-           
-           if n<=4
-          % subplot(2,2,n); % n=1
-                Imap(reg{n,1:2}) = I{1}; 
-           elseif n>4 && n<8
-               figure(stormAux);
-               subplot(2,2,n-4);
-               imagesc(Istorm{n});
-               colormap hot;
-               title(['dot',num2str(n)]);
-           end
+        % For dsiplay and judgement purposes 
 
-         
-           
-% %  some more images
+        imaxes.zm = 20;
+        imaxes.cx = R(n).Centroid(1)/cluster_scale;
+        imaxes.cy = R(n).Centroid(2)/cluster_scale;
+        imaxes.xmin = imaxes.cx - imaxes.W/2/imaxes.zm;
+        imaxes.xmax = imaxes.cx + imaxes.W/2/imaxes.zm;
+        imaxes.ymin = imaxes.cy - imaxes.H/2/imaxes.zm;
+        imaxes.ymax = imaxes.cy + imaxes.H/2/imaxes.zm;
 
+   % Add dot labels to overview image           
+    axes(handles.axes2); hold on; text(imaxes.cx+6,imaxes.cy,...
+         ['dot ',num2str(n)],'color','w');
+
+   % Get STORM image      
+        I = plotSTORM_colorZ({mlist},imaxes,'filter',{infilt'},...
+           'Zsteps',Zs,'scalebar',500,'correct drift',true,'Zsteps',1); 
+        Istorm{n} = I{1};  % save image; 
+              
     % Zoom in on histogram (determines size / density etc)
-    x1 = ceil(imaxes.xmin*cluster_scale);
-    x2 = floor(imaxes.xmax*cluster_scale);
-    y1 = ceil(imaxes.ymin*cluster_scale);
-    y2 = floor(imaxes.ymax*cluster_scale);
-    Ihist{n} = M(y1:y2,x1:x2); 
-    if n<=4
-        figure(dotHist);
-        subplot(2,2,n);
-        imagesc(Ihist{n}); 
-        colormap hot; caxis([0,10]);
-    elseif n>4 && n<8
-           figure(dotHistAux);
-           subplot(2,2,n-4);
-           imagesc(Ihist{n});
-           colormap hot; caxis([0,10]);
-           title(['dot',num2str(n)]);
-    end
+        x1 = ceil(imaxes.xmin*cluster_scale);
+        x2 = floor(imaxes.xmax*cluster_scale);
+        y1 = ceil(imaxes.ymin*cluster_scale);
+        y2 = floor(imaxes.ymax*cluster_scale);
+        Ihist{n} = M(y1:y2,x1:x2); 
 
       % Conventional Image of Spot 
         Iconv{n} = conv0(ceil(imaxes.ymin):floor(imaxes.ymax),...
             ceil(imaxes.xmin):floor(imaxes.xmax));
-        if n<=4
-            figure(convIm);
-            subplot(2,2,n); 
-            imagesc(Iconv{n});
-            colormap hot;
-            title(['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
-                num2str(DotSize),' maxD=',num2str(MaxD)]);
-        elseif n>4 && n<8
-           figure(convAux);
-           subplot(2,2,n-4);
-           imagesc(Iconv{n});
-           colormap hot; 
-           title(['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
-                num2str(DotSize),' maxD=',num2str(MaxD)]);
-        end
 
      % STORM image of whole cell
        cellaxes = imaxes;
@@ -446,123 +396,158 @@ elseif step == 4
        cellaxes.ymax = cellaxes.cy + cellaxes.H/2/cellaxes.zm;
        Izmout = plotSTORM_colorZ({mlist},cellaxes,'Zsteps',1,'scalebar',500);
        Icell{n} = sum(Izmout{1},3);
-       if n<=4;
-           figure(cellIm);
-           subplot(2,2,n);
-           imagesc(Icell{n});  
-           title(['dot',num2str(n),'  ','STORM image 4x zoom']); 
-           caxis([0,2^15]); colormap(hot);
-       elseif n>4 && n<8
-           figure(cellAux);
-           subplot(2,2,n-4);
-           imagesc(Icell{n});
-           colormap hot; 
-            title(['dot',num2str(n),'  ','STORM image 4x zoom']); 
-           caxis([0,2^15]); colormap(hot);
-       end
-       
-   % Add dot labels to overview image           
-    axes(handles.axes2); hold on; text(imaxes.cx+6,imaxes.cy,...
-         ['dot ',num2str(n)],'color','w');
-
-    
-%    % Gaussian Fitting and Cluster
+   
+     % Gaussian Fitting and Cluster
        % Get subregion, exlude distant zs which are poorly fit
         vlist = msublist(mlist,imaxes);
         vlist.c( vlist.z>=480 | vlist.z<-480 ) = 9;    
-        filt = (vlist.c~=9) ;
-%        
+          % filt = (vlist.c~=9) ;        
      %  Indicate color as time. 
         dxc = vlist.xc;
         dyc = max(vlist.yc)-vlist.yc;
-        Nframes = length(vlist.frame);
-        cmp = jet(Nframes); % create the color maps changed as in jet color map
-        
+        max(vlist.frame)
+        Nframes = double(max(mlist.frame));
+        f = double(vlist.frame);
+        cmp{n} = MakeColorMap(f,Nframes);
+        % [f/Nframes, zeros(length(f),1), 1-f/Nframes]; % create the color maps changed as in jet color map      
         Itime{n} = [dxc*npp,dyc*npp];
-        if n<=4;
-            figure(dottime);
-            subplot(2,2,n);
-            colormap hot; caxis([0,2^16]); hold on;
-            scatter(dxc*npp, dyc*npp, 5, cmp, 'filled');
-            set(gca,'color','k'); set(gcf,'color','w'); 
-            xlabel('nm');     ylabel('nm'); 
-            title(['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
-                num2str(DotSize),' maxD=',num2str(MaxD)]); 
-        elseif n>4 && n<8
-           figure(cellAux);
-           subplot(2,2,n-4);
-           colormap hot; caxis([0,2^16]); hold on;
-           scatter(dxc*npp, dyc*npp, 5, cmp, 'filled');
-            set(gca,'color','k'); set(gcf,'color','w'); 
-            xlabel('nm');     ylabel('nm'); 
-            title(['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
-                num2str(DotSize),' maxD=',num2str(MaxD)]);
-        end
+        vlists{n} = vlist; 
      end  % end loop over dots
-    
- 
-     % Show STORM images of dots in 2x2 panel in main figure axes
-        axes(handles.axes1); cla; hold on;
-        set(gca,'color','k');
-        set(gca,'XTick',[],'YTick',[]);
-        xlim([0,512]); ylim([0,512]);
-        imagesc(Imap); 
-        regS = [p0+5,p0+5;p2+5,p0+5;p0+5,p2+5;p2+5,p2+5];
-        for n=1:4
-         text(regS(n,1),regS(n,2),['dot ',num2str(n)],'color','w');
-        end
-
-  
-        % Save all data now
-        % In the next step discard the images we don't actually want to
- %       keep.  
-    imnum = CC{handles.gui_number}.imnum;
-    savefolder = get(handles.SaveFolder,'String');
-    s1 = strfind(daxname,'quad_'); 
-    s2 = strfind(daxname,'_storm');
-    saveroot = daxname(s1+5:s2);
-   if ~isempty(savefolder)
-       saveas(handles.axes2,[savefolder,filesep,saveroot,'_','ImOverview','_',num2str(imnum),'.png']);
-       imwrite(Imap,[savefolder,filesep,saveroot,'_Istorm_',num2str(imnum),'.png']);
-       saveas(convIm,[savefolder,filesep,saveroot,'_Iconv_',num2str(imnum),'.png']);
-       saveas(cellIm,[savefolder,filesep,saveroot,'_Icell_',num2str(imnum),'.png']);
-       saveas(dotHist,[savefolder,filesep,saveroot,'_Ihist_',num2str(imnum),'.png']);
-       saveas(dottime,[savefolder,filesep,saveroot,'_Itime_',num2str(imnum),'.png']);
-  end
-        
+   
         % Export data
+        CC{handles.gui_number}.vlists = vlists;
         CC{handles.gui_number}.Nclusters = Nclusters;
-        CC{handles.gui_number}.Imap = Imap;
+        CC{handles.gui_number}.R = R;
         CC{handles.gui_number}.Istorm = Istorm;
         CC{handles.gui_number}.Iconv = Iconv;
         CC{handles.gui_number}.Icell = Icell;
         CC{handles.gui_number}.Ihist = Ihist;
         CC{handles.gui_number}.Itime = Itime;
         CC{handles.gui_number}.cmp = cmp;
-        CC{handles.gui_number}.fighandles = {convIm,dottime,cellIm};
-          
+      for n=1:Nclusters
+              ChromatinPlots(handles, n);
+              pause(.5); 
+      end
+    set(handles.Xslider,'Value',Nclusters);
+    set(handles.Xslider,'Min',1);
+    set(handles.Xslider,'Max',Nclusters);  
+    set(handles.Xslider,'SliderStep',[.1,.5]);
 
           
 elseif step == 5
     % Load variables
-    Nclusters = CC{handles.gui_number}.Nclusters;
-    Imap = CC{handles.gui_number}.Imap;
     Istorm = CC{handles.gui_number}.Istorm ;
     Iconv = CC{handles.gui_number}.Iconv;
     Itime = CC{handles.gui_number}.Itime;
     Icell = CC{handles.gui_number}.Icell;
     Ihist = CC{handles.gui_number}.Ihist;
+    cmp = CC{handles.gui_number}.cmp;
+    R = CC{handles.gui_number}.R;
+    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
+    Nclusters = CC{handles.gui_number}.Nclusters;
+      
+    % save parameters
+    imnum = CC{handles.gui_number}.imnum;
+    savefolder = get(handles.SaveFolder,'String');
+    s1 = strfind(daxname,'quad_'); 
+    s2 = strfind(daxname,'_storm');
+    saveroot = daxname(s1+5:s2);
     
-        saveas(handles.axes2,[savefolder,filesep,saveroot,'_','ImOverview','_',num2str(imnum),'.png']);
-       [savefolder,filesep,saveroot,'_Istorm_',num2str(imnum),'.png'];
-       [savefolder,filesep,saveroot,'_Iconv_',num2str(imnum),'.png'];
-       [savefolder,filesep,saveroot,'_Icell_',num2str(imnum),'.png'];
-       [savefolder,filesep,saveroot,'_Ihist_',num2str(imnum),'.png'];
-       [savefolder,filesep,saveroot,'_Itime_',num2str(imnum),'.png'];
+    if isempty(savefolder)
+        error('error, no save location specified'); 
+    end
     
+    dlg_title = 'Export images';  num_lines = 1;
+    Dprompt = {
+    'Dots: ',... 1
+     };     %5 
 
+    Opts{1} = ['[',num2str(1:Nclusters),']'];
+    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
+    
+    saveNs = eval(Opts{1});% 
+    disp(['saving data in: ',savefolder])
+    for n=saveNs
+    
+    TCounts = sum(R(n).PixelValues);
+    DotSize = length(R(n).PixelValues);
+    MaxD = max(R(n).PixelValues);
+    
+    Iout = figure(1); clf; 
+    imagesc(Iconv{n}); colormap hot;
+    set(gca,'color','k'); 
+    saveas(Iout,[savefolder,filesep,saveroot,'_Iconv_',num2str(imnum),'_d',num2str(n),'.png']);
+    pause(.1);
+    
+    Iout = figure(1); clf;
+    imagesc(Istorm{n}); colormap hot;
+    set(gca,'color','k'); 
+    text(1.2*cluster_scale,2*cluster_scale,...
+        ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
+             num2str(DotSize),' maxD=',num2str(MaxD)],...
+             'color','w');
+    saveas(Iout,[savefolder,filesep,saveroot,'_Istorm_',num2str(imnum),'_d',num2str(n),'.png']);
+    pause(.1);
+    
+    Iout = figure(1); clf;
+    colormap hot; caxis([0,2^16]); hold on;
+    scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
+    set(gca,'color','k'); set(gcf,'color','w'); 
+    xlabel('nm');     ylabel('nm'); 
+    saveas(Iout,[savefolder,filesep,saveroot,'_Itime_',num2str(imnum),'_d',num2str(n),'.png']);
+    pause(.1);
+    
+    Iout = figure(1); clf; 
+    imagesc(Icell{n}); colormap hot;
+    set(gca,'color','k'); 
+    saveas(Iout,[savefolder,filesep,saveroot,'_Icell_',num2str(imnum),'_d',num2str(n),'.png']);
+    pause(.1);
+    
+    Iout = figure(1); clf;
+    imagesc(Ihist{n}); colormap hot;
+    set(gca,'color','k');
+    saveas(Iout,[savefolder,filesep,saveroot,'_Ihist_',num2str(imnum),'_d',num2str(n),'.png']);
+    end
 end
     
+function ChromatinPlots(handles, n)
+global CC
+    Istorm = CC{handles.gui_number}.Istorm ;
+    Iconv = CC{handles.gui_number}.Iconv;
+    Itime = CC{handles.gui_number}.Itime;
+    Ihist = CC{handles.gui_number}.Ihist;
+    cmp = CC{handles.gui_number}.cmp;
+    R = CC{handles.gui_number}.R;
+    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
+   
+    
+    TCounts = sum(R(n).PixelValues);
+    DotSize = length(R(n).PixelValues);
+    MaxD = max(R(n).PixelValues);
+    MeanD = mean(R(n).PixelValues); 
+    
+    axes(handles.subaxis1); cla; %#ok<*LAXES>
+    imagesc(Iconv{n}); colormap hot;
+    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+
+    axes(handles.subaxis2); cla; %#ok<*LAXES>
+    imagesc(Istorm{n}); colormap hot;
+    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+    text(1.2*cluster_scale,2*cluster_scale,...
+        ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
+             num2str(DotSize),' maxD=',num2str(MaxD)],...
+             'color','w');
+
+    axes(handles.subaxis3); cla; %#ok<*LAXES>
+    colormap hot; caxis([0,2^16]); hold on;
+    scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
+    set(gca,'color','k'); set(gcf,'color','w'); 
+    xlabel('nm');     ylabel('nm'); 
+    set(gca,'XTick',[],'YTick',[]);
+
+    axes(handles.subaxis4); cla; %#ok<*LAXES>
+    imagesc(Ihist{n}); colormap hot;
+    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
 
 
 % --- Executes on button press in StepParameters.
@@ -646,9 +631,7 @@ Dirs = CC{handles.gui_number}.Dirs;
 CC{handles.gui_number}.step = CC{handles.gui_number}.step +1;
 step = CC{handles.gui_number}.step;
 set(handles.DirectionsBox,'String',Dirs{step});
-
-
-
+    
 % --- Executes on button press in BackStep.
 function BackStep_Callback(hObject, eventdata, handles)
 % hObject    handle to BackStep (see GCBO)
@@ -706,18 +689,22 @@ set(handles.DirectionsBox,'String',CC{handles.gui_number}.Dirs{1});
 
 
 % --- Executes on slider movement.
-function slider1_Callback(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
+function Xslider_Callback(hObject, eventdata, handles)
+% hObject    handle to Xslider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+global CC
+if CC{handles.gui_number}.step == 4
+    n = round(get(hObject,'Value'));
+    ChromatinPlots(handles, n);
+end
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
 
 % --- Executes during object creation, after setting all properties.
-function slider1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
+function Xslider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Xslider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -728,18 +715,23 @@ end
 
 
 % --- Executes on slider movement.
-function slider2_Callback(hObject, eventdata, handles)
-% hObject    handle to slider2 (see GCBO)
+function Yslider_Callback(hObject, eventdata, handles)
+% hObject    handle to Yslider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+global CC
+if CC{handles.gui_number}.step == 4
+    
+end
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
 
 % --- Executes during object creation, after setting all properties.
-function slider2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider2 (see GCBO)
+function Yslider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Yslider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 

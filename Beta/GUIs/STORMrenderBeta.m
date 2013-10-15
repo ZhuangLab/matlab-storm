@@ -96,6 +96,7 @@ handles.output = hObject;
 set(handles.Yslider,'Value',0);
 set(handles.Yslider,'Min',-256);
 set(handles.Yslider,'Max',256);
+set(handles.Yslider,'SliderStep',[1,3]);
 
 % set up axes for plotting
  axes(handles.axes1); 
