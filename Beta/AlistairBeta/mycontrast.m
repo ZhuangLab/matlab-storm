@@ -16,8 +16,8 @@ function Iout = mycontrast(I,maxp,minp)
 %--------------------------------------------------------------------------
 
 s = 1-maxp;
-v = sort(I(:));  
-l = length(v);
+v = double(sort(I(:)));  
+L = length(v);
 
 c = class(I);
 if strcmp(c,'uint8')==1
@@ -28,18 +28,21 @@ elseif strcmp(c,'single') == 1 || strcmp(c,'double') == 1
     m = max(v);
 end
 
+floor(.5)
+
 
 if sum(I(:))~= 0
     if minp~=1
-    o1 = double(v(1+floor(minp*l)))/m;
+         k = 1 + floor( (L-1).*minp );
+        o1 = v(k)/m;
     else
         o1 = 0;
     end
-    o2 = double(v(round(s*l)))/m;    
+    o2 = v(round(s*L))/m;    
     while o2 == 0
         maxp = maxp*.1;
         s = 1-maxp;
-        o2 = double(v(round(s*l)))/m;
+        o2 = v(round(s*L))/m;
     end
 
     if o1 >= o2;
