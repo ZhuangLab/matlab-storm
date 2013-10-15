@@ -69,7 +69,7 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
        {'Step 1: load conventional image';
         'Step 2: Find all spots in conventional image';
         'Step 3: load STORM image';
-        'Step 4: Crop STORM image with conventional';
+        'Step 4: Perform drift correction, Crop STORM-image, and Quantify structural features';
         'Step 5: Save data'};
     
 % Cleanup Axes
@@ -84,7 +84,7 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
 % Default Parameters for GUI
 % widely used parameters
     CC{handles.gui_number}.pars0.H = 256;
-    CC{handles.gui_number}.pars0.H = 256;
+    CC{handles.gui_number}.pars0.W = 256;
     CC{handles.gui_number}.pars0.npp = 160;
 
     % step 2 parameters
@@ -95,7 +95,13 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
      CC{handles.gui_number}.pars3.maxsize = 1.2E5; % 1E4 at 10nm boxsize, 1.2 um x 1.2 um 
      CC{handles.gui_number}.pars3.minsize= 20; % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
      CC{handles.gui_number}.pars3.mindots = 500; % min number of localizations per STORM dot
-     CC{handles.gui_number}.pars3.startFrame = 1;   
+     CC{handles.gui_number}.pars3.startFrame = 1; 
+     % step 4 parameters
+    CC{handles.gui_number}.pars4.maxDrift = 6;
+    CC{handles.gui_number}.pars4.fmin = .35;
+    CC{handles.gui_number}.pars4.startFrame = 1;
+    CC{handles.gui_number}.pars4.showPlots = true; 
+    CC{handles.gui_number}.pars4.showExtraPlots = false; 
 
 % Choose default command line output for ChromatinCropper
 handles.output = hObject;
@@ -128,24 +134,23 @@ function RunStep_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSL,*INUSD
 % global parameters
 global CC
 
-% default parameters (make this a popup box under menus)
-    % 2D clustering parameters
-        H = 256;
-        W = 256;
+% Common Parameters
+     H = CC{handles.gui_number}.pars0.H;
+     W = CC{handles.gui_number}.pars0.W;
+     npp = CC{handles.gui_number}.pars0.npp;
 
-
-     % 3D clustering parameters   
+     % 3D clustering parameters    [Not Currently Used]
         minvoxels = 200;
         gblur = [7,7,3.5];
         bins3d = [128,128,40];
+        Zs=10;
+        zrange = [-500,500];
 
      % Image properties 
         imaxes.H = H;
         imaxes.W = W;
         imaxes.scale = 1;
-        npp=160;
-        Zs=10;
-        zrange = [-500,500];
+        
 
 
 
@@ -302,12 +307,22 @@ elseif step == 4
     Nclusters = length(R);
     conv0 = CC{handles.gui_number}.conv;
     CC{handles.gui_number}.handles = handles;
+      
+    % Load user defined parameters
+    maxDrift = CC{handles.gui_number}.pars4.maxDrift;
+    fmin = CC{handles.gui_number}.pars4.fmin;
+    startFrame = CC{handles.gui_number}.pars4.startFrame;
+    showPlots = CC{handles.gui_number}.pars4.showPlots; 
+    showExtraPlots = CC{handles.gui_number}.pars4.showExtraPlots; 
+    
+    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
     
     % Apply Drift Correction
     beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
     beadbin = [folder,filesep,beadname];
-     [dxc,dyc] = feducialDriftCorrection(beadbin,...
-         'maxdrift',6,'showplots',true,'fmin',.35);
+     [dxc,dyc] = feducialDriftCorrection(beadbin,'maxdrift',maxDrift,...
+         'showplots',showPlots,'fmin',fmin,'startframe',startFrame,...
+         'showextraplots',showExtraPlots);
      missingframes = max(mlist.frame) - length(dxc);
      dxc = [dxc; zeros(missingframes,1)];
      dyc = [dyc; zeros(missingframes,1)];
@@ -330,10 +345,10 @@ elseif step == 4
      reg = {p0:p1,p0:p1;p0:p1,p2:p3;p2:p3,p0:p1;p2:p3,p2:p3};
     
      % auxilliary plots in new figures
-     convIm = figure(2); clf; set(gcf,'color','w');
-     dottime = figure(3); clf; set(gcf,'color','w');
-     cellIm = figure(4); clf;  set(gcf,'color','w');
-     dotHist = figure(5); clf; set(gcf,'color','w');
+     convIm = figure; clf; set(gcf,'color','w');
+     dottime = figure; clf; set(gcf,'color','w');
+     cellIm = figure; clf;  set(gcf,'color','w');
+     dotHist = figure; clf; set(gcf,'color','w');
      if Nclusters > 4
          stormAux  = figure; clf; set(gcf,'color','w');
          convAux  = figure; clf; set(gcf,'color','w');
@@ -376,6 +391,8 @@ elseif step == 4
                figure(stormAux);
                subplot(2,2,n-4);
                imagesc(Istorm{n});
+               colormap hot;
+               title(['dot',num2str(n)]);
            end
 
          
@@ -391,19 +408,32 @@ elseif step == 4
     if n<=4
         figure(dotHist);
         subplot(2,2,n);
-        imagesc(Ihist{n}); colormap hot; caxis([0,10]);
+        imagesc(Ihist{n}); 
+        colormap hot; caxis([0,10]);
+    elseif n>4 && n<8
+           figure(dotHistAux);
+           subplot(2,2,n-4);
+           imagesc(Ihist{n});
+           colormap hot; caxis([0,10]);
+           title(['dot',num2str(n)]);
     end
 
       % Conventional Image of Spot 
-        Iconv{n} = conv0(ceil(imaxes.xmin):floor(imaxes.xmax),...
-            ceil(imaxes.ymin):floor(imaxes.ymax));
+        Iconv{n} = conv0(ceil(imaxes.ymin):floor(imaxes.ymax),...
+            ceil(imaxes.xmin):floor(imaxes.xmax));
         if n<=4
             figure(convIm);
             subplot(2,2,n); 
-            imagesc(conv0); colormap hot;
-            xlim([imaxes.xmin, imaxes.xmax])
-            ylim([imaxes.ymin, imaxes.ymax])
+            imagesc(Iconv{n});
+            colormap hot;
             title(['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
+                num2str(DotSize),' maxD=',num2str(MaxD)]);
+        elseif n>4 && n<8
+           figure(convAux);
+           subplot(2,2,n-4);
+           imagesc(Iconv{n});
+           colormap hot; 
+           title(['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
                 num2str(DotSize),' maxD=',num2str(MaxD)]);
         end
 
@@ -421,6 +451,13 @@ elseif step == 4
            subplot(2,2,n);
            imagesc(Icell{n});  
            title(['dot',num2str(n),'  ','STORM image 4x zoom']); 
+           caxis([0,2^15]); colormap(hot);
+       elseif n>4 && n<8
+           figure(cellAux);
+           subplot(2,2,n-4);
+           imagesc(Icell{n});
+           colormap hot; 
+            title(['dot',num2str(n),'  ','STORM image 4x zoom']); 
            caxis([0,2^15]); colormap(hot);
        end
        
@@ -451,6 +488,15 @@ elseif step == 4
             xlabel('nm');     ylabel('nm'); 
             title(['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
                 num2str(DotSize),' maxD=',num2str(MaxD)]); 
+        elseif n>4 && n<8
+           figure(cellAux);
+           subplot(2,2,n-4);
+           colormap hot; caxis([0,2^16]); hold on;
+           scatter(dxc*npp, dyc*npp, 5, cmp, 'filled');
+            set(gca,'color','k'); set(gcf,'color','w'); 
+            xlabel('nm');     ylabel('nm'); 
+            title(['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
+                num2str(DotSize),' maxD=',num2str(MaxD)]);
         end
      end  % end loop over dots
     
@@ -467,7 +513,7 @@ elseif step == 4
         end
 
   
-             % Save all data now
+        % Save all data now
         % In the next step discard the images we don't actually want to
  %       keep.  
     imnum = CC{handles.gui_number}.imnum;
@@ -507,6 +553,13 @@ elseif step == 5
     Icell = CC{handles.gui_number}.Icell;
     Ihist = CC{handles.gui_number}.Ihist;
     
+        saveas(handles.axes2,[savefolder,filesep,saveroot,'_','ImOverview','_',num2str(imnum),'.png']);
+       [savefolder,filesep,saveroot,'_Istorm_',num2str(imnum),'.png'];
+       [savefolder,filesep,saveroot,'_Iconv_',num2str(imnum),'.png'];
+       [savefolder,filesep,saveroot,'_Icell_',num2str(imnum),'.png'];
+       [savefolder,filesep,saveroot,'_Ihist_',num2str(imnum),'.png'];
+       [savefolder,filesep,saveroot,'_Itime_',num2str(imnum),'.png'];
+    
 
 end
     
@@ -523,7 +576,7 @@ step = CC{handles.gui_number}.step;
 if step == 1
 
 elseif step == 2
-    dlg_title = 'Step 2 Parameters';  num_lines = 1;
+    dlg_title = 'Step 2 Pars: Conv. Segmentation';  num_lines = 1;
     Dprompt = {
     'fraction to saturate',... 1
     'fraction to make black',... 2
@@ -537,11 +590,11 @@ elseif step == 2
      CC{handles.gui_number}.pars2.makeblack = str2double(Opts{2}); 
     
 elseif step == 3
-    dlg_title = 'Step 3 Parameters';  num_lines = 1;
+    dlg_title = 'Step 3 Pars: Filter Clusters';  num_lines = 1;
     Dprompt = {
     'box size (nm)',... 1
     'max dot size (boxes)',... 2
-    'min dot size (boxes)',...        3
+    'min dot size (boxes)',... 3
     'min localizations',...  4
     'start frame'};     %5 
 
@@ -554,39 +607,32 @@ elseif step == 3
 
     CC{handles.gui_number}.pars3.boxSize = str2double(Opts{1}); % for 160npp, 16 -> 10nm boxes
     CC{handles.gui_number}.pars3.maxsize = str2double(Opts{2}); % 1E4 at 10nm cluster_scale, 1.2 um x 1.2 um 
-    CC{handles.gui_number}.pars3.minsize= str2double(Opts{3}); % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
+    CC{handles.gui_number}.pars3.minsize = str2double(Opts{3}); % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
     CC{handles.gui_number}.pars3.mindots = str2double(Opts{4}); % min number of localizations per STORM dot
     CC{handles.gui_number}.pars3.startFrame = str2double(Opts{5});   
     
 elseif step == 4
+    dlg_title = 'Step 4 Pars: Drfit Correction';  num_lines = 1;
+    Dprompt = {
+    'max drift (pixels)',... 1
+    'min fraction of frames',... 2
+    'start frame (1 = auto detect)',...        3
+    'show drift correction plots?',...  4
+    'show extra drift correction plots?'};     %5 
+
+    Opts{1} = num2str(CC{handles.gui_number}.pars4.maxDrift);
+    Opts{2} = num2str(CC{handles.gui_number}.pars4.fmin);
+    Opts{3} = num2str(CC{handles.gui_number}.pars4.startFrame);
+    Opts{4} = num2str(CC{handles.gui_number}.pars4.showPlots);
+    Opts{5} = num2str(CC{handles.gui_number}.pars4.showExtraPlots);
+    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
     
-elseif step == drift
+    CC{handles.gui_number}.pars4.maxDrift = str2double(Opts{1});
+    CC{handles.gui_number}.pars4.fmin = str2double(Opts{2});
+    CC{handles.gui_number}.pars4.startFrame= str2double(Opts{3});
+    CC{handles.gui_number}.pars4.showPlots = str2double(Opts{4}); 
+    CC{handles.gui_number}.pars4.showExtraPlots = str2double(Opts{5});
     
-
-dlg_title = 'Correlation-based Drift Correction';
-num_lines = 1;
-Dprompt = {
-    'stepframe',... 1
-    'channel',... 2
-    'scale',...        3
-    'nm per pixel',...
-    'showplots'};     %5   
-Opts{1} = num2str(10E3);
-Opts{2} = num2str(1);
-Opts{3} = num2str(4);
-Opts{4} = num2str(SR{handles.gui_number}.DisplayOps.npp);
-Opts{5} = 'true';
-Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
-
-c = str2double(Opts{2});
-
-[dxc,dyc] =  XcorrDriftCorrect( ...
-    SR{handles.gui_number}.mlist{ c },...
-    'imagesize',imagesize,...
-    'scale',eval(Opts{3}),...
-    'stepframe',eval(Opts{1}),...
-    'nm per pixel',eval(Opts{4}),...
-    'showplots',eval(Opts{5}) );
 end
     
 

@@ -72,7 +72,7 @@ for i=1:length(type)
                 error([name ' is not an array']);
             end
         case 'boolean'
-            if ~islogical(value)
+            if ~islogical(value) && value == 1 && value == 0
                 error([name ' is not a boolean']);
             end
         case 'string'

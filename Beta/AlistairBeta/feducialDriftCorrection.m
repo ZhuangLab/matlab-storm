@@ -137,6 +137,14 @@ p1s = mlist.frame==startframe;
 x1s = mlist.x(p1s);
 y1s = mlist.y(p1s);
 
+if showextraplots
+   figure(2); clf; 
+   plot(mlist.x,mlist.y,'k.','MarkerSize',1);
+   hold on;
+   plot(x1s,y1s,'bo');
+   legend('all localizations','startframe localizations'); 
+end
+
 % Reject molecules that are too close to other molecules
 if length(x1s) > 1
     [~,dist] = knnsearch([x1s,y1s],[x1s,y1s],'K',2);
@@ -257,19 +265,19 @@ mlist.yc = mlist.y - dyc(mlist.frame);
 % Extra plots
 %------------------------------------------------
 if showextraplots
-    figure(1); clf; 
+    figure(2); clf; 
     plot(mlist.x,mlist.y,'r.',mlist.xc,mlist.yc,'k.','MarkerSize',1);
 end
 
 % show drift traces for all feducials
 if showextraplots
-    figure(2); clf;
+    figure(3); clf;
     for i=1:Nfeducials
-        figure(2);
+        figure(3);
         subplot(Nfeducials,2,i*2-1); plot(dx(startframe:end,i),'.','MarkerSize',1);
         subplot(Nfeducials,2,i*2); plot(dy(startframe:end,i),'.','MarkerSize',1);
     end
-    figure(3); clf; plot(dx(startframe:end,:),'MarkerSize',1);
+    figure(4); clf; plot(dx(startframe:end,:),'MarkerSize',1);
 end
 
 % export feducial coordinates if desired
