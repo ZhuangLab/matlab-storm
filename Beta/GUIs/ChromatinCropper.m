@@ -102,6 +102,12 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     CC{handles.gui_number}.pars4.startFrame = 1;
     CC{handles.gui_number}.pars4.showPlots = true; 
     CC{handles.gui_number}.pars4.showExtraPlots = false; 
+    
+    % step X parameters for X-correlation drift correction
+    CC{handles.gui_number}.parsX.stepFrame = 8000; % 'stepframe' / double / 10E3 -- number of frames to average
+    CC{handles.gui_number}.parsX.scale  = 5; % 'scale' / double / 5 -- upsampling factor for binning localizations
+    CC{handles.gui_number}.parsX.showPlots = true;   % 'showplots' / logical / true -- plot computed drift?
+    CC{handles.gui_number}.parsX.local = 0;
 
 % Choose default command line output for ChromatinCropper
 handles.output = hObject;
@@ -259,21 +265,10 @@ elseif step == 3
          
      % Step 3: Load molecule list and bin it to create image
         mlist = ReadMasterMoleculeList([folder,filesep,binfile.name]);
-        infilt = mlist.frame>startframe;
-        
+        infilt = mlist.frame>startframe;   
         M = hist3([mlist.yc(infilt),mlist.xc(infilt)],...
              {0:1/cluster_scale:H,0:1/cluster_scale:W});
-        [h,w] = size(M);
-        
-%         figure(13); clf; 
-%              imagesc(M); 
-%              colorbar; 
-%              caxis([0,10]);
-%              
-%         figure(14); clf;
-%         imagesc(conv0); hold on;
-%         plot(mlist.xc(infilt),mlist.yc(infilt),'w.');
-             
+        [h,w] = size(M);             
         mask = M>1;  %        figure(3); clf; imagesc(mask); 
         mask = imdilate(mask,strel('disk',3)); %       figure(3); clf; imagesc(mask);
         toobig = bwareaopen(mask,maxsize);  % figure(3); clf; imagesc(mask);
@@ -282,13 +277,12 @@ elseif step == 3
         R = regionprops(mask,M,'PixelValues','Eccentricity',...
             'BoundingBox','Extent','Area','Centroid','PixelIdxList'); 
         aboveminsize = cellfun(@sum,{R.PixelValues}) > mindots;
-        R = R(aboveminsize);   
-        
-        
+        R = R(aboveminsize);           
         allpix = cat(1,R(:).PixelIdxList);
         mask = double(mask); 
         mask(allpix) = 3;
         
+        % plot mask in main figure window
         axes(handles.axes1); cla;
         set(gca,'color','k');
         set(gca,'XTick',[],'YTick',[]);
@@ -325,7 +319,8 @@ elseif step == 4
     set(handles.subaxis3,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
     set(handles.subaxis4,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
     
-    % Apply Drift Correction
+    % -----------Apply Drift Correction------------------
+    try
     beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
     beadbin = [folder,filesep,beadname];
      [dxc,dyc] = feducialDriftCorrection(beadbin,'maxdrift',maxDrift,...
@@ -339,7 +334,50 @@ elseif step == 4
     mlist.xc = mlist.x - dxc(mlist.frame);
     mlist.yc = mlist.y - dyc(mlist.frame); 
     CC{handles.gui_number}.mlist = mlist; % update in global data
-     
+    catch er
+        disp(er.message);
+        warning('Feducial Drift Correction Failed');
+        retry = input('Enter 1 to change parameters, 2 to attempt image-based drift correction, 3 to skip. ');
+    end
+    if retry == 2 
+           dlg_title = 'Step 4 Pars: Drfit Correction';  num_lines = 1;
+        Dprompt = {
+        'Frames per correlation step',... 1
+        'upsampling factor',... 2
+        'show drift correction plots?',... 3 
+        'Use data from local dot # (0=use full image)'};     %4
+
+        Opts{1} = num2str(CC{handles.gui_number}.parsX.stepFrame);
+        Opts{2} = num2str(CC{handles.gui_number}.parsX.scale);
+        Opts{3} = num2str(CC{handles.gui_number}.parsX.showPlots);
+        Opts{4} = num2str(CC{handles.gui_number}.parsX.local);
+        Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
+
+        if Opts{4}==0
+       [x_drift,y_drift] = XcorrDriftCorrect(mlist,'stepframe',eval(Opts{1}),...
+            'scale',eval(Opts{2}),'showplots',eval(Opts{3}),...    
+            'imagesize',[H,W],'nm per pixel',npp);
+        else
+          disp('This option requires local regions to be detected first ',...
+              'Run step 4 once without drift correction, then chose a dot ',...
+              'and rerun step 4 using your preferred dot for calibration'); 
+          vlist = CC{handles.gui_number}.vlists{ eval(Opts{4}) };
+          imaxes = CC{handles.gui_number}.imaxes{ eval(Opts{4}) };
+          H = imaxes.ymax - imaxes.ymin + 1;
+          W = imaxes.xmax - imaxes.xmin + 1; 
+          [x_drift,y_drift] = XcorrDriftCorrect(vlist,...
+             'stepframe',eval(Opts{1}),...
+            'scale',eval(Opts{2}),'showplots',eval(Opts{3}),...    
+            'imagesize',[H,W],'nm per pixel',npp);      
+        end
+
+           mlist.xc = mlist.x + x_drift(mlist.frame)';
+           mlist.yc = mlist.y + y_drift(mlist.frame)';
+    else
+        disp('skipping drift correction...')
+    end
+    
+    
     % Conventional image in finder window
      axes(handles.axes2); cla;
      imagesc(conv0); colormap hot;
@@ -366,6 +404,7 @@ elseif step == 4
         imaxes.xmax = imaxes.cx + imaxes.W/2/imaxes.zm;
         imaxes.ymin = imaxes.cy - imaxes.H/2/imaxes.zm;
         imaxes.ymax = imaxes.cy + imaxes.H/2/imaxes.zm;
+        allImaxes{n} = imaxes; 
 
    % Add dot labels to overview image           
     axes(handles.axes2); hold on; text(imaxes.cx+6,imaxes.cy,...
@@ -418,6 +457,7 @@ elseif step == 4
         CC{handles.gui_number}.vlists = vlists;
         CC{handles.gui_number}.Nclusters = Nclusters;
         CC{handles.gui_number}.R = R;
+        CC{handles.gui_number}.imaxes = allImaxes;
         CC{handles.gui_number}.Istorm = Istorm;
         CC{handles.gui_number}.Iconv = Iconv;
         CC{handles.gui_number}.Icell = Icell;
@@ -458,59 +498,59 @@ elseif step == 5
     end
     
     dlg_title = 'Export images';  num_lines = 1;
-    Dprompt = {
-    'Dots: ',... 1
-     };     %5 
-
+    Dprompt = {'Dots: '};  
     Opts{1} = ['[',num2str(1:Nclusters),']'];
-    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
-    
+    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts); 
     saveNs = eval(Opts{1});% 
     disp(['saving data in: ',savefolder])
+    
     for n=saveNs
-    
-    TCounts = sum(R(n).PixelValues);
-    DotSize = length(R(n).PixelValues);
-    MaxD = max(R(n).PixelValues);
-    
-    Iout = figure(1); clf; 
-    imagesc(Iconv{n}); colormap hot;
-    set(gca,'color','k'); 
-    saveas(Iout,[savefolder,filesep,saveroot,'_Iconv_',num2str(imnum),'_d',num2str(n),'.png']);
-    pause(.1);
-    
-    Iout = figure(1); clf;
-    imagesc(Istorm{n}); colormap hot;
-    set(gca,'color','k'); 
-    text(1.2*cluster_scale,2*cluster_scale,...
-        ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
-             num2str(DotSize),' maxD=',num2str(MaxD)],...
-             'color','w');
-    saveas(Iout,[savefolder,filesep,saveroot,'_Istorm_',num2str(imnum),'_d',num2str(n),'.png']);
-    pause(.1);
-    
-    Iout = figure(1); clf;
-    colormap hot; caxis([0,2^16]); hold on;
-    scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
-    set(gca,'color','k'); set(gcf,'color','w'); 
-    xlabel('nm');     ylabel('nm'); 
-    saveas(Iout,[savefolder,filesep,saveroot,'_Itime_',num2str(imnum),'_d',num2str(n),'.png']);
-    pause(.1);
-    
-    Iout = figure(1); clf; 
-    imagesc(Icell{n}); colormap hot;
-    set(gca,'color','k'); 
-    saveas(Iout,[savefolder,filesep,saveroot,'_Icell_',num2str(imnum),'_d',num2str(n),'.png']);
-    pause(.1);
-    
-    Iout = figure(1); clf;
-    imagesc(Ihist{n}); colormap hot;
-    set(gca,'color','k');
-    saveas(Iout,[savefolder,filesep,saveroot,'_Ihist_',num2str(imnum),'_d',num2str(n),'.png']);
+        % summary data to print ot image
+        TCounts = sum(R(n).PixelValues);
+        DotSize = length(R(n).PixelValues);
+        MaxD = max(R(n).PixelValues);
+
+        % Run through figures, print out to fig 1 and save. 
+        Iout = figure(1); clf; 
+        imagesc(Iconv{n}); colormap hot;
+        set(gca,'color','k'); 
+        saveas(Iout,[savefolder,filesep,saveroot,'_Iconv_',num2str(imnum),'_d',num2str(n),'.png']);
+        pause(.1);
+
+        Iout = figure(1); clf;
+        imagesc(Istorm{n}); colormap hot;
+        set(gca,'color','k'); 
+        text(1.2*cluster_scale,2*cluster_scale,...
+            ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
+                 num2str(DotSize),' maxD=',num2str(MaxD)],...
+                 'color','w');
+        saveas(Iout,[savefolder,filesep,saveroot,'_Istorm_',num2str(imnum),'_d',num2str(n),'.png']);
+        pause(.1);
+
+        Iout = figure(1); clf;
+        colormap hot; caxis([0,2^16]); hold on;
+        scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
+        set(gca,'color','k'); set(gcf,'color','w'); 
+        xlabel('nm');     ylabel('nm'); 
+        saveas(Iout,[savefolder,filesep,saveroot,'_Itime_',num2str(imnum),'_d',num2str(n),'.png']);
+        pause(.1);
+
+        Iout = figure(1); clf; 
+        imagesc(Icell{n}); colormap hot;
+        set(gca,'color','k'); 
+        saveas(Iout,[savefolder,filesep,saveroot,'_Icell_',num2str(imnum),'_d',num2str(n),'.png']);
+        pause(.1);
+
+        Iout = figure(1); clf;
+        imagesc(Ihist{n}); colormap hot;
+        set(gca,'color','k');
+        saveas(Iout,[savefolder,filesep,saveroot,'_Ihist_',num2str(imnum),'_d',num2str(n),'.png']);
     end
 end
-    
+   
+
 function ChromatinPlots(handles, n)
+% plot data for cluster n in main figure window
 global CC
     Istorm = CC{handles.gui_number}.Istorm ;
     Iconv = CC{handles.gui_number}.Iconv;
@@ -549,7 +589,7 @@ global CC
     imagesc(Ihist{n}); colormap hot;
     set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
 
-
+    
 % --- Executes on button press in StepParameters.
 function StepParameters_Callback(hObject, eventdata, handles)
 % hObject    handle to StepParameters (see GCBO)
@@ -559,7 +599,7 @@ global CC
 step = CC{handles.gui_number}.step;
 
 if step == 1
-
+ % just loading the image
 elseif step == 2
     dlg_title = 'Step 2 Pars: Conv. Segmentation';  num_lines = 1;
     Dprompt = {
@@ -746,7 +786,9 @@ function SourceFolder_Callback(hObject, eventdata, handles)
 % hObject    handle to SourceFolder (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+global CC
+CC{handles.gui_number}.step = 1;
+StepParameters_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of SourceFolder as text
 %        str2double(get(hObject,'String')) returns contents of SourceFolder as a double
 
@@ -779,6 +821,9 @@ function ImageBox_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to ImageBox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+global CC
+CC{handles.gui_number}.step = 1;
+StepParameters_Callback(hObject, eventdata, handles);
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
