@@ -17,7 +17,7 @@
   <model type="string">3d</model>
 
   <!-- Maximum number of iterations for new peak finding (20) -->
-  <iterations type="int">2</iterations>
+  <iterations type="int">20</iterations>
 
   <!-- CCD baseline -->
   <baseline type="float">30.0</baseline>
@@ -34,7 +34,7 @@
   <!-- threshold -->
   <!-- This is basically the same as the minimum height
        parameter for peak finding in Insight3. -->
-  <threshold type="float">135.0</threshold>
+  <threshold type="float">335.0</threshold>
 
   <!-- initial guess for sigma -->
   <sigma type="float">1.0</sigma>
@@ -90,7 +90,7 @@
   <drift_correction type="int">1</drift_correction>
 
   <!-- number of frames in each sub-STORM image. -->
-  <frame_step type="int">2000</frame_step>
+  <frame_step type="int">5000</frame_step>
 
   <!-- ... 2 is a good value -->
   <d_scale type="int">2</d_scale>

@@ -592,8 +592,8 @@ function imsetup(hObject,eventdata, handles)
     
     
     
-    imaxes.H = SR{handles.gui_number}.infofile.frame_dimensions(1); % actual size of image
-    imaxes.W = SR{handles.gui_number}.infofile.frame_dimensions(2);
+    imaxes.H = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
+    imaxes.W = SR{handles.gui_number}.infofile.frame_dimensions(1);
     imaxes.scale = 2;  % upscale on display
     imaxes.zm = 1;
     imaxes.cx = imaxes.W/2;
@@ -641,7 +641,7 @@ global SR
 
 I = SR{handles.gui_number}.I;
 Io = SR{handles.gui_number}.Io;
-Oz = SR{handles.gui_number}.Oz; %#ok<NASGU>
+Oz = SR{handles.gui_number}.Oz; 
 if ~isfield(SR{handles.gui_number},'savepath')
     SR{handles.gui_number}.savepath = '';    
 end
@@ -1143,7 +1143,7 @@ function MinIntBox_Callback(hObject, eventdata, handles) %#ok<*INUSL>
 
  % --- Executes on update of MaxIntBox
 function MaxIntBox_Callback(hObject, eventdata, handles)      
- maxin = str2double(get(handles.MaxIntBox,'String'))
+ maxin = str2double(get(handles.MaxIntBox,'String'));
  set(handles.MaxIntSlider,'Value',maxin);
   scalecolor(hObject,handles);
   guidata(hObject, handles); 
