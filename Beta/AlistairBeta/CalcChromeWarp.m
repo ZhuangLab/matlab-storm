@@ -238,7 +238,7 @@ for m=1:Nmovies
     Nfields = length(alldax);
     Nfields = min(max_frames,Nfields); 
     Nchns = length(beadmovie(m).chns);
-    beadmovie(m).Nfields = Nfields; 
+    beadmovie(m).Nfields = Nfields;  %#ok<*AGROW>
     
     % convert reference channel to index
     refchni = find(strcmp(beadmovie(m).chns,beadmovie(m).refchn));
@@ -319,13 +319,11 @@ for m=1:Nmovies
         end
     end
     
-    expectedMovies = 0;
-    for mm=1:length(beadmovie)
-        expectedMovies = expectedMovies + beadmovie(mm).Nfields*length(beadmovie(mm).chns);
-    end
-    
+
+        expectedMovies = beadmovie(m).Nfields*length(beadmovie(m).chns);
+  
        
-    allbin = dir([newpath,'*','.bin']);
+    allbin = dir([newpath, beadmovie(m).daxroot,'*','.bin']);
     if overwrite ~= 1 && length(allbin) > .9*expectedMovies;%  Nfields*length([beadmovie(:).chns])
         disp('found existing bin files, skipping dotfinding...')
     else
