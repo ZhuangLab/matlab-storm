@@ -324,7 +324,7 @@ for m=1:Nmovies
   
        
     allbin = dir([newpath, beadmovie(m).daxroot,'*','.bin']);
-    if overwrite ~= 1 && length(allbin) > .9*expectedMovies;%  Nfields*length([beadmovie(:).chns])
+    if overwrite ~= 1 && length(allbin) > .8*expectedMovies;%  Nfields*length([beadmovie(:).chns])
         disp('found existing bin files, skipping dotfinding...')
     else
      % Loop through all split off movies and run appropriate parameters on them   
@@ -457,10 +457,11 @@ for m=1:Nmovies
                 
                 catch er
                     disp(er.message); 
-                    save([ScratchPath, filesep, 'troubleshoot.mat']); 
+                    % save([ScratchPath, filesep, 'troubleshoot.mat']); 
                     % load([ScratchPath, filesep, 'troubleshoot.mat']); 
                     disp(['failed to load ',pathin,filesep, beadmovie(m).binname{c,n}]);
                     disp(['skipping field: ',num2str(n)]); 
+                   %  disp(['saved data as ,'ScratchPath, filesep, 'troubleshoot.mat']);
                 end 
           end  
     end
@@ -471,6 +472,8 @@ end
 % (much less ambiguious than matching superimposed selection list). 
 
 % load([ScratchPath, 'troubleshoot.mat']);
+
+% save([ScratchPath  'troubleshoot.mat']);
 
 cx_radius = match_radius;
 
@@ -488,6 +491,12 @@ mark = {'o','o','.'};
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
 dat(Nsamples).refchn.x = [];
+
+NFieldsWithData = Nfields;
+for s=1:Nsamples
+   NFieldsWithData = min([NFieldsWithData,length(data(s).refchn),length(data(s).sample)]);
+end
+Nfields = NFieldsWithData;
 
 set1 = cell(Nsamples,1);
 set2 = cell(Nsamples,1);
@@ -519,7 +528,7 @@ end
  
 %% Compute and apply x-y translation warp (transform 1) 
  tform_1 = cell(1,Nsamples); % cell to contain tform_1 for each chn. 
- 
+ tform_1_inv = cell(1,Nsamples);
 for s=1:Nsamples
 % maybe important for handling missing data:
     method = 'nonreflective similarity';
@@ -528,6 +537,7 @@ for s=1:Nsamples
         refdata = [dat(s).refchn.x dat(s).refchn.y];
         basedata = [dat(s).sample.x dat(s).sample.y ];
         tform_1{s} = cp2tform(refdata,basedata,method); % compute warp
+        tform_1_inv{s} = cp2tform(basedata,refdata,method); % compute warp
     end 
 end
 
@@ -605,16 +615,20 @@ poly_order = 2;
 poly_order2 = 2;
 tform = cell(Nsamples,1);
 tform2D = cell(Nsamples,1); 
-
+tform_inv = cell(Nsamples,1);
+tform2D_inv = cell(Nsamples,1); 
 for s=1:Nsamples
     refchn = [dat2(s).refchn.x dat2(s).refchn.y dat2(s).refchn.z]; 
     sample = [dat2(s).sample.x dat2(s).sample.y dat2(s).sample.z]; 
     tform{s} = cp2tform3D(refchn,sample,'polynomial',poly_order); % compute warp
+    tform_inv{s} = cp2tform3D(sample,refchn,'polynomial',poly_order); % compute warp
     [dat2(s).sample.tx,dat2(s).sample.ty,dat2(s).sample.tz] = ...
         tforminv(tform{s}, dat2(s).sample.x, dat2(s).sample.y, dat2(s).sample.z); % apply warp
     % 2D transform (for troubleshooting)
     tform2D{s} = cp2tform( [dat2(s).refchn.x dat2(s).refchn.y],...
         [dat2(s).sample.x dat2(s).sample.y],'polynomial',poly_order2); % compute warp
+    tform2D_inv{s} = cp2tform([dat2(s).sample.x dat2(s).sample.y],...
+        [dat2(s).refchn.x dat2(s).refchn.y],'polynomial',poly_order2); % compute warp
     [dat2(s).sample.tx2D,dat2(s).sample.ty2D,] = tforminv(tform2D{s},...
         dat2(s).sample.x, dat2(s).sample.y); % apply warp
 end
@@ -880,7 +894,8 @@ end
 
 % SAVE transforms
 save([pathin,filesep,'chromewarps.mat'],'tform_1','tform','tform2D',...
-    'cdf','cdf2D','cdf_thresh','cdf2D_thresh','thr','chn_warp_names');
+    'cdf','cdf2D','cdf_thresh','cdf2D_thresh','thr','chn_warp_names',...
+    'tform_1_inv','tform_inv','tform2D_inv');
 disp(['wrote ',pathin,filesep,'chromewarps.mat']);    
 
 disp('3D bead fitting complete');

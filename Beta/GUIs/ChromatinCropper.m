@@ -163,9 +163,6 @@ global CC
     set(handles.subaxis2,'Visible','off'); 
     set(handles.subaxis3,'Visible','off');
     set(handles.subaxis4,'Visible','off'); 
-    
-        
-
 
 % If first time running, find all bin files in folder        
 if isempty(CC{handles.gui_number}.source)
@@ -173,11 +170,11 @@ if isempty(CC{handles.gui_number}.source)
        
     CC{handles.gui_number}.binfiles = ...
          dir([CC{handles.gui_number}.source,filesep,'*_alist.bin']);
-     
-     if isempty(CC{handles.gui_number}.binfiles)
-         disp(['error, no alist.bin files found in folder ',...
-             CC{handles.gui_number}.source]);
-     end
+end
+
+if isempty(CC{handles.gui_number}.binfiles)
+ error(['error, no alist.bin files found in folder ',...
+     CC{handles.gui_number}.source]);
 end
 
 % Parse bin name and dax name for current image
@@ -209,7 +206,7 @@ if step == 1
          title('conventional image projected');
          try
             conv0 =  regexprep([folder,filesep,daxname],'storm','conv_z0');
-            conv0 = sum(ReadDax(conv0),3);
+            conv0 = mean(ReadDax(conv0),3);
          catch er
             disp(er.message);
             conv0 = dax;  
@@ -321,6 +318,7 @@ elseif step == 4
     
     % -----------Apply Drift Correction------------------
     try
+        retry = 1;
     beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
     beadbin = [folder,filesep,beadname];
      [dxc,dyc] = feducialDriftCorrection(beadbin,'maxdrift',maxDrift,...
@@ -373,7 +371,7 @@ elseif step == 4
 
            mlist.xc = mlist.x + x_drift(mlist.frame)';
            mlist.yc = mlist.y + y_drift(mlist.frame)';
-    else
+    elseif retry == 3
         disp('skipping drift correction...')
     end
     
@@ -412,7 +410,7 @@ elseif step == 4
 
    % Get STORM image      
         I = plotSTORM_colorZ({mlist},imaxes,'filter',{infilt'},...
-           'Zsteps',Zs,'scalebar',500,'correct drift',true,'Zsteps',1); 
+           'Zsteps',1,'scalebar',500,'correct drift',true,'Zsteps',1); 
         Istorm{n} = I{1};  % save image; 
               
     % Zoom in on histogram (determines size / density etc)
@@ -471,7 +469,7 @@ elseif step == 4
     set(handles.Xslider,'Value',Nclusters);
     set(handles.Xslider,'Min',1);
     set(handles.Xslider,'Max',Nclusters);  
-    set(handles.Xslider,'SliderStep',[.1,.5]);
+    set(handles.Xslider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);
 
           
 elseif step == 5
@@ -578,7 +576,7 @@ global CC
              num2str(DotSize),' maxD=',num2str(MaxD)],...
              'color','w');
 
-    axes(handles.subaxis3); cla; %#ok<*LAXES>
+    axes(handles.subaxis3); hold off; cla;  %#ok<*LAXES>
     colormap hot; caxis([0,2^16]); hold on;
     scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
     set(gca,'color','k'); set(gcf,'color','w'); 
@@ -788,6 +786,9 @@ function SourceFolder_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global CC
 CC{handles.gui_number}.step = 1;
+CC{handles.gui_number}.source = get(handles.SourceFolder,'String');
+CC{handles.gui_number}.binfiles = ...
+         dir([CC{handles.gui_number}.source,filesep,'*_alist.bin']);
 StepParameters_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of SourceFolder as text
 %        str2double(get(hObject,'String')) returns contents of SourceFolder as a double
@@ -821,9 +822,7 @@ function ImageBox_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to ImageBox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-global CC
-CC{handles.gui_number}.step = 1;
-StepParameters_Callback(hObject, eventdata, handles);
+
 
 % Hint: edit controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
