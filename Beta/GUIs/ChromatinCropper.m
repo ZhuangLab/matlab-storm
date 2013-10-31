@@ -68,9 +68,10 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     CC{handles.gui_number}.Dirs = ...
        {'Step 1: load conventional image';
         'Step 2: Find all spots in conventional image';
-        'Step 3: load STORM image';
-        'Step 4: Perform drift correction, Crop STORM-image, and Quantify structural features';
-        'Step 5: Save data'};
+        'Step 3: load STORM image and filter on cluster properties';
+        'Step 4: Perform drift correction, Crop and plot STORM-image';
+        'Step 5: Quantify structural features';
+        'Step 6: Save data'};
     
 % Cleanup Axes
     axes(handles.axes2);
@@ -182,7 +183,7 @@ end
     folder = CC{handles.gui_number}.source;
     daxname = [binfile.name(1:end-10),'.dax'];    
     set(handles.ImageBox,'String',binfile.name);
-
+    imnum = CC{handles.gui_number}.imnum;
 
 % Actual Step Commands
 step = CC{handles.gui_number}.step;
@@ -382,8 +383,8 @@ elseif step == 4
      set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
 
      
-  %------------------ Split and Analyze Clusters   -----------------------
-      % Arrays to store data in
+  %------------------ Split and Plot Clusters   -----------------------
+      % Arrays to store plotting data in
        Istorm = cell(Nclusters,1);
        Iconv = cell(Nclusters,1); 
        Itime = cell(Nclusters,1);
@@ -451,7 +452,7 @@ elseif step == 4
         vlists{n} = vlist; 
      end  % end loop over dots
    
-        % Export data
+        % ----------------  Export Plotting data
         CC{handles.gui_number}.vlists = vlists;
         CC{handles.gui_number}.Nclusters = Nclusters;
         CC{handles.gui_number}.R = R;
@@ -471,9 +472,81 @@ elseif step == 4
     set(handles.Xslider,'Max',Nclusters);  
     set(handles.Xslider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);
 
-          
 elseif step == 5
+    %% Load data
+    Nclusters = CC{handles.gui_number}.Nclusters;
+    vlists = CC{handles.gui_number}.vlists;
+    imaxes = CC{handles.gui_number}.imaxes{1};
+    npp = CC{handles.gui_number}.pars0.npp;
+    
+    %================Data Analysis
+    %  Subcluster vlist image
+         cluster_scale = 5;% 20; % 5
+        H = imaxes.ymax - imaxes.ymin; % 12.5;
+        W = imaxes.xmax - imaxes.ymin; % 12.5;
+        startframe = 1;
+        minloc =0;
+        
+           
+        minvoxels = 200;
+        gblur = [7,7,3.5]; % 
+        bins3d =[64,64,20];% number of bins per dimension  [128,128,40];
+        zrange = [-500, 500];
+   
+  %       
+ 
+   MainArea = zeros(Nclusters,1); 
+   for n=1:Nclusters
+       % Histogram localizations on tunable scale
+        infilt =vlists{n}.frame>startframe;  
+        H = max(vlists{n}.yc(infilt));
+        W = max(vlists{n}.xc(infilt));
+           M2 = hist3([vlists{n}.yc(infilt),vlists{n}.xc(infilt)],...
+           {0:1/cluster_scale:H,0:1/cluster_scale:W});     
+ %       figure(3); clf; imagesc(M2); colorbar; caxis([0,80]); colormap hot;
+
+       map = M2>minloc;
+       Dprops = regionprops(map,M2,'PixelIdxList','Area','PixelValues','Eccentricity','BoundingBox','Extent');
+       [MainArea(n),mainIdx] = max([Dprops.Area]);
+       % figure(1); clf; hist(log2(M(M>0)),30);
+      
+      % % Plotting only 
+      % maindotIm = 0*M2;
+      % maindotIm(Dprops(mainIdx).PixelIdxList) = 1;
+      % figure(2); clf; imagesc(maindotIm);
+       
+      % histogram variability
+      hvs = M2(Dprops(mainIdx).PixelIdxList);% histgram values over main dot
+      
+  %--------- Cluster 3D Watershed and Fit 3D-Gaussian Spheres
+        xc = vlists{n}.xc*npp;    yc = vlists{n}.yc*npp;  zc = vlists{n}.zc;      
+        subclusterdata.Nsubclusters = NaN;    subclusterdata.counts = NaN; 
+        try       
+        subclusterdata = findclusters3D(xc,yc,zc,'datarange',...
+            {[0,16]*npp,[0,16]*npp,zrange},'bins',bins3d,...
+            'sigmablur',gblur,'minvoxels',minvoxels,'plotson',false);
+        catch er
+            disp(er.message); 
+            disp('error in subclustering...'); 
+        end
+    
+    % Record statistics   
+       CC{handles.gui_number}.data.MainArea{imnum,n} = MainArea(n);
+       CC{handles.gui_number}.data.Dvar{imnum,n} = std(hvs)/mean(hvs);
+       CC{handles.gui_number}.data.Tregions{imnum,n} = subclusterdata.Nsubclusters;
+       CC{handles.gui_number}.data.TregionsW{imnum,n} = sum(subclusterdata.counts/max(subclusterdata.counts));
+       CC{handles.gui_number}.data.MainDots{imnum,n} = sum(Dprops(mainIdx).PixelValues);
+       CC{handles.gui_number}.data.MainEccent{imnum,n} = Dprops(mainIdx).Eccentricity;
+       
+    
+   end
+  %%       
+   
+   
+   
+elseif step == 6
     % Load variables
+    data = CC{handles.gui_number}.data;
     Istorm = CC{handles.gui_number}.Istorm ;
     Iconv = CC{handles.gui_number}.Iconv;
     Itime = CC{handles.gui_number}.Itime;
@@ -483,7 +556,7 @@ elseif step == 5
     R = CC{handles.gui_number}.R;
     cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
     Nclusters = CC{handles.gui_number}.Nclusters;
-      
+    
     % save parameters
     imnum = CC{handles.gui_number}.imnum;
     savefolder = get(handles.SaveFolder,'String');
@@ -544,7 +617,18 @@ elseif step == 5
         set(gca,'color','k');
         saveas(Iout,[savefolder,filesep,saveroot,'_Ihist_',num2str(imnum),'_d',num2str(n),'.png']);
     end
-end
+    
+    figure(1); clf;
+    subplot(3,2,1); hist( [data.MainArea{:}] );
+    subplot(3,2,2); hist( [data.Dvar{:}] );
+    subplot(3,2,3); hist( [data.MainDots{:}]./[data.MainArea{:}] );
+    subplot(3,2,4); hist( [data.Tregions{:}] );
+    subplot(3,2,5); hist( [data.TregionsW{:}] );
+    subplot(3,2,6); hist( [data.MainEccent{:}] );
+    
+    save([savefolder,filesep,saveroot,'_data.mat']);
+    
+end % end if statement over steps
    
 
 function ChromatinPlots(handles, n)
@@ -635,7 +719,7 @@ elseif step == 3
     CC{handles.gui_number}.pars3.startFrame = str2double(Opts{5});   
     
 elseif step == 4
-    dlg_title = 'Step 4 Pars: Drfit Correction';  num_lines = 1;
+    dlg_title = 'Step 4 Pars: Drift Correction';  num_lines = 1;
     Dprompt = {
     'max drift (pixels)',... 1
     'min fraction of frames',... 2
@@ -726,6 +810,21 @@ CC{handles.gui_number}.step = 1;
 set(handles.DirectionsBox,'String',CC{handles.gui_number}.Dirs{1});
 
 
+function SourceFolder_Callback(hObject, eventdata, handles)
+% hObject    handle to SourceFolder (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global CC
+CC{handles.gui_number}.step = 1;
+CC{handles.gui_number}.source = get(handles.SourceFolder,'String');
+CC{handles.gui_number}.binfiles = ...
+         dir([CC{handles.gui_number}.source,filesep,'*_alist.bin']);
+set(handles.DirectionsBox,'String',CC{handles.gui_number}.Dirs{1});
+CC{handles.gui_number}.imnum = 1;
+binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);    
+set(handles.ImageBox,'String',binfile.name);
+StepParameters_Callback(hObject, eventdata, handles)
+
 % --- Executes on slider movement.
 function Xslider_Callback(hObject, eventdata, handles)
 % hObject    handle to Xslider (see GCBO)
@@ -780,18 +879,7 @@ end
 
 
 
-function SourceFolder_Callback(hObject, eventdata, handles)
-% hObject    handle to SourceFolder (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global CC
-CC{handles.gui_number}.step = 1;
-CC{handles.gui_number}.source = get(handles.SourceFolder,'String');
-CC{handles.gui_number}.binfiles = ...
-         dir([CC{handles.gui_number}.source,filesep,'*_alist.bin']);
-StepParameters_Callback(hObject, eventdata, handles)
-% Hints: get(hObject,'String') returns contents of SourceFolder as text
-%        str2double(get(hObject,'String')) returns contents of SourceFolder as a double
+
 
 
 % --- Executes during object creation, after setting all properties.
