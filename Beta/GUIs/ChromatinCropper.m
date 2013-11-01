@@ -139,7 +139,7 @@ function RunStep_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSL,*INUSD
 % handles    structure with handles and user data (see GUIDATA)
 
 % global parameters
-global CC
+global CC ScratchPath
 
 % Common Parameters
      H = CC{handles.gui_number}.pars0.H;
@@ -328,7 +328,6 @@ elseif step == 4
      missingframes = max(mlist.frame) - length(dxc);
      dxc = [dxc; zeros(missingframes,1)];
      dyc = [dyc; zeros(missingframes,1)];
-     length(dxc)
      max(mlist.frame)
     mlist.xc = mlist.x - dxc(mlist.frame);
     mlist.yc = mlist.y - dyc(mlist.frame); 
@@ -352,14 +351,14 @@ elseif step == 4
         Opts{4} = num2str(CC{handles.gui_number}.parsX.local);
         Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
 
-        if Opts{4}==0
+        if eval(Opts{4})==0
        [x_drift,y_drift] = XcorrDriftCorrect(mlist,'stepframe',eval(Opts{1}),...
             'scale',eval(Opts{2}),'showplots',eval(Opts{3}),...    
             'imagesize',[H,W],'nm per pixel',npp);
         else
-          disp('This option requires local regions to be detected first ',...
+          disp(['This option requires local regions to be detected first ',...
               'Run step 4 once without drift correction, then chose a dot ',...
-              'and rerun step 4 using your preferred dot for calibration'); 
+              'and rerun step 4 using your preferred dot for calibration']); 
           vlist = CC{handles.gui_number}.vlists{ eval(Opts{4}) };
           imaxes = CC{handles.gui_number}.imaxes{ eval(Opts{4}) };
           H = imaxes.ymax - imaxes.ymin + 1;
@@ -367,11 +366,19 @@ elseif step == 4
           [x_drift,y_drift] = XcorrDriftCorrect(vlist,...
              'stepframe',eval(Opts{1}),...
             'scale',eval(Opts{2}),'showplots',eval(Opts{3}),...    
-            'imagesize',[H,W],'nm per pixel',npp);      
+            'imagesize',[H,W],'nm per pixel',npp);  
+                % local area may not have dots localized up through the last frame
+        % of the movie.  Just assume no drift for these final frames if
+        % doing local region based correction.  (They should only be a
+        % couple to couple dozen of frames = a few seconds of drift at most).
+        x_drift = [x_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
+        y_drift = [y_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
+            % save([ScratchPath 'test.mat']);
+            % load([ScratchPath 'test.mat']);   
         end
-
-           mlist.xc = mlist.x + x_drift(mlist.frame)';
-           mlist.yc = mlist.y + y_drift(mlist.frame)';
+        mlist.xc = mlist.x + x_drift(mlist.frame)';
+        mlist.yc = mlist.y + y_drift(mlist.frame)';
+        
     elseif retry == 3
         disp('skipping drift correction...')
     end
@@ -382,7 +389,6 @@ elseif step == 4
      imagesc(conv0); colormap hot;
      set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
 
-     
   %------------------ Split and Plot Clusters   -----------------------
       % Arrays to store plotting data in
        Istorm = cell(Nclusters,1);
@@ -486,14 +492,11 @@ elseif step == 5
         W = imaxes.xmax - imaxes.ymin; % 12.5;
         startframe = 1;
         minloc =0;
-        
-           
+               
         minvoxels = 200;
         gblur = [7,7,3.5]; % 
         bins3d =[64,64,20];% number of bins per dimension  [128,128,40];
-        zrange = [-500, 500];
-   
-  %       
+        zrange = [-500, 500];    
  
    MainArea = zeros(Nclusters,1); 
    for n=1:Nclusters
@@ -508,7 +511,8 @@ elseif step == 5
        map = M2>minloc;
        Dprops = regionprops(map,M2,'PixelIdxList','Area','PixelValues','Eccentricity','BoundingBox','Extent');
        [MainArea(n),mainIdx] = max([Dprops.Area]);
-       % figure(1); clf; hist(log2(M(M>0)),30);
+       figure(2+n); clf; hist(log(M2(M2>0)),10); 
+       ylabel('frequency'); xlabel('log(# Localizations)'); 
       
       % % Plotting only 
       % maindotIm = 0*M2;
@@ -529,7 +533,7 @@ elseif step == 5
             disp(er.message); 
             disp('error in subclustering...'); 
         end
-    
+             
     % Record statistics   
        CC{handles.gui_number}.data.MainArea{imnum,n} = MainArea(n);
        CC{handles.gui_number}.data.Dvar{imnum,n} = std(hvs)/mean(hvs);
@@ -537,16 +541,15 @@ elseif step == 5
        CC{handles.gui_number}.data.TregionsW{imnum,n} = sum(subclusterdata.counts/max(subclusterdata.counts));
        CC{handles.gui_number}.data.MainDots{imnum,n} = sum(Dprops(mainIdx).PixelValues);
        CC{handles.gui_number}.data.MainEccent{imnum,n} = Dprops(mainIdx).Eccentricity;
-       
-    
+       CC{handles.gui_number}.data.M{imnum,n} = M2; 
    end
+   
   %%       
    
    
    
 elseif step == 6
     % Load variables
-    data = CC{handles.gui_number}.data;
     Istorm = CC{handles.gui_number}.Istorm ;
     Iconv = CC{handles.gui_number}.Iconv;
     Itime = CC{handles.gui_number}.Itime;
@@ -554,7 +557,6 @@ elseif step == 6
     Ihist = CC{handles.gui_number}.Ihist;
     cmp = CC{handles.gui_number}.cmp;
     R = CC{handles.gui_number}.R;
-    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
     Nclusters = CC{handles.gui_number}.Nclusters;
     
     % save parameters
@@ -567,13 +569,24 @@ elseif step == 6
     if isempty(savefolder)
         error('error, no save location specified'); 
     end
+    disp(['saving data in: ',savefolder])
     
     dlg_title = 'Export images';  num_lines = 1;
     Dprompt = {'Dots: '};  
     Opts{1} = ['[',num2str(1:Nclusters),']'];
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts); 
     saveNs = eval(Opts{1});% 
-    disp(['saving data in: ',savefolder])
+    
+    removeN = 1:7;  removeN(saveNs) = [];
+    for n=removeN
+   CC{handles.gui_number}.data.MainArea{imnum,n} =[];
+   CC{handles.gui_number}.data.Dvar{imnum,n} = [];
+   CC{handles.gui_number}.data.Tregions{imnum,n} = [];
+   CC{handles.gui_number}.data.TregionsW{imnum,n} = [];
+   CC{handles.gui_number}.data.MainDots{imnum,n} = [];
+   CC{handles.gui_number}.data.MainEccent{imnum,n} = [];
+    end
+   data = CC{handles.gui_number}.data;
     
     for n=saveNs
         % summary data to print ot image
@@ -590,16 +603,17 @@ elseif step == 6
 
         Iout = figure(1); clf;
         imagesc(Istorm{n}); colormap hot;
-        set(gca,'color','k'); 
-        text(1.2*cluster_scale,2*cluster_scale,...
+        set(gca,'color','w'); 
+        title(... 1.2*cluster_scale,2*cluster_scale,...
             ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
                  num2str(DotSize),' maxD=',num2str(MaxD)],...
-                 'color','w');
+                 'color','k');
         saveas(Iout,[savefolder,filesep,saveroot,'_Istorm_',num2str(imnum),'_d',num2str(n),'.png']);
         pause(.1);
 
         Iout = figure(1); clf;
-        colormap hot; caxis([0,2^16]); hold on;
+        colormap hot; caxis([0,2^16]);
+        hold on;
         scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
         set(gca,'color','k'); set(gcf,'color','w'); 
         xlabel('nm');     ylabel('nm'); 
@@ -619,12 +633,12 @@ elseif step == 6
     end
     
     figure(1); clf;
-    subplot(3,2,1); hist( [data.MainArea{:}] );
-    subplot(3,2,2); hist( [data.Dvar{:}] );
-    subplot(3,2,3); hist( [data.MainDots{:}]./[data.MainArea{:}] );
-    subplot(3,2,4); hist( [data.Tregions{:}] );
-    subplot(3,2,5); hist( [data.TregionsW{:}] );
-    subplot(3,2,6); hist( [data.MainEccent{:}] );
+    subplot(3,2,1); hist( [data.MainArea{:}] ); title('Area');
+    subplot(3,2,2); hist( [data.Dvar{:}] ); title('Intensity Variation')
+    subplot(3,2,3); hist( [data.MainDots{:}]./[data.MainArea{:}] ); title('localization density');
+    subplot(3,2,4); hist( [data.Tregions{:}] ); title('number of regions'); 
+    subplot(3,2,5); hist( [data.TregionsW{:}] ); title('Weighted number of regions')
+    subplot(3,2,6); hist( [data.MainEccent{:}] ); title('eccentricity'); 
     
     save([savefolder,filesep,saveroot,'_data.mat']);
     
@@ -661,7 +675,8 @@ global CC
              'color','w');
 
     axes(handles.subaxis3); hold off; cla;  %#ok<*LAXES>
-    colormap hot; caxis([0,2^16]); hold on;
+    colormap hot; caxis([0,2^16]);
+     hold on;
     scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
     set(gca,'color','k'); set(gcf,'color','w'); 
     xlabel('nm');     ylabel('nm'); 
@@ -752,6 +767,10 @@ global CC
 Dirs = CC{handles.gui_number}.Dirs;
 CC{handles.gui_number}.step = CC{handles.gui_number}.step +1;
 step = CC{handles.gui_number}.step;
+if step>6
+    step = 6;
+    CC{handles.gui_number}.step = step;
+end
 set(handles.DirectionsBox,'String',Dirs{step});
     
 % --- Executes on button press in BackStep.
@@ -831,7 +850,7 @@ function Xslider_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global CC
-if CC{handles.gui_number}.step == 4
+if CC{handles.gui_number}.step >= 4
     n = round(get(hObject,'Value'));
     ChromatinPlots(handles, n);
 end
