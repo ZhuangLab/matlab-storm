@@ -103,7 +103,11 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     CC{handles.gui_number}.pars4.startFrame = 1;
     CC{handles.gui_number}.pars4.showPlots = true; 
     CC{handles.gui_number}.pars4.showExtraPlots = false; 
-    
+    % step 5 parameters
+    CC{handles.gui_number}.pars5.boxSize = 30;
+    CC{handles.gui_number}.pars5.starframe= 1;
+	CC{handles.gui_number}.pars5.minloc = 0;
+	CC{handles.gui_number}.pars5.minSize = 30; 
     % step X parameters for X-correlation drift correction
     CC{handles.gui_number}.parsX.stepFrame = 8000; % 'stepframe' / double / 10E3 -- number of frames to average
     CC{handles.gui_number}.parsX.scale  = 5; % 'scale' / double / 5 -- upsampling factor for binning localizations
@@ -147,19 +151,11 @@ global CC ScratchPath
      npp = CC{handles.gui_number}.pars0.npp;
     cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
     
-%      % 3D clustering parameters    [Not Currently Used]
-%         minvoxels = 200;
-%         gblur = [7,7,3.5];
-%         bins3d = [128,128,40];
-%         Zs=10;
-%         zrange = [-500,500];
-
      % Image properties 
         imaxes.H = H;
         imaxes.W = W;
         imaxes.scale = 1;
         
-
     set(handles.subaxis1,'Visible','off');
     set(handles.subaxis2,'Visible','off'); 
     set(handles.subaxis3,'Visible','off');
@@ -494,9 +490,11 @@ elseif step == 5
     
     %================ Data Analysis
     % 2D subcluster vlist image
-        cluster_scale = 5;% 20; % 5
-        startframe = 1;
-        minloc =0;
+        cluster_scale = CC{handles.gui_number}.pars0.npp/...
+            CC{handles.gui_number}.pars5.boxSize; %  5; % 5;% 20; % 5
+        startframe = CC{handles.gui_number}.pars5.starframe; %  1;
+        minloc = CC{handles.gui_number}.pars5.minloc; % 1;
+        minSize = CC{handles.gui_number}.pars5.minSize; % 30; 
      
     % 3D subcluster
         minvoxels = 200;
@@ -505,24 +503,51 @@ elseif step == 5
         zrange = [-500, 500];    
  
    MainArea = zeros(Nclusters,1); 
+   MainLocs = zeros(Nclusters,1); 
+   AllArea = zeros(Nclusters,1); 
+   AllLocs = zeros(Nclusters,1); 
+   Zps = zeros(Nclusters,12); 
+   CC{handles.gui_number}.M2 = [];
+   CC{handles.gui_number}.map = [];
+   
    n = 0; 
    for nn=saveNs
-       n=n+1;
+       n=n+1; % n=4
        % Histogram localizations on tunable scale
-        infilt =vlists{n}.frame>startframe;  
-        H = max(vlists{n}.yc(infilt));
-        W = max(vlists{n}.xc(infilt));
-           M2 = hist3([vlists{n}.yc(infilt),vlists{n}.xc(infilt)],...
-           {0:1/cluster_scale:H,0:1/cluster_scale:W});     
+        infilt =vlists{nn}.frame>startframe;  
+        H = max([vlists{nn}.yc(infilt);vlists{nn}.xc(infilt)]);
+        W = H;
+           M2 = hist3([vlists{nn}.yc(infilt),vlists{nn}.xc(infilt)],...
+           {0:1/cluster_scale:H,0:1/cluster_scale:W});  
  %       figure(3); clf; imagesc(M2); colorbar; caxis([0,80]); colormap hot;
 
-       map = M2>minloc;
+       map = M2>minloc;  
+       map = imfill(map,'holes'); 
+       map = bwareaopen(map,minSize);  % small regions removed
+       %       figure(3); clf; imagesc(map); 
+       
        Dprops = regionprops(map,M2,'PixelIdxList','Area','PixelValues',...
-           'Eccentricity','BoundingBox','Extent');
+           'Eccentricity','BoundingBox','Extent','Centroid','PixelList');
        [MainArea(n),mainIdx] = max([Dprops.Area]);
-       MainLocs(n) = sum(Dprops(mainIdx).PixelIdxList);
-       figure(2+n); clf; hist(log(M2(M2>0)),10); 
-       ylabel('frequency'); xlabel('log(# Localizations)'); 
+       MainLocs(n) = sum(Dprops(mainIdx).PixelValues);
+       AllArea(n) = sum([Dprops.Area]);
+       AllLocs(n) = sum(cat(1,Dprops.PixelValues));
+       
+       m = cat(1,Dprops.PixelValues); 
+       xy = cat(1,Dprops.PixelList);
+       ROIcent = [m'*xy(:,1),m'*xy(:,2)]/sum(m);
+       mI = m'*(xy(:,1).^2+xy(:,2).^2);
+              
+%        figure(3); clf; imagesc(M2); hold on;
+%        plot(ROIcent(:,1),ROIcent(:,2),'c+','MarkerSize',20);
+       
+       Zps(n,:) = zernike_coeffs(M2)';
+       CC{handles.gui_number}.M2{nn} = M2;
+       CC{handles.gui_number}.map{nn} = map;
+       ChromatinPlots2(handles,nn);
+       
+       % figure(2+n); clf; hist(log(M2(M2>0)),10); 
+       % ylabel('frequency'); xlabel('log(# Localizations)'); 
       
       % % Plotting only 
       % maindotIm = 0*M2;
@@ -533,7 +558,9 @@ elseif step == 5
       hvs = M2(Dprops(mainIdx).PixelIdxList);% histgram values over main dot
       
   %--------- Cluster 3D Watershed and Fit 3D-Gaussian Spheres
-        xc = vlists{n}.xc*npp;    yc = vlists{n}.yc*npp;  zc = vlists{n}.zc;      
+        xc = vlists{nn}.xc*npp;    
+        yc = vlists{nn}.yc*npp;  
+        zc = vlists{nn}.zc;      
         subclusterdata.Nsubclusters = NaN;    subclusterdata.counts = NaN; 
         try       
         subclusterdata = findclusters3D(xc,yc,zc,'datarange',...
@@ -545,10 +572,13 @@ elseif step == 5
             disp('error in subclustering...'); 
         end
              
-    % Record statistics   
-       CC{handles.gui_number}.data.AllLocs{imnum,n} = length(vlists{n}.xc(infilt));
+    % Record statistics  
+       CC{handles.gui_number}.data.mI{imnum,n} = mI;
+       CC{handles.gui_number}.data.Zps{imnum,n} = Zps(n); 
+       CC{handles.gui_number}.data.AllLocs{imnum,n} = AllLocs(n);
        CC{handles.gui_number}.data.MainLocs{imnum,n} = MainLocs(n);
        CC{handles.gui_number}.data.MainArea{imnum,n} = MainArea(n);
+       CC{handles.gui_number}.data.AllArea{imnum,n} = AllArea(n); 
        CC{handles.gui_number}.data.Dvar{imnum,n} = std(hvs)/mean(hvs);
        CC{handles.gui_number}.data.Tregions{imnum,n} = subclusterdata.Nsubclusters;
        CC{handles.gui_number}.data.TregionsW{imnum,n} = sum(subclusterdata.counts/max(subclusterdata.counts));
@@ -588,7 +618,16 @@ elseif step == 6
     if isempty(savefolder)
         error('error, no save location specified'); 
     end
+    % Test if savefolder exists
+    if exist(savefolder,'dir') == 0
+        mk = input(['Folder ',savefolder,' does not exist.  Create it? y/n '],'s');
+        if strcmp(mk,'y')
+            mkdir(savefolder);
+        end
+    end
+    
     disp(['saving data in: ',savefolder])
+   
     
     for n=saveNs
         % summary data to print ot image
@@ -600,7 +639,7 @@ elseif step == 6
         Iout = figure(1); clf; 
         imagesc(Iconv{n}); colormap hot;
         set(gca,'color','k'); 
-        saveas(Iout,[savefolder,filesep,saveroot,'_Iconv_',num2str(imnum),'_d',num2str(n),'.png']);
+        saveas(Iout,[savefolder,filesep,saveroot,'Iconv_',num2str(imnum),'_d',num2str(n),'.png']);
         pause(.1);
 
         Iout = figure(1); clf;
@@ -610,7 +649,7 @@ elseif step == 6
             ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
                  num2str(DotSize),' maxD=',num2str(MaxD)],...
                  'color','k');
-        saveas(Iout,[savefolder,filesep,saveroot,'_Istorm_',num2str(imnum),'_d',num2str(n),'.png']);
+        saveas(Iout,[savefolder,filesep,saveroot,'Istorm_',num2str(imnum),'_d',num2str(n),'.png']);
         pause(.1);
 
         Iout = figure(1); clf;
@@ -619,19 +658,19 @@ elseif step == 6
         scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
         set(gca,'color','k'); set(gcf,'color','w'); 
         xlabel('nm');     ylabel('nm'); 
-        saveas(Iout,[savefolder,filesep,saveroot,'_Itime_',num2str(imnum),'_d',num2str(n),'.png']);
+        saveas(Iout,[savefolder,filesep,saveroot,'Itime_',num2str(imnum),'_d',num2str(n),'.png']);
         pause(.1);
 
         Iout = figure(1); clf; 
         imagesc(Icell{n}); colormap hot;
         set(gca,'color','k'); 
-        saveas(Iout,[savefolder,filesep,saveroot,'_Icell_',num2str(imnum),'_d',num2str(n),'.png']);
+        saveas(Iout,[savefolder,filesep,saveroot,'Icell_',num2str(imnum),'_d',num2str(n),'.png']);
         pause(.1);
 
         Iout = figure(1); clf;
         imagesc(Ihist{n}); colormap hot;
         set(gca,'color','k');
-        saveas(Iout,[savefolder,filesep,saveroot,'_Ihist_',num2str(imnum),'_d',num2str(n),'.png']);
+        saveas(Iout,[savefolder,filesep,saveroot,'Ihist_',num2str(imnum),'_d',num2str(n),'.png']);
     end
     
     figure(1); clf;
@@ -640,9 +679,10 @@ elseif step == 6
     subplot(3,2,3); hist( [data.MainDots{:}]./[data.MainArea{:}] ); title('localization density');
     subplot(3,2,4); hist( [data.Tregions{:}] ); title('number of regions'); 
     subplot(3,2,5); hist( [data.TregionsW{:}] ); title('Weighted number of regions')
-    subplot(3,2,6); hist( [data.MainEccent{:}] ); title('eccentricity'); 
+    subplot(3,2,6); hist( [data.mI{:}] ); title('moment of Inertia'); 
+    % hist( [data.MainEccent{:}] ); title('eccentricity'); 
     
-    save([savefolder,filesep,saveroot,'_data.mat']);
+    save([savefolder,filesep,saveroot,'data.mat']);
     
 end % end if statement over steps
    
@@ -681,13 +721,52 @@ global CC
      hold on;
     scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
     set(gca,'color','k'); set(gcf,'color','w'); 
-    xlabel('nm');     ylabel('nm'); 
     set(gca,'XTick',[],'YTick',[]);
 
     axes(handles.subaxis4); cla; %#ok<*LAXES>
     imagesc(Ihist{n}); colormap hot;
     set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
 
+    
+
+function ChromatinPlots2(handles, n)
+% plot data for cluster n in main figure window
+global CC
+    Istorm = CC{handles.gui_number}.Istorm ;
+    Iconv = CC{handles.gui_number}.Iconv;
+    Itime = CC{handles.gui_number}.Itime;
+    Ihist = CC{handles.gui_number}.Ihist;
+    cmp = CC{handles.gui_number}.cmp;
+    R = CC{handles.gui_number}.R;
+    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
+   
+    
+    TCounts = sum(R(n).PixelValues);
+    DotSize = length(R(n).PixelValues);
+    MaxD = max(R(n).PixelValues);
+    MeanD = mean(R(n).PixelValues); 
+    
+    axes(handles.subaxis1); cla; %#ok<*LAXES>
+    imagesc(Iconv{n}); colormap hot;
+    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+
+    axes(handles.subaxis2); cla; %#ok<*LAXES>
+    imagesc(Istorm{n}); colormap hot;
+    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+    text(1.2*cluster_scale,2*cluster_scale,...
+        ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
+             num2str(DotSize),' maxD=',num2str(MaxD)],...
+             'color','w');
+
+    axes(handles.subaxis3); hold off; cla;  %#ok<*LAXES>
+    imagesc(CC{handles.gui_number}.M2{n}); %
+    caxis([0,60]); colormap hot;
+    set(gca,'XTick',[],'YTick',[]);
+
+    axes(handles.subaxis4); cla; %#ok<*LAXES>
+    imagesc(CC{handles.gui_number}.map{n}); 
+    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+    
     
 % --- Executes on button press in StepParameters.
 function StepParameters_Callback(hObject, eventdata, handles)
@@ -756,6 +835,25 @@ elseif step == 4
     CC{handles.gui_number}.pars4.startFrame= str2double(Opts{3});
     CC{handles.gui_number}.pars4.showPlots = str2double(Opts{4}); 
     CC{handles.gui_number}.pars4.showExtraPlots = str2double(Opts{5});
+    
+elseif step == 5
+    dlg_title = 'Step 5 Pars: Quantify Features';  num_lines = 1;
+    Dprompt = {
+    'Box Size (nm)',... 
+    'start frame ',...        3
+    'Min Localizations per box',...  4
+    'Min Size (boxes)'};     %5 
+
+    Opts{1} = num2str(CC{handles.gui_number}.pars5.boxSize);
+    Opts{2} = num2str(CC{handles.gui_number}.pars5.starframe);
+    Opts{3} = num2str(CC{handles.gui_number}.pars5.minloc);
+    Opts{4} = num2str(CC{handles.gui_number}.pars5.minSize);
+    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
+    
+    CC{handles.gui_number}.pars5.boxSize = eval(Opts{1}); % 30
+    CC{handles.gui_number}.pars5.starframe= eval(Opts{2});  %  1;
+	CC{handles.gui_number}.pars5.minloc= eval(Opts{3});  % 0;
+	CC{handles.gui_number}.pars5.minSize= eval(Opts{4});  % 30; 
     
 end
     
@@ -852,9 +950,13 @@ function Xslider_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global CC
-if CC{handles.gui_number}.step >= 4
+if CC{handles.gui_number}.step == 4
     n = round(get(hObject,'Value'));
     ChromatinPlots(handles, n);
+end
+if CC{handles.gui_number}.step >= 5
+    n = round(get(hObject,'Value'));
+    ChromatinPlots2(handles, n);
 end
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
