@@ -319,25 +319,27 @@ elseif step == 4
     
     % -----------Apply Drift Correction------------------
     try
-        retry = 1;
+    retry = 1;
     beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
     beadbin = [folder,filesep,beadname];
      [dxc,dyc] = feducialDriftCorrection(beadbin,'maxdrift',maxDrift,...
          'showplots',showPlots,'fmin',fmin,'startframe',startFrame,...
          'showextraplots',showExtraPlots);
-     missingframes = max(mlist.frame) - length(dxc);
-     dxc = [dxc; zeros(missingframes,1)];
-     dyc = [dyc; zeros(missingframes,1)];
-     max(mlist.frame)
+    missingframes = max(mlist.frame) - length(dxc);
+    dxc = [dxc; zeros(missingframes,1)];
+    dyc = [dyc; zeros(missingframes,1)];
     mlist.xc = mlist.x - dxc(mlist.frame);
     mlist.yc = mlist.y - dyc(mlist.frame); 
     CC{handles.gui_number}.mlist = mlist; % update in global data
+    
     catch er
         disp(er.message);
         warning('Feducial Drift Correction Failed');
-        retry = input('Enter 1 to change parameters, 2 to attempt image-based drift correction, 3 to skip. ');
+        retry = input(['Enter 1 to change parameters, 2 to attempt ',... 
+            'image-based drift correction, 3 to skip. ']);
     end
-    if retry == 2 
+    
+    if retry == 2
            dlg_title = 'Step 4 Pars: Drfit Correction';  num_lines = 1;
         Dprompt = {
         'Frames per correlation step',... 1
@@ -373,8 +375,6 @@ elseif step == 4
         % couple to couple dozen of frames = a few seconds of drift at most).
         x_drift = [x_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
         y_drift = [y_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
-            % save([ScratchPath 'test.mat']);
-            % load([ScratchPath 'test.mat']);   
         end
         mlist.xc = mlist.x + x_drift(mlist.frame)';
         mlist.yc = mlist.y + y_drift(mlist.frame)';
@@ -401,7 +401,6 @@ elseif step == 4
        
      for n=1:Nclusters % n=3    
         % For dsiplay and judgement purposes 
-
         imaxes.zm = 20;
         imaxes.cx = R(n).Centroid(1)/cluster_scale;
         imaxes.cy = R(n).Centroid(2)/cluster_scale;
@@ -412,7 +411,7 @@ elseif step == 4
         allImaxes{n} = imaxes; 
 
    % Add dot labels to overview image           
-    axes(handles.axes2); hold on; text(imaxes.cx+6,imaxes.cy,...
+        axes(handles.axes2); hold on; text(imaxes.cx+6,imaxes.cy,...
          ['dot ',num2str(n)],'color','w');
 
    % Get STORM image      
@@ -485,21 +484,30 @@ elseif step == 5
     imaxes = CC{handles.gui_number}.imaxes{1};
     npp = CC{handles.gui_number}.pars0.npp;
     
-    %================Data Analysis
-    %  Subcluster vlist image
-         cluster_scale = 5;% 20; % 5
-        H = imaxes.ymax - imaxes.ymin; % 12.5;
-        W = imaxes.xmax - imaxes.ymin; % 12.5;
+    %================  Chose regions to keep
+    dlg_title = 'Regions to save and analyze';  num_lines = 1;
+    Dprompt = {'Dots: '};  
+    Opts{1} = ['[',num2str(1:Nclusters),']'];
+    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts); 
+    saveNs = eval(Opts{1});% 
+    
+    
+    %================ Data Analysis
+    % 2D subcluster vlist image
+        cluster_scale = 5;% 20; % 5
         startframe = 1;
         minloc =0;
-               
+     
+    % 3D subcluster
         minvoxels = 200;
         gblur = [7,7,3.5]; % 
         bins3d =[64,64,20];% number of bins per dimension  [128,128,40];
         zrange = [-500, 500];    
  
    MainArea = zeros(Nclusters,1); 
-   for n=1:Nclusters
+   n = 0; 
+   for nn=saveNs
+       n=n+1;
        % Histogram localizations on tunable scale
         infilt =vlists{n}.frame>startframe;  
         H = max(vlists{n}.yc(infilt));
@@ -509,8 +517,10 @@ elseif step == 5
  %       figure(3); clf; imagesc(M2); colorbar; caxis([0,80]); colormap hot;
 
        map = M2>minloc;
-       Dprops = regionprops(map,M2,'PixelIdxList','Area','PixelValues','Eccentricity','BoundingBox','Extent');
+       Dprops = regionprops(map,M2,'PixelIdxList','Area','PixelValues',...
+           'Eccentricity','BoundingBox','Extent');
        [MainArea(n),mainIdx] = max([Dprops.Area]);
+       MainLocs(n) = sum(Dprops(mainIdx).PixelIdxList);
        figure(2+n); clf; hist(log(M2(M2>0)),10); 
        ylabel('frequency'); xlabel('log(# Localizations)'); 
       
@@ -528,21 +538,27 @@ elseif step == 5
         try       
         subclusterdata = findclusters3D(xc,yc,zc,'datarange',...
             {[0,16]*npp,[0,16]*npp,zrange},'bins',bins3d,...
-            'sigmablur',gblur,'minvoxels',minvoxels,'plotson',false);
+            'sigmablur',gblur,'minvoxels',minvoxels,'plotson',false,...
+            'fitGauss',false);
         catch er
             disp(er.message); 
             disp('error in subclustering...'); 
         end
              
     % Record statistics   
+       CC{handles.gui_number}.data.AllLocs{imnum,n} = length(vlists{n}.xc(infilt));
+       CC{handles.gui_number}.data.MainLocs{imnum,n} = MainLocs(n);
        CC{handles.gui_number}.data.MainArea{imnum,n} = MainArea(n);
        CC{handles.gui_number}.data.Dvar{imnum,n} = std(hvs)/mean(hvs);
        CC{handles.gui_number}.data.Tregions{imnum,n} = subclusterdata.Nsubclusters;
        CC{handles.gui_number}.data.TregionsW{imnum,n} = sum(subclusterdata.counts/max(subclusterdata.counts));
        CC{handles.gui_number}.data.MainDots{imnum,n} = sum(Dprops(mainIdx).PixelValues);
        CC{handles.gui_number}.data.MainEccent{imnum,n} = Dprops(mainIdx).Eccentricity;
+       CC{handles.gui_number}.data.vlist{imnum,n} =vlists{n}; 
        CC{handles.gui_number}.data.M{imnum,n} = M2; 
    end
+   
+   CC{handles.gui_number}.saveNs = saveNs; 
    
   %%       
    
@@ -557,36 +573,22 @@ elseif step == 6
     Ihist = CC{handles.gui_number}.Ihist;
     cmp = CC{handles.gui_number}.cmp;
     R = CC{handles.gui_number}.R;
+    data = CC{handles.gui_number}.data;
     Nclusters = CC{handles.gui_number}.Nclusters;
     
     % save parameters
     imnum = CC{handles.gui_number}.imnum;
+    saveNs = CC{handles.gui_number}.saveNs; 
     savefolder = get(handles.SaveFolder,'String');
     s1 = strfind(daxname,'quad_'); 
     s2 = strfind(daxname,'_storm');
     saveroot = daxname(s1+5:s2);
     
+    
     if isempty(savefolder)
         error('error, no save location specified'); 
     end
     disp(['saving data in: ',savefolder])
-    
-    dlg_title = 'Export images';  num_lines = 1;
-    Dprompt = {'Dots: '};  
-    Opts{1} = ['[',num2str(1:Nclusters),']'];
-    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts); 
-    saveNs = eval(Opts{1});% 
-    
-    removeN = 1:7;  removeN(saveNs) = [];
-    for n=removeN
-   CC{handles.gui_number}.data.MainArea{imnum,n} =[];
-   CC{handles.gui_number}.data.Dvar{imnum,n} = [];
-   CC{handles.gui_number}.data.Tregions{imnum,n} = [];
-   CC{handles.gui_number}.data.TregionsW{imnum,n} = [];
-   CC{handles.gui_number}.data.MainDots{imnum,n} = [];
-   CC{handles.gui_number}.data.MainEccent{imnum,n} = [];
-    end
-   data = CC{handles.gui_number}.data;
     
     for n=saveNs
         % summary data to print ot image
