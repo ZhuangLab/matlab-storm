@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 15-Oct-2013 16:31:39
+% Last Modified by GUIDE v2.5 02-Nov-2013 15:18:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -83,16 +83,17 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     set(gca,'XTick',[],'YTick',[]);
     
 % Default Parameters for GUI
-% widely used parameters
+   % General control parameters
+    CC{handles.gui_number}.auto = false; % autocycle
+   % widely used parameters
     CC{handles.gui_number}.pars0.H = 256;
     CC{handles.gui_number}.pars0.W = 256;
     CC{handles.gui_number}.pars0.npp = 160;
-
     % step 2 parameters
      CC{handles.gui_number}.pars2.saturate = 0.001;
      CC{handles.gui_number}.pars2.makeblack = 0.998; 
     % step 3 parameters
-     CC{handles.gui_number}.pars3.boxSize = 16; % linear dimension in nm of box
+     CC{handles.gui_number}.pars3.boxSize = 32; % linear dimension in nm of box
      CC{handles.gui_number}.pars3.maxsize = 1.2E5; % 1E4 at 10nm boxsize, 1.2 um x 1.2 um 
      CC{handles.gui_number}.pars3.minsize= 20; % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
      CC{handles.gui_number}.pars3.mindots = 500; % min number of localizations per STORM dot
@@ -104,10 +105,10 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     CC{handles.gui_number}.pars4.showPlots = true; 
     CC{handles.gui_number}.pars4.showExtraPlots = false; 
     % step 5 parameters
-    CC{handles.gui_number}.pars5.boxSize = 30;
-    CC{handles.gui_number}.pars5.starframe= 1;
-	CC{handles.gui_number}.pars5.minloc = 0;
-	CC{handles.gui_number}.pars5.minSize = 30; 
+    CC{handles.gui_number}.pars5.boxSize = 32;
+    CC{handles.gui_number}.pars5.starframe= 1; % 
+	CC{handles.gui_number}.pars5.minloc = 1; % min number of localization per box
+	CC{handles.gui_number}.pars5.minSize = 30; % min size in number of boxes
     % step X parameters for X-correlation drift correction
     CC{handles.gui_number}.parsX.stepFrame = 8000; % 'stepframe' / double / 10E3 -- number of frames to average
     CC{handles.gui_number}.parsX.scale  = 5; % 'scale' / double / 5 -- upsampling factor for binning localizations
@@ -143,7 +144,7 @@ function RunStep_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSL,*INUSD
 % handles    structure with handles and user data (see GUIDATA)
 
 % global parameters
-global CC ScratchPath
+global CC ScratchPath %#ok<*NUSED>
 
 % Common Parameters
      H = CC{handles.gui_number}.pars0.H;
@@ -394,7 +395,7 @@ elseif step == 4
        Icell = cell(Nclusters,1); 
        cmp = cell(Nclusters,1); 
        vlists = cell(Nclusters,1); 
-       
+       allImaxes = cell(Nclusters,1); 
      for n=1:Nclusters % n=3    
         % For dsiplay and judgement purposes 
         imaxes.zm = 20;
@@ -477,30 +478,33 @@ elseif step == 5
     %% Load data
     Nclusters = CC{handles.gui_number}.Nclusters;
     vlists = CC{handles.gui_number}.vlists;
-    imaxes = CC{handles.gui_number}.imaxes{1};
+    % imaxes = CC{handles.gui_number}.imaxes{1};
     npp = CC{handles.gui_number}.pars0.npp;
     
     %================  Chose regions to keep
-    dlg_title = 'Regions to save and analyze';  num_lines = 1;
-    Dprompt = {'Dots: '};  
-    Opts{1} = ['[',num2str(1:Nclusters),']'];
-    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts); 
-    saveNs = eval(Opts{1});% 
-    
+    if ~CC{handles.gui_number}.auto
+        dlg_title = 'Regions to save and analyze';  num_lines = 1;
+        Dprompt = {'Dots: '};  
+        Opts{1} = ['[',num2str(1:Nclusters),']'];
+        Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts); 
+        saveNs = eval(Opts{1});% 
+    else % for autocycle, just save all images. 
+        saveNs = 1:Nclusters;
+    end
     
     %================ Data Analysis
     % 2D subcluster vlist image
-        cluster_scale = CC{handles.gui_number}.pars0.npp/...
-            CC{handles.gui_number}.pars5.boxSize; %  5; % 5;% 20; % 5
-        startframe = CC{handles.gui_number}.pars5.starframe; %  1;
-        minloc = CC{handles.gui_number}.pars5.minloc; % 1;
-        minSize = CC{handles.gui_number}.pars5.minSize; % 30; 
-     
+    boxSize = CC{handles.gui_number}.pars5.boxSize;    
+    cluster_scale = CC{handles.gui_number}.pars0.npp/boxSize;
+    startframe = CC{handles.gui_number}.pars5.starframe; %  1;
+    minloc = CC{handles.gui_number}.pars5.minloc; % 1;
+    minSize = CC{handles.gui_number}.pars5.minSize; % 30; 
+        
     % 3D subcluster
-        minvoxels = 200;
-        gblur = [7,7,3.5]; % 
-        bins3d =[64,64,20];% number of bins per dimension  [128,128,40];
-        zrange = [-500, 500];    
+    minvoxels = 200;
+    gblur = [7,7,3.5]; % 
+    bins3d =[64,64,20];% number of bins per dimension  [128,128,40];
+    zrange = [-500, 500];    
  
    MainArea = zeros(Nclusters,1); 
    MainLocs = zeros(Nclusters,1); 
@@ -521,21 +525,22 @@ elseif step == 5
            {0:1/cluster_scale:H,0:1/cluster_scale:W});  
  %       figure(3); clf; imagesc(M2); colorbar; caxis([0,80]); colormap hot;
 
-       map = M2>minloc;  
+       map = M2>=minloc;  
        map = imfill(map,'holes'); 
        map = bwareaopen(map,minSize);  % small regions removed
        %       figure(3); clf; imagesc(map); 
        
        Dprops = regionprops(map,M2,'PixelIdxList','Area','PixelValues',...
            'Eccentricity','BoundingBox','Extent','Centroid','PixelList');
-       [MainArea(n),mainIdx] = max([Dprops.Area]);
+       [MA,mainIdx] = max([Dprops.Area]);
+       MainArea(n) = MA*boxSize^2;
        MainLocs(n) = sum(Dprops(mainIdx).PixelValues);
-       AllArea(n) = sum([Dprops.Area]);
+       AllArea(n) = sum([Dprops.Area])*boxSize^2;
        AllLocs(n) = sum(cat(1,Dprops.PixelValues));
        
        m = cat(1,Dprops.PixelValues); 
        xy = cat(1,Dprops.PixelList);
-       ROIcent = [m'*xy(:,1),m'*xy(:,2)]/sum(m);
+       % ROIcent = [m'*xy(:,1),m'*xy(:,2)]/sum(m);
        mI = m'*(xy(:,1).^2+xy(:,2).^2);
               
 %        figure(3); clf; imagesc(M2); hold on;
@@ -586,6 +591,7 @@ elseif step == 5
        CC{handles.gui_number}.data.MainEccent{imnum,n} = Dprops(mainIdx).Eccentricity;
        CC{handles.gui_number}.data.vlist{imnum,n} =vlists{n}; 
        CC{handles.gui_number}.data.M{imnum,n} = M2; 
+       CC{handles.gui_number}.data.R{imnum,n} = CC{handles.gui_number}.R(n); 
    end
    
    CC{handles.gui_number}.saveNs = saveNs; 
@@ -604,7 +610,7 @@ elseif step == 6
     cmp = CC{handles.gui_number}.cmp;
     R = CC{handles.gui_number}.R;
     data = CC{handles.gui_number}.data;
-    Nclusters = CC{handles.gui_number}.Nclusters;
+    % Nclusters = CC{handles.gui_number}.Nclusters;
     
     % save parameters
     imnum = CC{handles.gui_number}.imnum;
@@ -628,7 +634,7 @@ elseif step == 6
     
     disp(['saving data in: ',savefolder])
    
-    
+    figure(2); clf;
     for n=saveNs
         % summary data to print ot image
         TCounts = sum(R(n).PixelValues);
@@ -671,7 +677,20 @@ elseif step == 6
         imagesc(Ihist{n}); colormap hot;
         set(gca,'color','k');
         saveas(Iout,[savefolder,filesep,saveroot,'Ihist_',num2str(imnum),'_d',num2str(n),'.png']);
+     
+        
+        imaxes = CC{handles.gui_number}.imaxes{n};
+        vlist = CC{handles.gui_number}.vlists{n}; %#ok<NASGU>
+        save([savefolder,filesep,saveroot,'DotData_',num2str(imnum),'_d',num2str(n),'.mat'],'imaxes','vlist');
+        
+        Iout2 = figure(2); 
+        imagesc(CC{handles.gui_number}.conv); colormap hot; 
+        hold on;
+        text(imaxes.cx+6,imaxes.cy,...
+         ['dot ',num2str(n)],'color','w'); 
     end
+    saveas(Iout2,[savefolder,filesep,saveroot,'Overview_',num2str(imnum),'.png']);
+        
     
     figure(1); clf;
     subplot(3,2,1); hist( [data.MainArea{:}] ); title('Area');
@@ -696,13 +715,11 @@ global CC
     Ihist = CC{handles.gui_number}.Ihist;
     cmp = CC{handles.gui_number}.cmp;
     R = CC{handles.gui_number}.R;
-    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
-   
+    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize;   
     
     TCounts = sum(R(n).PixelValues);
     DotSize = length(R(n).PixelValues);
     MaxD = max(R(n).PixelValues);
-    MeanD = mean(R(n).PixelValues); 
     
     axes(handles.subaxis1); cla; %#ok<*LAXES>
     imagesc(Iconv{n}); colormap hot;
@@ -734,17 +751,12 @@ function ChromatinPlots2(handles, n)
 global CC
     Istorm = CC{handles.gui_number}.Istorm ;
     Iconv = CC{handles.gui_number}.Iconv;
-    Itime = CC{handles.gui_number}.Itime;
-    Ihist = CC{handles.gui_number}.Ihist;
-    cmp = CC{handles.gui_number}.cmp;
     R = CC{handles.gui_number}.R;
     cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
    
-    
     TCounts = sum(R(n).PixelValues);
     DotSize = length(R(n).PixelValues);
     MaxD = max(R(n).PixelValues);
-    MeanD = mean(R(n).PixelValues); 
     
     axes(handles.subaxis1); cla; %#ok<*LAXES>
     imagesc(Iconv{n}); colormap hot;
@@ -1063,3 +1075,25 @@ function SaveFolder_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in AutoCycle.
+function AutoCycle_Callback(hObject, eventdata, handles)
+% hObject    handle to AutoCycle (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+global CC
+CC{handles.gui_number}.auto = true; 
+dat = dir([handles.Source,filesep,'*_alist.bin']);
+Nfiles = length(dat); 
+for n=1:Nfiles
+    disp(['Analyzing image ',num2str(1),' of ',num2str(Nfiles),' ',...
+        dat.Name]); 
+    for step = 1:6
+        CC{handles.gui_number}.step = 1;
+        RunStep_Callback(hObject, eventdata, handles);
+    end
+    NextImage_Callback(hObject, eventdata, handles)
+end
+CC{handles.gui_number}.auto = false; 
