@@ -26,14 +26,24 @@ function splitQVdax(pathin,varargin)
 %           Print messages to screen
 %--------------------------------------------------------------------------
 %
-
+%% Examples
+% folders ={'N:\2013-10-31_G9'};
+% 
+% 
+% for i=1:length(folders)
+%     pathin = [folders{i},filesep];
+%     savepath = [folders{i},filesep,'splitdax\'];
+%     mkdir(savepath);
+%     splitQVdax(pathin,'chns',{'647','561','488'},'savepath',...
+%         savepath,'delete',true);
+% end
 
 %% default parameters
 alldax = [];
 QVorder = {'647', '561', '750', '488'};
 chns = {'750','647','561','488'};    
 savepath = '';
-step = 1000;
+step = 2500;
 verbose = true; 
 promptoverwrite = true;
 delFile = false;
