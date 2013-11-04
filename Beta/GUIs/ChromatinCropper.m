@@ -401,10 +401,10 @@ elseif step == 4
         imaxes.zm = 20;
         imaxes.cx = R(n).Centroid(1)/cluster_scale;
         imaxes.cy = R(n).Centroid(2)/cluster_scale;
-        imaxes.xmin = imaxes.cx - imaxes.W/2/imaxes.zm;
-        imaxes.xmax = imaxes.cx + imaxes.W/2/imaxes.zm;
-        imaxes.ymin = imaxes.cy - imaxes.H/2/imaxes.zm;
-        imaxes.ymax = imaxes.cy + imaxes.H/2/imaxes.zm;
+        imaxes.xmin = max(imaxes.cx - imaxes.W/2/imaxes.zm,1);
+        imaxes.xmax = min(imaxes.cx + imaxes.W/2/imaxes.zm,imaxes.W);
+        imaxes.ymin = max(imaxes.cy - imaxes.H/2/imaxes.zm,1);
+        imaxes.ymax = min(imaxes.cy + imaxes.H/2/imaxes.zm,imaxes.H);
         allImaxes{n} = imaxes; 
 
    % Add dot labels to overview image           
@@ -445,7 +445,6 @@ elseif step == 4
      %  Indicate color as time. 
         dxc = vlist.xc;
         dyc = max(vlist.yc)-vlist.yc;
-        max(vlist.frame)
         Nframes = double(max(mlist.frame));
         f = double(vlist.frame);
         cmp{n} = MakeColorMap(f,Nframes);
@@ -469,10 +468,12 @@ elseif step == 4
               ChromatinPlots(handles, n);
               pause(.5); 
       end
-    set(handles.Xslider,'Value',Nclusters);
-    set(handles.Xslider,'Min',1);
-    set(handles.Xslider,'Max',Nclusters);  
-    set(handles.Xslider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);
+      if Nclusters > 1
+        set(handles.Xslider,'Value',Nclusters);
+        set(handles.Xslider,'Min',1);
+        set(handles.Xslider,'Max',Nclusters);  
+        set(handles.Xslider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);
+      end
 
 elseif step == 5
     %% Load data
@@ -514,9 +515,9 @@ elseif step == 5
    CC{handles.gui_number}.M2 = [];
    CC{handles.gui_number}.map = [];
    
-   n = 0; 
+  %  n = 0; 
    for nn=saveNs
-       n=n+1; % n=4
+       n=nn; % n=4
        % Histogram localizations on tunable scale
         infilt =vlists{nn}.frame>startframe;  
         H = max([vlists{nn}.yc(infilt);vlists{nn}.xc(infilt)]);
@@ -549,7 +550,8 @@ elseif step == 5
        Zps(n,:) = zernike_coeffs(M2)';
        CC{handles.gui_number}.M2{nn} = M2;
        CC{handles.gui_number}.map{nn} = map;
-       ChromatinPlots2(handles,nn);
+       
+      
        
        % figure(2+n); clf; hist(log(M2(M2>0)),10); 
        % ylabel('frequency'); xlabel('log(# Localizations)'); 
@@ -592,6 +594,9 @@ elseif step == 5
        CC{handles.gui_number}.data.vlist{imnum,n} =vlists{n}; 
        CC{handles.gui_number}.data.M{imnum,n} = M2; 
        CC{handles.gui_number}.data.R{imnum,n} = CC{handles.gui_number}.R(n); 
+       
+     % Update plots
+        ChromatinPlots2(handles,nn);
    end
    
    CC{handles.gui_number}.saveNs = saveNs; 
@@ -634,7 +639,10 @@ elseif step == 6
     
     disp(['saving data in: ',savefolder])
    
-    figure(2); clf;
+    Iout2 = figure(2); clf;
+    imagesc(CC{handles.gui_number}.conv);
+    colormap hot; hold on;
+    
     for n=saveNs
         % summary data to print ot image
         TCounts = sum(R(n).PixelValues);
@@ -684,8 +692,6 @@ elseif step == 6
         save([savefolder,filesep,saveroot,'DotData_',num2str(imnum),'_d',num2str(n),'.mat'],'imaxes','vlist');
         
         Iout2 = figure(2); 
-        imagesc(CC{handles.gui_number}.conv); colormap hot; 
-        hold on;
         text(imaxes.cx+6,imaxes.cy,...
          ['dot ',num2str(n)],'color','w'); 
     end
@@ -701,7 +707,8 @@ elseif step == 6
     subplot(3,2,6); hist( [data.mI{:}] ); title('moment of Inertia'); 
     % hist( [data.MainEccent{:}] ); title('eccentricity'); 
     
-    save([savefolder,filesep,saveroot,'data.mat']);
+    CCguiData = CC{handles.gui_number};  %#ok<NASGU>
+    save([savefolder,filesep,saveroot,'data.mat'],'data','CCguiData');
     
 end % end if statement over steps
    
@@ -734,9 +741,11 @@ global CC
              'color','w');
 
     axes(handles.subaxis3); hold off; cla;  %#ok<*LAXES>
-    colormap hot; caxis([0,2^16]);
      hold on;
     scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
+    warning('off','MATLAB:hg:patch:RGBColorDataNotSupported');
+    xlim([min(Itime{n}(:,1)),max(Itime{n}(:,1))]);
+    ylim([min(Itime{n}(:,2)),max(Itime{n}(:,2))]);
     set(gca,'color','k'); set(gcf,'color','w'); 
     set(gca,'XTick',[],'YTick',[]);
 
@@ -751,6 +760,7 @@ function ChromatinPlots2(handles, n)
 global CC
     Istorm = CC{handles.gui_number}.Istorm ;
     Iconv = CC{handles.gui_number}.Iconv;
+    imnum = CC{handles.gui_number}.imnum; 
     R = CC{handles.gui_number}.R;
     cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
    
@@ -770,10 +780,18 @@ global CC
              num2str(DotSize),' maxD=',num2str(MaxD)],...
              'color','w');
 
+         
     axes(handles.subaxis3); hold off; cla;  %#ok<*LAXES>
+    try
+    Area = CC{handles.gui_number}.data.AllArea{imnum,n};
     imagesc(CC{handles.gui_number}.M2{n}); %
+    text(1.2*cluster_scale,2*cluster_scale,...
+        ['dot',num2str(n),' Area=',num2str(Area)],'color','w');
     caxis([0,60]); colormap hot;
     set(gca,'XTick',[],'YTick',[]);
+    catch er
+        disp(er.message); 
+    end
 
     axes(handles.subaxis4); cla; %#ok<*LAXES>
     imagesc(CC{handles.gui_number}.map{n}); 
@@ -918,7 +936,7 @@ binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);
 set(handles.ImageBox,'String',binfile.name);
 CC{handles.gui_number}.step = 1;
 set(handles.DirectionsBox,'String',CC{handles.gui_number}.Dirs{1});
-
+RunStep_Callback(hObject, eventdata, handles)
 
 % --- Executes on button press in PreviousImage.
 function PreviousImage_Callback(hObject, eventdata, handles)
@@ -952,9 +970,25 @@ CC{handles.gui_number}.binfiles = ...
          dir([CC{handles.gui_number}.source,filesep,'*_alist.bin']);
 set(handles.DirectionsBox,'String',CC{handles.gui_number}.Dirs{1});
 CC{handles.gui_number}.imnum = 1;
+if isempty(CC{handles.gui_number}.binfiles)
+ error(['error, no alist.bin files found in folder ',...
+     CC{handles.gui_number}.source]);
+end
 binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);    
 set(handles.ImageBox,'String',binfile.name);
 StepParameters_Callback(hObject, eventdata, handles)
+RunStep_Callback(hObject, eventdata, handles)
+% Clear current data
+cleardata = input('New folder selected.  Clear current data? y/n? ','s');
+if strcmp(cleardata,'y');
+    CC{handles.gui_number}.data = [];
+end
+
+
+
+
+
+
 
 % --- Executes on slider movement.
 function Xslider_Callback(hObject, eventdata, handles)
