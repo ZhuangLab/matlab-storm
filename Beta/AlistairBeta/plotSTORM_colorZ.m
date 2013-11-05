@@ -177,6 +177,13 @@ if length(dotsize) < Cs
     dotsize = repmat(dotsize,Cs,1);
 end
 
+for c=1:chns
+    [fh,fw] = size(infilter{c});
+    if fw > fh
+        infilter{c} = infilter{c}';
+    end
+end
+
 
 %% Main Function
 %--------------------------------------------------------------------------
@@ -235,11 +242,8 @@ else
                  inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & ...
                      y{c}>imaxes.ymin & y{c}<imaxes.ymax & ...
                      z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
-                 try
-                   plotdots = inbox & infilter{c}';
-                 catch %#ok<CTCH>
                      plotdots = inbox & infilter{c};
-                 end
+
 
                  xi = (x{c}(plotdots)-imaxes.xmin);
                  yi = (y{c}(plotdots)-imaxes.ymin);
