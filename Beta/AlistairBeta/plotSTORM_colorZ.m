@@ -189,7 +189,7 @@ end
 %--------------------------------------------------------------------------
 
 % Test if GPU is available
-Itest =   GenGaussianSRImage(1,1,1,1,1,'zoom',1,'MaxBlobs',10);
+ Itest =   GenGaussianSRImage(1,1,1,1,1,'zoom',1,'MaxBlobs',10);
 if Itest < 1E-10; 
     if verbose
          disp('GPU not available'); 
@@ -197,8 +197,7 @@ if Itest < 1E-10;
     I = list2img(mlist,imaxes,'filter',infilter,'dotsize',dotsize,...
         'Zsteps',Zs,'Zrange',Zrange','nm per pixel',npp,...
         'scalebar',scalebar,'correct drift',CorrectDrift); 
-else
-     
+else    
      
     if scalebar < 1
         showScalebar = false; 

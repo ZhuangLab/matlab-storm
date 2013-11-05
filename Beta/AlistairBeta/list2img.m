@@ -48,7 +48,6 @@ npp = 160;
 scalebar = 500;
 CorrectDrift = true;
 showScalebar = true;
-verbose = false; 
 
 
 % If imaxes is not passed as a variable
@@ -82,14 +81,12 @@ end
 % Add necessary fields to a minimal imaxes; 
 H = imaxes.H;
 W = imaxes.W;
-zm = imaxes.zm;
 if ~isfield(imaxes,'scale'); imaxes.scale = 1; end
 if ~isfield(imaxes,'xmin'); imaxes.xmin = 0; end
 if ~isfield(imaxes,'xmax'); imaxes.xmax = H; end
 if ~isfield(imaxes,'ymin'); imaxes.ymin = 0; end
 if ~isfield(imaxes,'ymax'); imaxes.ymax = W; end
 
-scale = imaxes.scale;
 
 
 %--------------------------------------------------------------------------
@@ -123,8 +120,6 @@ if ~isempty(varinput)
                 scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
             case 'correct drift'
                 CorrectDrift = CheckParameter(parameterValue,'nonnegative','correct drift');
-            case 'verbose'
-                verbose = CheckParameter(parameterValue,'boolean','verbose');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -137,10 +132,8 @@ end
 
 % (mostly shorthand)
 zm = imaxes.zm*imaxes.scale; % pixel size
-w = imaxes.xmax-imaxes.xmin;
-h = imaxes.ymax-imaxes.ymin;
-W = round(w*zm);
-H = round(h*zm); 
+W = imaxes.W*imaxes.scale; % floor(w*zm);
+H = imaxes.W*imaxes.scale; %  floor(h*zm); 
 
 if length(dotsize) < Cs
     dotsize = repmat(dotsize,Cs,1);
@@ -198,17 +191,22 @@ for c=chns
     gc = fliplr(800*linspace(.5,8,N+1)); % intensity of dots. also linear in root photon number
     wdth = linspace(min_sig, max_sig,N+1); 
     wdth(end) = inf; 
-    wc = linspace(.05*dotsize(c), .5*dotsize(c),N+1); 
+    wc = linspace(.01*dotsize(c), .05*dotsize(c),N+1)*zm; 
     
     % actually build image
     maxint = 0; 
-     Iz = zeros(H,W,Zs,'uint16');          
+     Iz = zeros(H,W,Zs);          
      for k=1:Zs
-         I0 = zeros(H,W,'uint16');          
+         I0 = zeros(H,W);          
          inZ =  z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
          for n=1:N
-            inw = (sigC{c} > wdth(n) & sigC{c} < wdth(n+1) & inZ & infilter{c} ); % find all molecules which fall in this photon bin
-            It = uint16(hist3([y{c}(inw)*zm,x{c}(inw)*zm],'Edges',{1.5:h*zm+.5, 1.5:w*zm+.5})); % drop all molecules into chosen x,y bin
+             inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & ...
+                     y{c}>imaxes.ymin & y{c}<imaxes.ymax;
+            inW = sigC{c} > wdth(n) & sigC{c} < wdth(n+1);
+            plotdots = inbox & inW & inZ & infilter{c} ; % find all molecules which fall in this photon bin        
+            xi = x{c}(plotdots)*zm-imaxes.xmin*zm;
+            yi = y{c}(plotdots)*zm-imaxes.ymin*zm;
+            It = hist3([yi,xi],'Edges',{1:H,1:W}); % drop all molecules into chosen x,y bin   {1.5:h*zm+.5, 1.5:w*zm+.5}
             gaussblur = fspecial('gaussian',150,wc(n)); % create gaussian filter of appropriate width
             It = imfilter(gc(n)*It,gaussblur); % convert into gaussian of appropriate width
           %  figure(3); clf; imagesc(It); title(num2str(n));
@@ -229,6 +227,9 @@ for c=chns
 end
 
 % figure(1); clf; Ncolor(In{1}); colormap hot;
+
+
+% 
 
 % % Good display code for troubleshooting.  Redundant with command in movie2vectorSTORM core script   
 % % normalize color channels and render
