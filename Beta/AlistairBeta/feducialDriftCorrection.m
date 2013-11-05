@@ -164,6 +164,17 @@ for i=1:length(x1s)
    Tframes(i) = sum(inbox);
 end
 feducials = Tframes > fmin*(max(mlist.frame)-startframe); 
+
+if showplots
+    figure(1); clf; 
+    if ~isempty(daxname)
+        imagesc(daxfile(:,:,1));
+    end
+    colormap hot;
+    hold on;
+    plot(x1s,y1s,'co');
+end
+
 if sum(feducials) == 0 
    error('no feducials found. Try changing fmin or startframe');  
 end
@@ -174,10 +185,6 @@ feducial_boxes = [fb(:,1),fb(:,3),...
     fb(:,2)-fb(:,1),fb(:,4)-fb(:,3)];
 
 if showplots
-    figure(1); clf; 
-    if ~isempty(daxname)
-        imagesc(daxfile(:,:,1));
-    end
     colormap gray;
     figure(1); hold on; 
     plot(x1s,y1s,'k.');
