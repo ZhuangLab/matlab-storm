@@ -176,8 +176,14 @@ if isempty(CC{handles.gui_number}.binfiles)
 end
 
 % Parse bin name and dax name for current image
+%change this to +1;
+if CC{handles.gui_number}.imnum==1
+    CC{handles.gui_number}.imnum=CC{handles.gui_number}.imnum+1;
+end
+
     binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);
     folder = CC{handles.gui_number}.source;
+    
     daxname = [binfile.name(1:end-10),'.dax'];    
     set(handles.ImageBox,'String',binfile.name);
     imnum = CC{handles.gui_number}.imnum;
@@ -191,29 +197,68 @@ if step == 1
          convname = dir(convname);
          convZs = length(convname);
          dax = zeros(H,W,1,'uint16');
-         for z=1:convZs
-             try
-                 daxtemp = sum(ReadDax([folder,filesep,convname(z).name]),3);
-                 dax = max(cat(3,dax,daxtemp),[],3);
-             catch er
-                 disp(er.message);
-             end
-         end
-             
-         figure(11); clf; imagesc(dax); colorbar;
-         title('conventional image projected');
+%          for z=1:convZs
+%              try
+%                  daxtemp = sum(ReadDax([folder,filesep,convname(z).name]),3);
+%                  dax = max(cat(3,dax,daxtemp),[],3);
+%              catch er
+%                  disp(er.message);
+%              end
+%          end
+%              
+%          figure(11); clf; imagesc(dax); colorbar;
+%          title('conventional image projected');
          try
-            conv0 =  regexprep([folder,filesep,daxname],'storm','conv_z0');
-            conv0 = mean(ReadDax(conv0),3);
+            conv0Name =  regexprep([folder,filesep,daxname],'storm','conv_z0');
+            conv0 = mean(ReadDax(conv0Name),3);
          catch er
             disp(er.message);
             conv0 = dax;  
          end
+         
+         %%% try to load lamina and beads
+         try
+            laminaName =  regexprep(conv0Name,'647','488');
+            lamina = mean(ReadDax(laminaName),3);
+         catch er
+            disp(er.message);
+            lamina = dax;  
+         end
+         
+         try
+         beadsName=regexprep(conv0Name,'647','561');
+         beads= mean(ReadDax(beadsName),3);
+         catch er
+            disp(er.message);
+            beads = dax;  
+         end
+         %%% try to correct channel misfits
+         try
+         BeadFolder = '\\MONET\AlistairProRAID\2013-09-26_PscWtPh\TrimBeads\';
+         warpfile = [BeadFolder,'chromewarps.mat'];
+         load(warpfile);
+
+warpedLamina = imtransform(lamina,tform_1_inv{3},'XYScale',1,'XData',[1 256],'YData',[1 256]);
+warpedLamina = imtransform(warpedLamina,tform2D_inv{3},'XYScale',1,'XData',[1 256],'YData',[1 256]);
+
+warpedBeads = imtransform(beads,tform_1_inv{2},'XYScale',1,'XData',[1 256],'YData',[1 256]);
+warpedBeads = imtransform(warpedBeads,tform2D_inv{2},'XYScale',1,'XData',[1 256],'YData',[1 256]);
+         catch er
+             disp(er.message);
+         end
+         
          axes(handles.axes1);
          set(gca,'color','k');
          set(gca,'XTick',[],'YTick',[]);
-         imagesc(conv0);
-         colormap hot;
+         [H,W] = size(conv0);
+         I = zeros(H,W,3);
+I(:,:,1) = conv0/max(max(conv0));
+I(:,:,2) = warpedBeads/max(max(warpedBeads));
+I(:,:,3) = warpedLamina/max(max(warpedLamina));
+CC{handles.gui_number}.maskBeads = warpedBeads;
+CC{handles.gui_number}.convI = I;
+%im2bw(warpedBeads,0.4); 
+         imshow(I);
          xlim([0,W]); ylim([0,H]);
          
          axes(handles.axes2);
@@ -223,11 +268,11 @@ if step == 1
 
          % Save step data into global; 
         CC{handles.gui_number}.conv = conv0; 
+        
    
 elseif step == 2
         % load variables from previous step
         conv0 = CC{handles.gui_number}.conv;
-        
         % load parameters
          saturate =  CC{handles.gui_number}.pars2.saturate; % 0.001;
          makeblack = CC{handles.gui_number}.pars2.makeblack; %  0.998; 
@@ -235,15 +280,17 @@ elseif step == 2
         % Step 2: Threshold to find spots  [make these parameter options]
          try
              daxMask = mycontrast(uint16(conv0),saturate,makeblack); 
+  maskBeads=mycontrast(uint16(CC{end}.maskBeads),0.001,0.998);
+  daxMask = daxMask-maskBeads;
          catch er
              disp(er.message)
-         end
+         end         
          % figure(2); clf; imagesc(dax_mask); colorbar;
          daxMask = daxMask > 1;
          axes(handles.axes1); cla;
          set(gca,'color','k');
          set(gca,'XTick',[],'YTick',[]);
-         imagesc(daxMask); 
+         imshow(CC{handles.gui_number}.convI+repmat(daxMask,[1,1,3])); 
          xlim([0,W]); ylim([0,H]);
          
         % Save step data into global
@@ -263,7 +310,9 @@ elseif step == 3
         infilt = mlist.frame>startframe;   
         M = hist3([mlist.yc(infilt),mlist.xc(infilt)],...
              {0:1/cluster_scale:H,0:1/cluster_scale:W});
-        [h,w] = size(M);             
+        
+         %figure(3); clf; imagesc(M); caxis([0,10]);
+         [h,w] = size(M);             
         mask = M>1;  %        figure(3); clf; imagesc(mask); 
         mask = imdilate(mask,strel('disk',3)); %       figure(3); clf; imagesc(mask);
         toobig = bwareaopen(mask,maxsize);  % figure(3); clf; imagesc(mask);
@@ -274,15 +323,31 @@ elseif step == 3
         aboveminsize = cellfun(@sum,{R.PixelValues}) > mindots;
         R = R(aboveminsize);           
         allpix = cat(1,R(:).PixelIdxList);
+        
+        reject = mask;
+        reject(allpix) = 0;
+        mask = mask-reject; 
         mask = double(mask); 
-        mask(allpix) = 3;
+        % mask(allpix) = 3;
         
         % plot mask in main figure window
+        
+        [H,W,chs]=size(CC{handles.gui_number}.convI);
+        
+        %save([ScratchPath, 'test.mat']);
+        %disp('test data saved'); 
+        % load([ScratchPath, 'test.mat']);
         axes(handles.axes1); cla;
         set(gca,'color','k');
         set(gca,'XTick',[],'YTick',[]);
-        imagesc(mask); title('dot mask'); 
-        xlim([0,w]); ylim([0,h]);
+        %figure;
+        rejects=repmat(imresize(reject,[H,W]),[1,1,3]);
+        rejects(:,:,1)=0;rejects(:,:,3)=0;
+        imshow(CC{handles.gui_number}.convI+rejects+repmat(imresize(mask,[H,W]),[1,1,3]));
+        %imshow(imresize(CC{handles.gui_number}.convI,[h,w])+repmat(mask,[1,1,3]));
+        %imshow(imresize(CC{handles.gui_number}.convI,[h,w])+repmat([0],[h,w,3]));
+        title('dot mask'); 
+        xlim([0,W]); ylim([0,H]);
         
         % Export step data
         CC{handles.gui_number}.mlist = mlist; 
@@ -547,9 +612,9 @@ elseif step == 5
 %        figure(3); clf; imagesc(M2); hold on;
 %        plot(ROIcent(:,1),ROIcent(:,2),'c+','MarkerSize',20);
        
-       Zps(n,:) = zernike_coeffs(M2)';
-       CC{handles.gui_number}.M2{nn} = M2;
-       CC{handles.gui_number}.map{nn} = map;
+%        Zps(n,:) = zernike_coeffs(M2)';
+%        CC{handles.gui_number}.M2{nn} = M2;
+%        CC{handles.gui_number}.map{nn} = map;
        
       
        
