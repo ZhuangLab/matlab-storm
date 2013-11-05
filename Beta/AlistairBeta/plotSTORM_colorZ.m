@@ -1,4 +1,4 @@
-function I = plotSTORM_colorZ(mlist, imaxes, varargin)
+function I = plotSTORM_colorZ(mlist, varargin)
 % I = plotSTORM_colorZ(mlist, imaxes, infilter)
 % routine from the STORMrender GUI
 %--------------------------------------------------------------------------
@@ -59,9 +59,10 @@ function I = plotSTORM_colorZ(mlist, imaxes, varargin)
 %--------------------------------------------------------------------------
 %% Hard coded inputs
 %--------------------------------------------------------------------------
+
+global ScratchPath
+
 % (mostly shorthand)
-
-
 Cs = length(mlist);
 chns = find(true - cellfun(@isempty,mlist))';
 [ch,cw] = size(chns); 
@@ -90,6 +91,8 @@ verbose = false;
 
 % If imaxes is not passed as a variable
 if nargin == 1 || ischar(varargin{1})
+    imaxes.zm = 10; % default zoom; 
+    imaxes.scale = 1;    
     molist = cell2mat(mlist);
     allx = cat(1,molist.xc);
     ally = cat(1,molist.yc);
@@ -97,10 +100,20 @@ if nargin == 1 || ischar(varargin{1})
     imaxes.xmax = ceil(max(allx));
     imaxes.ymin = floor(min(ally));
     imaxes.ymax = ceil(max(ally));
-    imaxes.H = imaxes.ymax - imaxes.ymin;
-    imaxes.W = imaxes.xmax - imaxes.xmin; 
-    imaxes.zm = 10; % default zoom; 
-    imaxes.scale = 1; 
+    imaxes.H =  (imaxes.ymax - imaxes.ymin)*imaxes.zm*imaxes.scale;
+    imaxes.W =  (imaxes.xmax - imaxes.xmin)*imaxes.zm*imaxes.scale; 
+elseif ~ischar(varargin{1})
+    imaxes = varargin{1}; 
+end
+
+if nargin > 1 
+    if ischar(varargin{1})
+        varinput = varargin;
+    else
+        varinput = varargin(2:end);
+    end
+else
+    varinput = [];
 end
     
 % Add necessary fields to a minimal imaxes; 
@@ -123,14 +136,15 @@ scale = imaxes.scale;
 %--------------------------------------------------------------------------
 % Parse variable input
 %--------------------------------------------------------------------------
-if nargin > 2
-    if (mod(length(varargin), 2) ~= 0 ),
+
+if ~isempty(varinput)
+    if (mod(length(varinput), 2) ~= 0 ),
         error(['Extra Parameters passed to the function ''' mfilename ''' must be passed in pairs.']);
     end
-    parameterCount = length(varargin)/2;
+    parameterCount = length(varinput)/2;
     for parameterIndex = 1:parameterCount,
-        parameterName = varargin{parameterIndex*2 - 1};
-        parameterValue = varargin{parameterIndex*2};
+        parameterName = varinput{parameterIndex*2 - 1};
+        parameterValue = varinput{parameterIndex*2};
         switch parameterName
             case 'filter'
                 infilter = parameterValue;
@@ -168,13 +182,13 @@ end
 %--------------------------------------------------------------------------
 
 % Test if GPU is available
-try
+% try
     GenGaussianSRImage(5,5,ones(5,1),ones(5,1),ones(5,1),...
      'zoom',1,'MaxBlobs',10);
-catch
-    if verbose
-         disp('GPU not available'); 
-    end
+% catch
+%     if verbose
+%          disp('GPU not available'); 
+%     end
 
     if scalebar < 1
         showScalebar = false; 
@@ -221,8 +235,6 @@ catch
                  try
                    plotdots = inbox & infilter{c}';
                  catch %#ok<CTCH>
-    %                  size(inbox)
-    %                  size(infilter{c})
                      plotdots = inbox & infilter{c};
                  end
 
@@ -244,6 +256,10 @@ catch
               end
           end
 
+          % save([ScratchPath,'test.mat']);
+          % load([ScratchPath,'test.mat']);
+          % figure(1); clf; imagesc(Itemp);
+          
           for k=1:Zs
               I{c}(:,:,k) = uint16(Iz(:,:,k)./maxint*2^16);
           end
@@ -256,5 +272,5 @@ catch
         end     
     end  
   
-end
+% end
   
