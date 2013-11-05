@@ -193,7 +193,8 @@ if step == 1
          dax = zeros(H,W,1,'uint16');
          for z=1:convZs
              try
-                 daxtemp = sum(ReadDax([folder,filesep,convname(z).name]),3);
+                 daxtemp = sum(ReadDax([folder,filesep,convname(z).name],....
+                     'endFrame',30),3);
                  dax = max(cat(3,dax,daxtemp),[],3);
              catch er
                  disp(er.message);
@@ -204,7 +205,7 @@ if step == 1
          title('conventional image projected');
          try
             conv0 =  regexprep([folder,filesep,daxname],'storm','conv_z0');
-            conv0 = mean(ReadDax(conv0),3);
+            conv0 = mean(ReadDax(conv0,'endFrame',5),3);
          catch er
             disp(er.message);
             conv0 = dax;  
