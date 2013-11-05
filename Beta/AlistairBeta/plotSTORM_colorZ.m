@@ -81,7 +81,7 @@ end
 dotsize = 4;
 maxblobs = 2E4; %
 maxdotsize = .05; 
-Zs = 20;
+Zs = 1;
 Zrange = [-500,500]; % range in nm 
 npp = 160; 
 scalebar = 500;

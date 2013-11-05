@@ -1,5 +1,5 @@
 
-function In = list2img(molist,imaxes,varargin) % ,zm,N,h,w)
+function In = list2img(mlist,varargin) % ,zm,N,h,w)
 %                           list2img.m
 % Alistair Boettiger                                   Date Begun: 08/11/12
 % Zhuang Lab                                        Last Modified: 08/22/12
@@ -18,71 +18,101 @@ function In = list2img(molist,imaxes,varargin) % ,zm,N,h,w)
   
   
   
- % mlist = ReadMasterMoleculeList('J:\2013-10-01_G10\splitdax\647quad_G10_storm_0_4_alist.bin');
-%  load('C:\Users\Alistair\Documents\Research\Projects\Chromatin\Data\2013-11-02_coloredRegions\G5_DotData_22_d3.mat')
-%    molist = {vlist};
 
 %--------------------------------------------------------------------------
 %% Hard coded inputs
 %--------------------------------------------------------------------------
 
+global ScratchPath %#ok<NUSED>
 
 % (mostly shorthand)
-zm = imaxes.zm*imaxes.scale; % pixel size
-w = imaxes.xmax-imaxes.xmin;
-h = imaxes.ymax-imaxes.ymin;
-W = round(w*zm);
-H = round(h*zm); 
-Cs = length(molist);
-chns = find(true - cellfun(@isempty,molist))';
+Cs = length(mlist);
+chns = find(true - cellfun(@isempty,mlist))';
 [ch,cw] = size(chns); 
 if ch>cw; chns = chns'; end % must be row vector! 
-
+N = 6; 
 
 %--------------------------------------------------------------------------
 %% Default inputs
 %--------------------------------------------------------------------------
 infilter = cell(1,Cs);
+
 for c=chns
-    infilter{c} = true(length(molist{c}.xc),1);
+    infilter{c} = true(length(mlist{c}.xc),1);
 end
 
 dotsize = 4;
-Zs = 1;  % 20
+Zs = 1;
 Zrange = [-500,500]; % range in nm 
 npp = 160; 
 scalebar = 500;
 CorrectDrift = true;
 showScalebar = true;
+verbose = false; 
 
-N = 6; % number of bins for different molecule widths
 
-     
+% If imaxes is not passed as a variable
+if nargin == 1 || ischar(varargin{1})
+    imaxes.zm = 10; % default zoom; 
+    imaxes.scale = 1;    
+    molist = cell2mat(mlist);
+    allx = cat(1,molist.xc);
+    ally = cat(1,molist.yc);
+    imaxes.xmin =  floor(min(allx));
+    imaxes.xmax = ceil(max(allx));
+    imaxes.ymin = floor(min(ally));
+    imaxes.ymax = ceil(max(ally));
+    imaxes.H =  (imaxes.ymax - imaxes.ymin)*imaxes.zm*imaxes.scale;
+    imaxes.W =  (imaxes.xmax - imaxes.xmin)*imaxes.zm*imaxes.scale; 
+elseif ~ischar(varargin{1})
+    imaxes = varargin{1};
+end
+
+if nargin > 1 
+    if ischar(varargin{1})
+        varinput = varargin;
+    else
+        varinput = varargin(2:end);
+    end
+else
+    varinput = [];
+end
+    
+
+% Add necessary fields to a minimal imaxes; 
+H = imaxes.H;
+W = imaxes.W;
+zm = imaxes.zm;
+if ~isfield(imaxes,'scale'); imaxes.scale = 1; end
+if ~isfield(imaxes,'xmin'); imaxes.xmin = 0; end
+if ~isfield(imaxes,'xmax'); imaxes.xmax = H; end
+if ~isfield(imaxes,'ymin'); imaxes.ymin = 0; end
+if ~isfield(imaxes,'ymax'); imaxes.ymax = W; end
+
+scale = imaxes.scale;
+
 
 %--------------------------------------------------------------------------
 
 
 
 %--------------------------------------------------------------------------
-%% Parse variable input
+% Parse variable input
 %--------------------------------------------------------------------------
-if nargin > 2
-    if (mod(length(varargin), 2) ~= 0 ),
+
+if ~isempty(varinput)
+    if (mod(length(varinput), 2) ~= 0 ),
         error(['Extra Parameters passed to the function ''' mfilename ''' must be passed in pairs.']);
     end
-    parameterCount = length(varargin)/2;
+    parameterCount = length(varinput)/2;
     for parameterIndex = 1:parameterCount,
-        parameterName = varargin{parameterIndex*2 - 1};
-        parameterValue = varargin{parameterIndex*2};
+        parameterName = varinput{parameterIndex*2 - 1};
+        parameterValue = varinput{parameterIndex*2};
         switch parameterName
             case 'filter'
                 infilter = parameterValue;
             case 'dotsize'
-                dotsize = parameterValue;
-            case 'maxblobs'
-                maxblobs = CheckParameter(parameterValue,'positive','maxblobs');
-            case 'maxdotsize'
-                maxdotsize = CheckParameter(parameterValue,'positive','maxdotsize');
+                dotsize = CheckParameter(parameterValue,'positive','dotsize');
             case 'Zsteps'
                 Zs = CheckParameter(parameterValue,'positive','Zsteps');
             case 'Zrange'
@@ -93,13 +123,25 @@ if nargin > 2
                 scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
             case 'correct drift'
                 CorrectDrift = CheckParameter(parameterValue,'nonnegative','correct drift');
+            case 'verbose'
+                verbose = CheckParameter(parameterValue,'boolean','verbose');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
     end
 end
 
-% dotsize = 4;
+
+%% More input conversion stuff
+
+
+% (mostly shorthand)
+zm = imaxes.zm*imaxes.scale; % pixel size
+w = imaxes.xmax-imaxes.xmin;
+h = imaxes.ymax-imaxes.ymin;
+W = round(w*zm);
+H = round(h*zm); 
+
 if length(dotsize) < Cs
     dotsize = repmat(dotsize,Cs,1);
 end
@@ -122,13 +164,13 @@ sigC = cell(Cs,1);
 
 for c=chns
     if CorrectDrift
-        x{c} = molist{c}.xc;
-        y{c} = molist{c}.yc;
-        z{c} = molist{c}.zc;
+        x{c} = mlist{c}.xc;
+        y{c} = mlist{c}.yc;
+        z{c} = mlist{c}.zc;
     else
-        x{c} = molist{c}.x;
-        y{c} = molist{c}.y;
-        z{c} = molist{c}.z;
+        x{c} = mlist{c}.x;
+        y{c} = mlist{c}.y;
+        z{c} = mlist{c}.z;
     end
 end
 
@@ -148,7 +190,7 @@ In = cell(Cs,1);
 for c=chns   
     
     % Min and Max Sigma
-    a = molist{c}.a;
+    a = mlist{c}.a;
     sigC{c} = real(4./sqrt(a)); % 5
     sigs = sort(sigC{c});
     min_sig = sigs(max(round(.01*length(sigs)),1));
@@ -156,7 +198,7 @@ for c=chns
     gc = fliplr(800*linspace(.5,8,N+1)); % intensity of dots. also linear in root photon number
     wdth = linspace(min_sig, max_sig,N+1); 
     wdth(end) = inf; 
-    wc = linspace(.5*dotsize(c), 3*dotsize(c),N+1); 
+    wc = linspace(.05*dotsize(c), .5*dotsize(c),N+1); 
     
     % actually build image
     maxint = 0; 
@@ -166,7 +208,7 @@ for c=chns
          inZ =  z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
          for n=1:N
             inw = (sigC{c} > wdth(n) & sigC{c} < wdth(n+1) & inZ & infilter{c} ); % find all molecules which fall in this photon bin
-            It = uint16(hist3([x{c}(inw)*zm,y{c}(inw)*zm],'Edges',{1.5:h*zm+.5, 1.5:w*zm+.5})); % drop all molecules into chosen x,y bin
+            It = uint16(hist3([y{c}(inw)*zm,x{c}(inw)*zm],'Edges',{1.5:h*zm+.5, 1.5:w*zm+.5})); % drop all molecules into chosen x,y bin
             gaussblur = fspecial('gaussian',150,wc(n)); % create gaussian filter of appropriate width
             It = imfilter(gc(n)*It,gaussblur); % convert into gaussian of appropriate width
           %  figure(3); clf; imagesc(It); title(num2str(n));
@@ -186,7 +228,7 @@ for c=chns
      
 end
 
-figure(1); clf; Ncolor(In{1}); colormap hot;
+% figure(1); clf; Ncolor(In{1}); colormap hot;
 
 % % Good display code for troubleshooting.  Redundant with command in movie2vectorSTORM core script   
 % % normalize color channels and render
