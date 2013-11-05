@@ -1,4 +1,4 @@
-function I = plotSTORM_colorZ(mlist, varargin)
+function [I,Itest] = plotSTORM_colorZ(mlist, varargin)
 % I = plotSTORM_colorZ(mlist, imaxes, infilter)
 % routine from the STORMrender GUI
 %--------------------------------------------------------------------------
@@ -183,13 +183,18 @@ end
 
 % Test if GPU is available
 try
-    GenGaussianSRImage(5,5,ones(5,1),ones(5,1),ones(5,1),...
+  Itest =   GenGaussianSRImage(5,5,ones(5,1),ones(5,1),ones(5,1),...
      'zoom',1,'MaxBlobs',10);
+
 catch
     if verbose
          disp('GPU not available'); 
     end
-
+     I = 0;
+     return
+end
+     
+     
     if scalebar < 1
         showScalebar = false; 
     end
@@ -272,5 +277,5 @@ catch
         end     
     end  
   
-end
+
   
