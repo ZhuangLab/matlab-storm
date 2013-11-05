@@ -193,18 +193,19 @@ if step == 1
          dax = zeros(H,W,1,'uint16');
          for z=1:convZs
              try
-                 daxtemp = sum(ReadDax([folder,filesep,convname(z).name]),3);
+                 daxtemp = sum(ReadDax([folder,filesep,convname(z).name],....
+                     'endFrame',30),3);
                  dax = max(cat(3,dax,daxtemp),[],3);
              catch er
                  disp(er.message);
              end
          end
              
-         figure(11); clf; imagesc(dax); colorbar;
+         figure(11); clf; imagesc(dax); colorbar; colormap hot;
          title('conventional image projected');
          try
             conv0 =  regexprep([folder,filesep,daxname],'storm','conv_z0');
-            conv0 = mean(ReadDax(conv0),3);
+            conv0 = mean(ReadDax(conv0,'endFrame',5),3);
          catch er
             disp(er.message);
             conv0 = dax;  
@@ -316,7 +317,6 @@ elseif step == 4
     
     % -----------Apply Drift Correction------------------
     try
-    retry = 1;
     beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
     beadbin = [folder,filesep,beadname];
      [dxc,dyc] = feducialDriftCorrection(beadbin,'maxdrift',maxDrift,...
@@ -328,7 +328,7 @@ elseif step == 4
     mlist.xc = mlist.x - dxc(mlist.frame);
     mlist.yc = mlist.y - dyc(mlist.frame); 
     CC{handles.gui_number}.mlist = mlist; % update in global data
-    
+    retry = 3;
     catch er
         disp(er.message);
         warning('Feducial Drift Correction Failed');
@@ -375,12 +375,17 @@ elseif step == 4
         end
         mlist.xc = mlist.x + x_drift(mlist.frame)';
         mlist.yc = mlist.y + y_drift(mlist.frame)';
+        goOn = true;
+        
+    elseif retry == 1;
+        goOn = false;
         
     elseif retry == 3
         disp('skipping drift correction...')
+        goOn = true; 
     end
     
-    
+    if goOn
     % Conventional image in finder window
      axes(handles.axes2); cla;
      imagesc(conv0); colormap hot;
@@ -474,6 +479,7 @@ elseif step == 4
         set(handles.Xslider,'Max',Nclusters);  
         set(handles.Xslider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);
       end
+    end
 
 elseif step == 5
     %% Load data

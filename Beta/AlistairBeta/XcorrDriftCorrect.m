@@ -123,7 +123,6 @@ for i=startframe+1:stepframe:Nframes  ;% i=4
 %    drift_y(t-1) = (cy-h);
    
    if showplots
-     figure(1); clf; imagesc(corrM);
      figure(2); clf; imagesc(corrMmini)
    end
 end
@@ -138,7 +137,7 @@ y_drift = spline(f,drift_y,allframes)/scale;
 if showplots
     z = zeros(size(x_drift));
     col = [double(1:length(x_drift)-1),NaN];  % This is the color, vary with x in this case.
-    figure(3); clf;
+    figure(2); clf;
     surface([x_drift;x_drift]/scale*npp,...
             [y_drift;y_drift]/scale*npp,...
             [z;z],[col;col],...
@@ -149,11 +148,11 @@ if showplots
         xlabel('nm'); 
         ylabel('nm'); 
 
-figure(1); clf; 
-plot(mlist.x,mlist.y,'k.','MarkerSize',1);
-hold on;
-plot(mlist.xc,mlist.yc,'ro','MarkerSize',1);
-pause(1);
+% figure(1); clf; 
+% plot(mlist.x,mlist.y,'k.','MarkerSize',1);
+% hold on;
+% plot(mlist.xc,mlist.yc,'ro','MarkerSize',1);
+% pause(1);
 
 end
 
