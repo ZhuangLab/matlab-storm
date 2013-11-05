@@ -182,13 +182,13 @@ end
 %--------------------------------------------------------------------------
 
 % Test if GPU is available
-% try
+try
     GenGaussianSRImage(5,5,ones(5,1),ones(5,1),ones(5,1),...
      'zoom',1,'MaxBlobs',10);
-% catch
-%     if verbose
-%          disp('GPU not available'); 
-%     end
+catch
+    if verbose
+         disp('GPU not available'); 
+    end
 
     if scalebar < 1
         showScalebar = false; 
@@ -272,5 +272,5 @@ end
         end     
     end  
   
-% end
+end
   
