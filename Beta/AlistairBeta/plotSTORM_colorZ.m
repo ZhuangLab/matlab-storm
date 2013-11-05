@@ -60,7 +60,7 @@ function [I,Itest] = plotSTORM_colorZ(mlist, varargin)
 %% Hard coded inputs
 %--------------------------------------------------------------------------
 
-global ScratchPath
+global ScratchPath %#ok<NUSED>
 
 % (mostly shorthand)
 Cs = length(mlist);
@@ -182,17 +182,15 @@ end
 %--------------------------------------------------------------------------
 
 % Test if GPU is available
-try
-  Itest =   GenGaussianSRImage(5,5,ones(5,1),ones(5,1),ones(5,1),...
-     'zoom',1,'MaxBlobs',10);
-
-catch
+Itest =   GenGaussianSRImage(1,1,1,1,1,'zoom',1,'MaxBlobs',10);
+if Itest < 1E-10; 
     if verbose
          disp('GPU not available'); 
     end
-     I = 0;
-     return
-end
+    I = list2img(mlist,imaxes,'filter',infilter,'dotsize',dotsize,...
+        'Zsteps',Zs,'Zrange',Zrange','nm per pixel',npp,...
+        'scalebar',scalebar,'correct drift',CorrectDrift); 
+else
      
      
     if scalebar < 1
@@ -228,7 +226,7 @@ end
       zmax = Zrange(2); 
 
       Zsteps = linspace(zmin,zmax,Zs);
-      Zsteps = [-inf,Zsteps,inf];
+      Zsteps = [-inf,Zsteps,inf]; %#ok<AGROW>
 
           maxint = 0;
           Iz = zeros(round(ysize*zm*scale),round(xsize*zm*scale),Zs,'single');
@@ -260,10 +258,6 @@ end
                  maxint = max(Itemp(:)) + maxint;
               end
           end
-
-          % save([ScratchPath,'test.mat']);
-          % load([ScratchPath,'test.mat']);
-          % figure(1); clf; imagesc(Itemp);
           
           for k=1:Zs
               I{c}(:,:,k) = uint16(Iz(:,:,k)./maxint*2^16);
@@ -277,5 +271,5 @@ end
         end     
     end  
   
-
+end
   
