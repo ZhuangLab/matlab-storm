@@ -104,11 +104,14 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     CC{handles.gui_number}.pars4.startFrame = 1;
     CC{handles.gui_number}.pars4.showPlots = true; 
     CC{handles.gui_number}.pars4.showExtraPlots = false; 
+    CC{handles.gui_number}.pars4.showColorTime = true; % This is useful but slow
     % step 5 parameters
     CC{handles.gui_number}.pars5.boxSize = 32;
     CC{handles.gui_number}.pars5.starframe= 1; % 
 	CC{handles.gui_number}.pars5.minloc = 1; % min number of localization per box
 	CC{handles.gui_number}.pars5.minSize = 30; % min size in number of boxes
+    % step 6 parameters
+    CC{handles.gui_number}.pars6.saveColorTime = false; % This is useful but slow
     % step X parameters for X-correlation drift correction
     CC{handles.gui_number}.parsX.stepFrame = 8000; % 'stepframe' / double / 10E3 -- number of frames to average
     CC{handles.gui_number}.parsX.scale  = 5; % 'scale' / double / 5 -- upsampling factor for binning localizations
@@ -328,7 +331,8 @@ elseif step == 4
     mlist.xc = mlist.x - dxc(mlist.frame);
     mlist.yc = mlist.y - dyc(mlist.frame); 
     CC{handles.gui_number}.mlist = mlist; % update in global data
-    retry = 3;
+    goOn = true;
+    retry = 0; 
     catch er
         disp(er.message);
         warning('Feducial Drift Correction Failed');
@@ -485,8 +489,9 @@ elseif step == 5
     %% Load data
     Nclusters = CC{handles.gui_number}.Nclusters;
     vlists = CC{handles.gui_number}.vlists;
-    % imaxes = CC{handles.gui_number}.imaxes{1};
     npp = CC{handles.gui_number}.pars0.npp;
+    
+    notCancel = true;
     
     %================  Chose regions to keep
     if ~CC{handles.gui_number}.auto
@@ -494,10 +499,15 @@ elseif step == 5
         Dprompt = {'Dots: '};  
         Opts{1} = ['[',num2str(1:Nclusters),']'];
         Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts); 
+        if isempty(Opts); notCancel = false; end
+    if notCancel    
         saveNs = eval(Opts{1});% 
+    end
     else % for autocycle, just save all images. 
         saveNs = 1:Nclusters;
     end
+    
+    if notCancel
     
     %================ Data Analysis
     % 2D subcluster vlist image
@@ -553,7 +563,7 @@ elseif step == 5
 %        figure(3); clf; imagesc(M2); hold on;
 %        plot(ROIcent(:,1),ROIcent(:,2),'c+','MarkerSize',20);
        
-       Zps(n,:) = zernike_coeffs(M2)';
+    %   Zps(n,:) = zernike_coeffs(M2)';
        CC{handles.gui_number}.M2{nn} = M2;
        CC{handles.gui_number}.map{nn} = map;
        
@@ -587,7 +597,7 @@ elseif step == 5
              
     % Record statistics  
        CC{handles.gui_number}.data.mI{imnum,n} = mI;
-       CC{handles.gui_number}.data.Zps{imnum,n} = Zps(n); 
+     %  CC{handles.gui_number}.data.Zps{imnum,n} = Zps(n); 
        CC{handles.gui_number}.data.AllLocs{imnum,n} = AllLocs(n);
        CC{handles.gui_number}.data.MainLocs{imnum,n} = MainLocs(n);
        CC{handles.gui_number}.data.MainArea{imnum,n} = MainArea(n);
@@ -604,9 +614,8 @@ elseif step == 5
      % Update plots
         ChromatinPlots2(handles,nn);
    end
-   
    CC{handles.gui_number}.saveNs = saveNs; 
-   
+    end
   %%       
    
    
@@ -660,7 +669,7 @@ elseif step == 6
         imagesc(Iconv{n}); colormap hot;
         set(gca,'color','k'); 
         saveas(Iout,[savefolder,filesep,saveroot,'Iconv_',num2str(imnum),'_d',num2str(n),'.png']);
-        pause(.1);
+        pause(.01);
 
         Iout = figure(1); clf;
         imagesc(Istorm{n}); colormap hot;
@@ -670,8 +679,9 @@ elseif step == 6
                  num2str(DotSize),' maxD=',num2str(MaxD)],...
                  'color','k');
         saveas(Iout,[savefolder,filesep,saveroot,'Istorm_',num2str(imnum),'_d',num2str(n),'.png']);
-        pause(.1);
+        pause(.01);
 
+        if CC{handles.gui_number}.pars6.saveColorTime
         Iout = figure(1); clf;
         colormap hot; caxis([0,2^16]);
         hold on;
@@ -679,13 +689,14 @@ elseif step == 6
         set(gca,'color','k'); set(gcf,'color','w'); 
         xlabel('nm');     ylabel('nm'); 
         saveas(Iout,[savefolder,filesep,saveroot,'Itime_',num2str(imnum),'_d',num2str(n),'.png']);
-        pause(.1);
+        pause(.01);
+        end
 
         Iout = figure(1); clf; 
         imagesc(Icell{n}); colormap hot;
         set(gca,'color','k'); 
         saveas(Iout,[savefolder,filesep,saveroot,'Icell_',num2str(imnum),'_d',num2str(n),'.png']);
-        pause(.1);
+        pause(.01);
 
         Iout = figure(1); clf;
         imagesc(Ihist{n}); colormap hot;
@@ -700,7 +711,11 @@ elseif step == 6
         Iout2 = figure(2); 
         text(imaxes.cx+6,imaxes.cy,...
          ['dot ',num2str(n)],'color','w'); 
+     
+     disp(['saving data for dot',num2str(n),'...']);  
+     pause(.5); 
     end
+    
     saveas(Iout2,[savefolder,filesep,saveroot,'Overview_',num2str(imnum),'.png']);
         
     
@@ -747,11 +762,13 @@ global CC
              'color','w');
 
     axes(handles.subaxis3); hold off; cla;  %#ok<*LAXES>
+    if CC{handles.gui_number}.pars4.showColorTime
      hold on;
     scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
     warning('off','MATLAB:hg:patch:RGBColorDataNotSupported');
     xlim([min(Itime{n}(:,1)),max(Itime{n}(:,1))]);
     ylim([min(Itime{n}(:,2)),max(Itime{n}(:,2))]);
+    end
     set(gca,'color','k'); set(gcf,'color','w'); 
     set(gca,'XTick',[],'YTick',[]);
 
@@ -811,6 +828,7 @@ function StepParameters_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global CC
 step = CC{handles.gui_number}.step;
+notCancel = true; 
 
 if step == 1
  % just loading the image
@@ -824,10 +842,11 @@ elseif step == 2
     Opts{1} = num2str(CC{handles.gui_number}.pars2.saturate);
     Opts{2} = num2str(CC{handles.gui_number}.pars2.makeblack);
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
-    
+    if isempty(Opts); notCancel = false; end
+    if notCancel
      CC{handles.gui_number}.pars2.saturate = str2double(Opts{1});
      CC{handles.gui_number}.pars2.makeblack = str2double(Opts{2}); 
-    
+    end
 elseif step == 3
     dlg_title = 'Step 3 Pars: Filter Clusters';  num_lines = 1;
     Dprompt = {
@@ -843,12 +862,14 @@ elseif step == 3
     Opts{4} = num2str(CC{handles.gui_number}.pars3.mindots);
     Opts{5} = num2str(CC{handles.gui_number}.pars3.startFrame);
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
-
+    if isempty(Opts); notCancel = false; end
+    if notCancel
     CC{handles.gui_number}.pars3.boxSize = str2double(Opts{1}); % for 160npp, 16 -> 10nm boxes
     CC{handles.gui_number}.pars3.maxsize = str2double(Opts{2}); % 1E4 at 10nm cluster_scale, 1.2 um x 1.2 um 
     CC{handles.gui_number}.pars3.minsize = str2double(Opts{3}); % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
     CC{handles.gui_number}.pars3.mindots = str2double(Opts{4}); % min number of localizations per STORM dot
     CC{handles.gui_number}.pars3.startFrame = str2double(Opts{5});   
+    end
     
 elseif step == 4
     dlg_title = 'Step 4 Pars: Drift Correction';  num_lines = 1;
@@ -857,20 +878,25 @@ elseif step == 4
     'min fraction of frames',... 2
     'start frame (1 = auto detect)',...        3
     'show drift correction plots?',...  4
-    'show extra drift correction plots?'};     %5 
+    'show extra drift correction plots?',...  5 
+    'show dots colored-coded by frame number? (slow)'};   % 
 
     Opts{1} = num2str(CC{handles.gui_number}.pars4.maxDrift);
     Opts{2} = num2str(CC{handles.gui_number}.pars4.fmin);
     Opts{3} = num2str(CC{handles.gui_number}.pars4.startFrame);
     Opts{4} = num2str(CC{handles.gui_number}.pars4.showPlots);
     Opts{5} = num2str(CC{handles.gui_number}.pars4.showExtraPlots);
+    Opts{6} = num2str(CC{handles.gui_number}.pars4.showColorTime);
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
-    
+        if isempty(Opts); notCancel = false; end
+    if notCancel
     CC{handles.gui_number}.pars4.maxDrift = str2double(Opts{1});
     CC{handles.gui_number}.pars4.fmin = str2double(Opts{2});
     CC{handles.gui_number}.pars4.startFrame= str2double(Opts{3});
     CC{handles.gui_number}.pars4.showPlots = str2double(Opts{4}); 
     CC{handles.gui_number}.pars4.showExtraPlots = str2double(Opts{5});
+    CC{handles.gui_number}.pars4.showColorTime = eval(Opts{6});
+    end
     
 elseif step == 5
     dlg_title = 'Step 5 Pars: Quantify Features';  num_lines = 1;
@@ -885,12 +911,23 @@ elseif step == 5
     Opts{3} = num2str(CC{handles.gui_number}.pars5.minloc);
     Opts{4} = num2str(CC{handles.gui_number}.pars5.minSize);
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
-    
+    if isempty(Opts); notCancel = false; end
+    if notCancel
     CC{handles.gui_number}.pars5.boxSize = eval(Opts{1}); % 30
     CC{handles.gui_number}.pars5.starframe= eval(Opts{2});  %  1;
 	CC{handles.gui_number}.pars5.minloc= eval(Opts{3});  % 0;
 	CC{handles.gui_number}.pars5.minSize= eval(Opts{4});  % 30; 
-    
+    end
+elseif step == 6
+        dlg_title = 'Step 6 Pars: Data Export Options';  num_lines = 1;
+    Dprompt = {
+    'Save dots colored-coded by frame number? (slow)'};     %1 
+     Opts{1} = num2str(CC{handles.gui_number}.pars6.saveColorTime);
+     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
+    if isempty(Opts); notCancel = false; end
+    if notCancel
+     CC{handles.gui_number}.pars6.saveColorTime = eval(Opts{1}); % 30
+    end
 end
     
 
@@ -993,9 +1030,6 @@ end
 
 
 
-
-
-
 % --- Executes on slider movement.
 function Xslider_Callback(hObject, eventdata, handles)
 % hObject    handle to Xslider (see GCBO)
@@ -1012,6 +1046,8 @@ if CC{handles.gui_number}.step >= 5
 end
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1053,10 +1089,6 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 
 
-
-
-
-
 % --- Executes during object creation, after setting all properties.
 function SourceFolder_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to SourceFolder (see GCBO)
@@ -1079,19 +1111,6 @@ function ImageBox_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of ImageBox as text
 %        str2double(get(hObject,'String')) returns contents of ImageBox as a double
 
-
-% --- Executes during object creation, after setting all properties.
-function ImageBox_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ImageBox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 
 
@@ -1116,6 +1135,20 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+% --- Executes during object creation, after setting all properties.
+function ImageBox_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ImageBox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
 
 % --- Executes on button press in AutoCycle.
 function AutoCycle_Callback(hObject, eventdata, handles)
@@ -1125,13 +1158,14 @@ function AutoCycle_Callback(hObject, eventdata, handles)
 
 global CC
 CC{handles.gui_number}.auto = true; 
+currImage = CC{handles.gui_number}.imnum;
 dat = dir([handles.Source,filesep,'*_alist.bin']);
 Nfiles = length(dat); 
-for n=1:Nfiles
+for n=currImage:Nfiles
     disp(['Analyzing image ',num2str(1),' of ',num2str(Nfiles),' ',...
         dat.Name]); 
     for step = 1:6
-        CC{handles.gui_number}.step = 1;
+        CC{handles.gui_number}.step = step;
         RunStep_Callback(hObject, eventdata, handles);
     end
     NextImage_Callback(hObject, eventdata, handles)

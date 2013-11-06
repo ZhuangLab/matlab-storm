@@ -154,7 +154,18 @@ frameDim = infoFile.frame_dimensions;
 frameSize = infoFile.frame_dimensions(1)*infoFile.frame_dimensions(2);
 
 % Determine number of frames to load
-
+DoThis = 1; 
+if TFrames > 200
+    DoThis = input(['Requested file has more than 500 frames.  Are you sure ',...
+        'you want to load?  (Filling memory may crash the computer) ',...
+        '0 = abort, 1 = continue, n = new end frame  ']);
+    if DoThis > 1 
+        TFrames = DoThis;
+        DoThis = true;
+    end
+end
+    
+if DoThis
 % parse now outdated 'allFrames' for backwards compatability
 if ~isempty(allFrames) 
     if allFrames
@@ -193,6 +204,7 @@ movie = fread(fid, dataSize, '*uint16', 'b');
 fclose(fid);
 
 
+
 try % Catch corrupt files
     if numFrames == 1
         movie = reshape(movie, frameDim)';
@@ -215,3 +227,4 @@ if verbose
         ' frames loaded']);
 end
 
+end
