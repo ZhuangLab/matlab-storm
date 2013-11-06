@@ -1,5 +1,9 @@
 function [I,Itest] = plotSTORM_colorZ(mlist, varargin)
-% I = plotSTORM_colorZ(mlist, imaxes, infilter)
+% I = plotSTORM_colorZ(mlist)
+% I = plotSTORM_colorZ(mlist, imaxes)
+% I = plotSTORM_colorZ(mlist, imaxes, 'Zsteps',20,'Zrange',[-200,200],...)
+% I = plotSTORM_colorZ(mlist,'Zsteps',20,'Zrange',[-200,200],...)
+% 
 % routine from the STORMrender GUI
 %--------------------------------------------------------------------------
 % Necessary inputs:
@@ -8,13 +12,7 @@ function [I,Itest] = plotSTORM_colorZ(mlist, varargin)
 %               strctures for each color channel.  The fields mlist.xc,
 %               mlist.yc, mlist.zc and mlist.a are required.  mlist.a is
 %               used to compute the size of the spots.  
-%
-% imaxes / struct
-%               -- structure containing fields imaxes.H and imaxes.W (the
-%               original image height and width, e.g. 256x256; imaxes.zm
-%               the degree to increase the resolution by, and imaxes.sc, a
-%               scaling factor to increase the size by. sc=2 on a 256x256
-%               input gives an output image 512x512.  
+% 
 %--------------------------------------------------------------------------
 % Outputs:
 % I / cell of HxWxZn matrices
@@ -23,6 +21,13 @@ function [I,Itest] = plotSTORM_colorZ(mlist, varargin)
 % 
 %--------------------------------------------------------------------------
 % Optional inputs:
+% imaxes / struct  (Must be 2nd input if passed)
+%               -- structure containing fields imaxes.H and imaxes.W (the
+%               original image height and width, e.g. 256x256); imaxes.zm
+%               the degree to increase the resolution by, and imaxes.scale,
+%               a factor to increase the size by. scale=2 on a 256x256
+%               input gives an output image 512x512. 
+%               Also includes fields xmin 
 % 'filter' / cell / keep all dots
 %               -- cell of length N-channels, each element is a vector of
 %               length N-molecules in the corresponging m-list.  This
@@ -37,7 +42,7 @@ function [I,Itest] = plotSTORM_colorZ(mlist, varargin)
 %              -- dots which should be larger than this based on
 %              uncertainty will appear this size.  This prevents GPU errors
 %              from trying to make massive blobs. 
-% 'Zsteps' / double / 3
+% 'Zsteps' / double / 1
 %              -- Number of different z-levels to render
 % 'Zrange' / double / [-500,500] 
 %              -- range in nm for color axis
@@ -45,12 +50,16 @@ function [I,Itest] = plotSTORM_colorZ(mlist, varargin)
 %              -- size of scalebar in nm.  0 for no scalebar.
 % 'correct drift' / logical / true
 %              -- plot xc/yc or x/y coordinates of mlist
+% 'use GPU' / logical / true
+%              -- Use GPU accelerated plotting.  If GPU and CUDA are not
+%              available, system will default to CPU
+%
 %--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
-% October 10th, 2012
+% October 6th, 2013
 %
-% Version 1.2
+% Version 1.3
 %--------------------------------------------------------------------------
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
@@ -73,7 +82,6 @@ if ch>cw; chns = chns'; end % must be row vector!
 %% Default inputs
 %--------------------------------------------------------------------------
 infilter = cell(1,Cs);
-
 for c=chns
     infilter{c} = true(length(mlist{c}.xc),1);
 end
@@ -88,14 +96,30 @@ scalebar = 500;
 CorrectDrift = true;
 showScalebar = true;
 verbose = false; 
+useGPU = true; 
 
-% If imaxes is not passed as a variable
+%--------------------------------------------------------------------------
+%% Parse variable input
+%--------------------------------------------------------------------------
+
+% ---- Determine if later values are option flag and value pairs or imaxes.
+if nargin > 1 
+    if ischar(varargin{1})
+        varinput = varargin;
+    else
+        varinput = varargin(2:end);
+    end
+else
+    varinput = [];
+end
+
+% ------- Construct imaxes from data if not passed
 if nargin == 1 || ischar(varargin{1})
-    imaxes.zm = 10; % default zoom; 
-    imaxes.scale = 1;    
     molist = cell2mat(mlist);
     allx = cat(1,molist.xc);
     ally = cat(1,molist.yc);
+    imaxes.zm = 10; % default zoom; 
+    imaxes.scale = 1;    
     imaxes.xmin =  floor(min(allx));
     imaxes.xmax = ceil(max(allx));
     imaxes.ymin = floor(min(ally));
@@ -106,36 +130,22 @@ elseif ~ischar(varargin{1})
     imaxes = varargin{1}; 
 end
 
-if nargin > 1 
-    if ischar(varargin{1})
-        varinput = varargin;
-    else
-        varinput = varargin(2:end);
-    end
-else
-    varinput = [];
-end
-    
-% Add necessary fields to a minimal imaxes; 
+% ---- Some short-hand
 H = imaxes.H;
 W = imaxes.W;
 zm = imaxes.zm;
+
+% --- Add necessary fields to a minimal imaxes if not present 
 if ~isfield(imaxes,'scale'); imaxes.scale = 1; end
 if ~isfield(imaxes,'xmin'); imaxes.xmin = 0; end
-if ~isfield(imaxes,'xmax'); imaxes.xmax = H; end
+if ~isfield(imaxes,'xmax'); imaxes.xmax = W; end
 if ~isfield(imaxes,'ymin'); imaxes.ymin = 0; end
-if ~isfield(imaxes,'ymax'); imaxes.ymax = W; end
-
+if ~isfield(imaxes,'ymax'); imaxes.ymax = H; end
 scale = imaxes.scale;
 
 
-%--------------------------------------------------------------------------
 
-
-
-%--------------------------------------------------------------------------
-% Parse variable input
-%--------------------------------------------------------------------------
+% -------------- Parse optional inputs flags
 
 if ~isempty(varinput)
     if (mod(length(varinput), 2) ~= 0 ),
@@ -172,7 +182,6 @@ if ~isempty(varinput)
     end
 end
 
-% dotsize = 4;
 if length(dotsize) < Cs
     dotsize = repmat(dotsize,Cs,1);
 end
@@ -185,15 +194,19 @@ for c=1:chns
 end
 
 
+
+
+%--------------------------------------------------------------------------
 %% Main Function
 %--------------------------------------------------------------------------
 
 % Test if GPU is available
  Itest =   GenGaussianSRImage(1,1,1,1,1,'zoom',1,'MaxBlobs',10);
-if Itest < 1E-10; 
+if Itest < 1E-10  || ~useGPU; 
     if verbose
          disp('GPU not available'); 
     end
+    % Use CPU version of render instead:
     I = list2img(mlist,imaxes,'filter',infilter,'dotsize',dotsize,...
         'Zsteps',Zs,'Zrange',Zrange','nm per pixel',npp,...
         'scalebar',scalebar,'correct drift',CorrectDrift); 
@@ -224,10 +237,12 @@ else
     end
     xsize = W/zm; 
     ysize = H/zm; 
+    h = round(ysize*zm*scale);
+    w = round(xsize*zm*scale);
 
     I = cell(max(chns),1); 
     for c=chns
-      I{c} = zeros(round(ysize*zm*scale),round(xsize*zm*scale),Zs,'uint16'); 
+      I{c} = zeros(h,w,Zs,'uint16'); 
       zmin = Zrange(1);
       zmax = Zrange(2); 
 
@@ -235,15 +250,13 @@ else
       Zsteps = [-inf,Zsteps,inf]; %#ok<AGROW>
 
           maxint = 0;
-          Iz = zeros(round(ysize*zm*scale),round(xsize*zm*scale),Zs,'single');
+          Iz = zeros(h,w,Zs,'single');
           for k=1:Zs
               if length(x{c}) >1
                  inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & ...
                      y{c}>imaxes.ymin & y{c}<imaxes.ymax & ...
                      z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
                      plotdots = inbox & infilter{c};
-
-
                  xi = (x{c}(plotdots)-imaxes.xmin);
                  yi = (y{c}(plotdots)-imaxes.ymin);
                  si = sig{c}(plotdots);
