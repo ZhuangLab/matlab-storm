@@ -135,7 +135,7 @@ if verbose
     display('-------------------------------------------------------------');
     display(['Opening file ' fileName]);
     display(['Version ' char(fread(fid,4,'*char'))' ]);
-    display(['Contains ' num2str(fread(fid,1,'*int32')) ' frames']);
+    display(['Contains ' num2str(numFrames) ' field']);% 
     display(['Status: ' num2str(fread(fid,1,'*int32')) ]);
     display(['Number of molecules in Frame 0: ' num2str(numMoleculesFrame0)]);
     display(['Compact Representation: ' num2str(compact)]);
@@ -144,30 +144,46 @@ end
 
 fclose(fid);
 
+DoThis = true;
+if numMoleculesFrame0 >  20E6
+    userChoice = input(['File contains more than 20 million molecules.  ',...
+        'Are you sure you want to load it? y/n '],'s');
+    if strcmp(userChoice,'y')
+        DoThis = true;
+    else
+        DoThis = false;
+    end
+end
+
+if DoThis
 %--------------------------------------------------------------------------
 % Create memory map
 %--------------------------------------------------------------------------
-if ~compact
-    memoryMap = memmapfile(fileName, ...
-            'Format', format, ...
-            'Writable', false, ...
-            'Offset', headerSize, ...
-            'Repeat', numMoleculesFrame0);
+    if ~compact
+        memoryMap = memmapfile(fileName, ...
+                'Format', format, ...
+                'Writable', false, ...
+                'Offset', headerSize, ...
+                'Repeat', numMoleculesFrame0);
 
-    MList = memoryMap.Data;
-else %compact
-    MList = CreateMoleculeList(numMoleculesFrame0, 'compact', true); %Allocate memory
-    memoryMap = memmapfile(fileName, ...
-            'Format', 'int32', ...
-            'Writable', false, ...
-            'Offset', headerSize, ...
-            'Repeat', inf);
-        
-    for i=1:length(format)
-        memoryMap.Format = format{i,1};
-        memoryMap.Offset = headerSize + (i-1)*entrySize;
-        MList.(format{i,3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
+        MList = memoryMap.Data;
+    else %compact
+        MList = CreateMoleculeList(numMoleculesFrame0, 'compact', true); %Allocate memory
+        memoryMap = memmapfile(fileName, ...
+                'Format', 'int32', ...
+                'Writable', false, ...
+                'Offset', headerSize, ...
+                'Repeat', inf);
+
+        for i=1:length(format)
+            memoryMap.Format = format{i,1};
+            memoryMap.Offset = headerSize + (i-1)*entrySize;
+            MList.(format{i,3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
+        end
     end
+    
+else
+    error('User aborted loading mlist due to memory considerations '); 
 end
 
 %--------------------------------------------------------------------------

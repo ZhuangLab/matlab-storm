@@ -164,143 +164,158 @@ end
 %--------------------------------------------------------------------------
 
 TFrames = infoFile.number_of_frames;
-frameSize = infoFile.frame_size;
+numFrames = endFrame - startFrame + 1;
 frameDim = infoFile.frame_dimensions;
-
-
+frameSize = infoFile.frame_dimensions(1)*infoFile.frame_dimensions(2);
 
 % Determine number of frames to load
+DoThis = 1; 
+if numFrames > 5000
+    DoThis = input(['Requested file has more than 5000 frames.  Are you sure ',...
+        'you want to load?  (Filling memory may crash the computer) ',...
+        '0 = abort, 1 = continue, n = new end frame  ']);
+    if DoThis > 1 
+        endFrame = DoThis;
+        DoThis = true;
+    end
+end
+    
+if DoThis
+    % Determine number of frames to load
 
-% parse now outdated option 'allFrames' for backwards compatability
-if ~isempty(allFrames) 
-    if allFrames
+    % parse now outdated option 'allFrames' for backwards compatability
+    if ~isempty(allFrames) 
+        if allFrames
+            endFrame = TFrames;
+        else % first frame only 
+            endFrame = 1;
+            startFrame = 1; 
+        end
+    end
+
+    if isempty(endFrame)
         endFrame = TFrames;
-    else % first frame only 
-        endFrame = 1;
-        startFrame = 1; 
     end
-end
-    
-if isempty(endFrame)
-    endFrame = TFrames;
-end
-if endFrame > TFrames;
-    warning(['input endFrame greater than total frames in dax_file.',...
-        'Using all available frames after ', num2str(startFrame)]);
-    endFrame = TFrames;  
-end
-numFrames = endFrame - startFrame + 1;
-
-region.frame1 = uint32(1);
-region.nframes = uint32(numFrames);
-region.frameDim = frameDim;
-region.TFrames = TFrames;
-
-fileName = [infoFile.localName(1:(end-4)) '.dax'];
-if verbose
-    display(['Loading ' infoFile.localPath fileName ]);
-end
-
-
-if ~Quadviewsplit
-% parse subregion 
-%--------------------------------------------------------------------
-    xi = uint32(subregion(1));
-    xe = uint32(subregion(2));
-    yi = uint32(subregion(3));
-    ye = uint32(subregion(4));
-    
-    if xi == 0 
-        xi = uint32(1);
+    if endFrame > TFrames;
+        warning(['input endFrame greater than total frames in dax_file.',...
+            'Using all available frames after ', num2str(startFrame)]);
+        endFrame = TFrames;  
     end
-    if xe == 0
-        xe = uint32(frameDim(1));
+    numFrames = endFrame - startFrame + 1;
+
+    region.frame1 = uint32(1);
+    region.nframes = uint32(numFrames);
+    region.frameDim = frameDim;
+    region.TFrames = TFrames;
+
+    fileName = [infoFile.localName(1:(end-4)) '.dax'];
+    if verbose
+        display(['Loading ' infoFile.localPath fileName ]);
     end
-    if yi == 0
-        yi = uint32(1);
+
+
+    if ~Quadviewsplit
+    % parse subregion 
+    %--------------------------------------------------------------------
+        xi = uint32(subregion(1));
+        xe = uint32(subregion(2));
+        yi = uint32(subregion(3));
+        ye = uint32(subregion(4));
+
+        if xi == 0 
+            xi = uint32(1);
+        end
+        if xe == 0
+            xe = uint32(frameDim(1));
+        end
+        if yi == 0
+            yi = uint32(1);
+        end
+        if ye == 0
+            ye = uint32(frameDim(2));
+        end
+
+
+        %------------------ arbitrary region ------------------------
+        memoryMap = memmapfile([infoFile.localPath fileName], ...
+                'Format', 'uint16', ...
+                'Writable', false, ...
+                'Offset', (startFrame-1)*frameSize*16/8, ...
+                'Repeat', numFrames*frameSize);  
+           region.sr = [xi,xe,yi,ye];
+
+           movie = multiparse(memoryMap,orientation,region);
+           infoFile = UpdateInfo(infoFile,region);
+
+    %     [ri,ci,zi] = meshgrid(xi:xe,yi:ye,region.frame1:region.nframes);
+    %     ind = sub2ind([frameDim(1),frameDim(2),TFrames],ri(:),ci(:),zi(:));
+    %     ind = sort(ind); 
+    %     movie = memoryMap.Data(ind);  clear ind; %keeping memory small
+    %     movie = swapbytes(movie);
+    %     xs = xe-xi+uint32(1);
+    %     ys = ye-yi+uint32(1);
+    %     movie = reshape(movie,[xs,ys,numFrames]);
+    %     if strcmp(orientation,'normal')
+    %      movie = permute(reshape(movie, [xs,ys,numFrames]), [2 1 3]);
+    %     end
+          % figure(9); clf; imagesc(movie(:,:,1)); colorbar;
+
+        %--------------------------------------------------
+
+
+
+    %------------------ QuadViewRegion ------------------------
+    else
+
+        memoryMap = memmapfile([infoFile.localPath fileName], ...
+                'Format', 'uint16', ...
+                'Writable', false, ...
+                'Offset', (startFrame-1)*frameSize*16/8, ...
+                'Repeat', numFrames*frameSize);
+        region.sr = uint32([1,frameDim(1)/2,1,frameDim(2)/2]);
+        upperleft = multiparse(memoryMap,orientation,region);
+        region.sr = uint32([frameDim(1)/2+1,frameDim(1),1,frameDim(2)/2]);
+        upperright =  multiparse(memoryMap,orientation,region);
+        region.sr = uint32([1,frameDim(1)/2,frameDim(2)/2+1,frameDim(2)]);
+        lowerleft = multiparse(memoryMap,orientation,region); % lowerleft
+        region.sr = uint32([frameDim(1)/2+1,frameDim(1),frameDim(2)/2+1,frameDim(2)]);
+        lowerright = multiparse(memoryMap,orientation,region); % lowerright
+
+        movie = {upperleft,upperright,lowerleft,lowerright};
+        infoFile = UpdateInfo(infoFile,region);
+        %--------------------------------------------------
     end
-    if ye == 0
-        ye = uint32(frameDim(2));
+
+    if verbose
+        display(['Loaded ' infoFile.localPath fileName ]);
+        display([num2str(numFrames) ' ' num2str(frameDim(1)) ' x ' num2str(frameDim(2)) ...
+            ' frames loaded']);
     end
-    
 
-    %------------------ arbitrary region ------------------------
-    memoryMap = memmapfile([infoFile.localPath fileName], ...
-            'Format', 'uint16', ...
-            'Writable', false, ...
-            'Offset', (startFrame-1)*frameSize*16/8, ...
-            'Repeat', numFrames*frameSize);  
-       region.sr = [xi,xe,yi,ye];
-       
-       movie = multiparse(memoryMap,orientation,region);
-       infoFile = UpdateInfo(infoFile,region);
-       
-%     [ri,ci,zi] = meshgrid(xi:xe,yi:ye,region.frame1:region.nframes);
-%     ind = sub2ind([frameDim(1),frameDim(2),TFrames],ri(:),ci(:),zi(:));
-%     ind = sort(ind); 
-%     movie = memoryMap.Data(ind);  clear ind; %keeping memory small
-%     movie = swapbytes(movie);
-%     xs = xe-xi+uint32(1);
-%     ys = ye-yi+uint32(1);
-%     movie = reshape(movie,[xs,ys,numFrames]);
-%     if strcmp(orientation,'normal')
-%      movie = permute(reshape(movie, [xs,ys,numFrames]), [2 1 3]);
-%     end
-      % figure(9); clf; imagesc(movie(:,:,1)); colorbar;
-
-    %--------------------------------------------------
-
-
-
-%------------------ QuadViewRegion ------------------------
-else
-   
-    memoryMap = memmapfile([infoFile.localPath fileName], ...
-            'Format', 'uint16', ...
-            'Writable', false, ...
-            'Offset', (startFrame-1)*frameSize*16/8, ...
-            'Repeat', numFrames*frameSize);
-    region.sr = uint32([1,frameDim(1)/2,1,frameDim(2)/2]);
-    upperleft = multiparse(memoryMap,orientation,region);
-    region.sr = uint32([frameDim(1)/2+1,frameDim(1),1,frameDim(2)/2]);
-    upperright =  multiparse(memoryMap,orientation,region);
-    region.sr = uint32([1,frameDim(1)/2,frameDim(2)/2+1,frameDim(2)]);
-    lowerleft = multiparse(memoryMap,orientation,region); % lowerleft
-    region.sr = uint32([frameDim(1)/2+1,frameDim(1),frameDim(2)/2+1,frameDim(2)]);
-    lowerright = multiparse(memoryMap,orientation,region); % lowerright
-    
-    movie = {upperleft,upperright,lowerleft,lowerright};
-    infoFile = UpdateInfo(infoFile,region);
-    %--------------------------------------------------
-end
-
-if verbose
-    display(['Loaded ' infoFile.localPath fileName ]);
-    display([num2str(numFrames) ' ' num2str(frameDim(1)) ' x ' num2str(frameDim(2)) ...
-        ' frames loaded']);
 end
 
 
-function movie = multiparse(memoryMap,orientation,region)
-    [ri,ci,zi] = meshgrid(region.sr(1):region.sr(2),region.sr(3):region.sr(4),region.frame1:region.nframes);
-    inds = sub2ind([region.frameDim(1),region.frameDim(2),region.TFrames],ri(:),ci(:),zi(:));
-    movie = memoryMap.Data(sort(inds)); 
-    movie = swapbytes(movie);
-    xs = region.sr(2)-region.sr(1)+uint32(1);
-    ys = region.sr(4)-region.sr(3)+uint32(1);
-    movie = reshape(movie,[xs,ys,region.nframes]);
-    if strcmp(orientation,'normal')
-     movie = permute(reshape(movie, [xs,ys,region.nframes]), [2 1 3]);
-    end
+%-----------------  sub-functions
+    function movie = multiparse(memoryMap,orientation,region)
+        [ri,ci,zi] = meshgrid(region.sr(1):region.sr(2),region.sr(3):region.sr(4),region.frame1:region.nframes);
+        inds = sub2ind([region.frameDim(1),region.frameDim(2),region.TFrames],ri(:),ci(:),zi(:));
+        movie = memoryMap.Data(sort(inds)); 
+        movie = swapbytes(movie);
+        xs = region.sr(2)-region.sr(1)+uint32(1);
+        ys = region.sr(4)-region.sr(3)+uint32(1);
+        movie = reshape(movie,[xs,ys,region.nframes]);
+        if strcmp(orientation,'normal')
+         movie = permute(reshape(movie, [xs,ys,region.nframes]), [2 1 3]);
+        end
 
-function  info = UpdateInfo(info,region)
-    xs = region.sr(2)-region.sr(1)+uint32(1);
-    ys = region.sr(4)-region.sr(3)+uint32(1);
-    info.hend = xs;
-    info.vend = ys;
-    info.frame_dimensions = [info.hend,info.vend];
-    info.file = [info.localPath,info.localName(1:end-4),'.dax'];
-    
+    function  info = UpdateInfo(info,region)
+        xs = region.sr(2)-region.sr(1)+uint32(1);
+        ys = region.sr(4)-region.sr(3)+uint32(1);
+        info.hend = xs;
+        info.vend = ys;
+        info.frame_dimensions = [info.hend,info.vend];
+        info.file = [info.localPath,info.localName(1:end-4),'.dax'];
+
 
 %  % Old memory maps (to delete in later update) 
 % 

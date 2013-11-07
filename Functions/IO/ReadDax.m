@@ -149,82 +149,83 @@ end
 %--------------------------------------------------------------------------
 
 TFrames = infoFile.number_of_frames;
-% frameSize = infoFile.frame_size; % this is stupid and dangerous
+numFrames = endFrame - startFrame + 1;
 frameDim = infoFile.frame_dimensions;
 frameSize = infoFile.frame_dimensions(1)*infoFile.frame_dimensions(2);
 
 % Determine number of frames to load
 DoThis = 1; 
-if TFrames > 200
-    DoThis = input(['Requested file has more than 500 frames.  Are you sure ',...
+if numFrames > 5000
+    DoThis = input(['Requested file has more than 5000 frames.  Are you sure ',...
         'you want to load?  (Filling memory may crash the computer) ',...
         '0 = abort, 1 = continue, n = new end frame  ']);
     if DoThis > 1 
-        TFrames = DoThis;
+        endFrame = DoThis;
         DoThis = true;
     end
 end
     
 if DoThis
-% parse now outdated 'allFrames' for backwards compatability
-if ~isempty(allFrames) 
-    if allFrames
-        endFrame = TFrames;
-    else % first frame only 
-        endFrame = 1;
-        startFrame = 1; 
-    end
-end
-    
-if isempty(endFrame)
-    endFrame = TFrames;
-end
-if endFrame > TFrames;
-    if verbose
-        warning('input endFrame greater than total frames in dax_file.  Using all available frames after startFrame');
-    end
-    endFrame = TFrames;  
-end
-numFrames = endFrame - startFrame + 1;
-
-fileName = [infoFile.localName(1:(end-4)) '.dax'];
-if verbose
-    display(['Loading ' infoFile.localPath fileName ]);
-end
-
-% Read File
-fid = fopen([infoFile.localPath fileName]);
-if fid < 0
-    error('Invalid file');
-end
-
-fseek(fid,(frameSize*(startFrame - 1))*16/8,'bof'); % bits/(bytes per bit) 
-dataSize = frameSize*numFrames;
-movie = fread(fid, dataSize, '*uint16', 'b');
-fclose(fid);
-
-
-
-try % Catch corrupt files
-    if numFrames == 1
-        movie = reshape(movie, frameDim)';
-    else
-        switch orientation % Change orientation
-            case 'normal'
-                movie = permute(reshape(movie, [frameDim numFrames]), [2 1 3]);
-            otherwise
-                
+    % parse now outdated 'allFrames' for backwards compatability
+    if ~isempty(allFrames) 
+        if allFrames
+            endFrame = TFrames;
+        else % first frame only 
+            endFrame = 1;
+            startFrame = 1; 
         end
     end
-catch
-    display('Serious error somewhere here...check file for corruption');
-    movie = zeros(frameDim);
-end
 
-if verbose
-    display(['Loaded ' infoFile.localPath fileName ]);
-    display([num2str(numFrames) ' ' num2str(frameDim(1)) ' x ' num2str(frameDim(2)) ...
-        ' frames loaded']);
-end
+    if isempty(endFrame)
+        endFrame = TFrames;
+    end
+    if endFrame > TFrames;
+        if verbose
+            warning('input endFrame greater than total frames in dax_file.  Using all available frames after startFrame');
+        end
+        endFrame = TFrames;  
+    end
+    numFrames = endFrame - startFrame + 1;
 
+    fileName = [infoFile.localName(1:(end-4)) '.dax'];
+    if verbose
+        display(['Loading ' infoFile.localPath fileName ]);
+    end
+
+    % Read File
+    fid = fopen([infoFile.localPath fileName]);
+    if fid < 0
+        error('Invalid file');
+    end
+
+    fseek(fid,(frameSize*(startFrame - 1))*16/8,'bof'); % bits/(bytes per bit) 
+    dataSize = frameSize*numFrames;
+    movie = fread(fid, dataSize, '*uint16', 'b');
+    fclose(fid);
+
+
+
+    try % Catch corrupt files
+        if numFrames == 1
+            movie = reshape(movie, frameDim)';
+        else
+            switch orientation % Change orientation
+                case 'normal'
+                    movie = permute(reshape(movie, [frameDim numFrames]), [2 1 3]);
+                otherwise
+
+            end
+        end
+    catch
+        display('Serious error somewhere here...check file for corruption');
+        movie = zeros(frameDim);
+    end
+
+    if verbose
+        display(['Loaded ' infoFile.localPath fileName ]);
+        display([num2str(numFrames) ' ' num2str(frameDim(1)) ' x ' num2str(frameDim(2)) ...
+            ' frames loaded']);
+    end
+else
+    error('User aborted load dax due to memory considerations '); 
 end
