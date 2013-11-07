@@ -474,7 +474,7 @@ elseif step == 4
 
    % Add dot labels to overview image           
         axes(handles.axes2); hold on; text(imaxes.cx+6,imaxes.cy,...
-         ['dot ',num2str(n)],'color','w');
+         [num2str(n),' '],'color','w');
 
    % Get STORM image      
         I = plotSTORM_colorZ({mlist},imaxes,'filter',{infilt'},...
@@ -613,8 +613,8 @@ elseif step == 5
 %        plot(ROIcent(:,1),ROIcent(:,2),'c+','MarkerSize',20);
        
 %        Zps(n,:) = zernike_coeffs(M2)';
-%        CC{handles.gui_number}.M2{nn} = M2;
-%        CC{handles.gui_number}.map{nn} = map;
+        CC{handles.gui_number}.M2{nn} = M2;
+        CC{handles.gui_number}.map{nn} = map;
        
       
        
@@ -705,7 +705,8 @@ elseif step == 6
     disp(['saving data in: ',savefolder])
    
     Iout2 = figure(2); clf;
-    imagesc(CC{handles.gui_number}.conv);
+    %imagesc(CC{handles.gui_number}.conv);
+    imshow(CC{handles.gui_number}.convI);
     colormap hot; hold on;
     
     for n=saveNs
@@ -758,7 +759,7 @@ elseif step == 6
         
         Iout2 = figure(2); 
         text(imaxes.cx+6,imaxes.cy,...
-         ['dot ',num2str(n)],'color','w'); 
+         [num2str(n),' '],'color','w'); 
     end
     saveas(Iout2,[savefolder,filesep,saveroot,'Overview_',num2str(imnum),'.png']);
         
@@ -1184,13 +1185,18 @@ function AutoCycle_Callback(hObject, eventdata, handles)
 
 global CC
 CC{handles.gui_number}.auto = true; 
-dat = dir([handles.Source,filesep,'*_alist.bin']);
-Nfiles = length(dat); 
-for n=1:Nfiles
+%disp(dir([CC{handles.gui_number}.source,filesep,'*_alist.bin']));
+%dat = dir([handles.Source,filesep,'*_alist.bin']);
+
+dat = dir([CC{handles.gui_number}.source,filesep,'*_alist.bin']);
+%CC{handles.gui_number}.pisici=dat;
+Nfiles = length(dat);
+%for n=1:Nfiles
+for n=(CC{handles.gui_number}.imnum):Nfiles
     disp(['Analyzing image ',num2str(1),' of ',num2str(Nfiles),' ',...
-        dat.Name]); 
+        dat.name]); 
     for step = 1:6
-        CC{handles.gui_number}.step = 1;
+        CC{handles.gui_number}.step = step;
         RunStep_Callback(hObject, eventdata, handles);
     end
     NextImage_Callback(hObject, eventdata, handles)
