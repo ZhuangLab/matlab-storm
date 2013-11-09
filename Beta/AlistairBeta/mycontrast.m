@@ -28,9 +28,6 @@ elseif strcmp(c,'single') == 1 || strcmp(c,'double') == 1
     m = max(v);
 end
 
-floor(.5)
-
-
 if sum(I(:))~= 0
     if minp~=1
          k = 1 + floor( (L-1).*minp );

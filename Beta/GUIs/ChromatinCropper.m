@@ -89,14 +89,19 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     CC{handles.gui_number}.pars0.H = 256;
     CC{handles.gui_number}.pars0.W = 256;
     CC{handles.gui_number}.pars0.npp = 160;
+    % step1 parameters
+    CC{handles.gui_number}.pars1.BeadFolder = [];
     % step 2 parameters
      CC{handles.gui_number}.pars2.saturate = 0.001;
      CC{handles.gui_number}.pars2.makeblack = 0.998; 
+     CC{handles.gui_number}.pars2.beadDilate = 2;
+     CC{handles.gui_number}.pars2.beadThresh = .3;
     % step 3 parameters
      CC{handles.gui_number}.pars3.boxSize = 32; % linear dimension in nm of box
      CC{handles.gui_number}.pars3.maxsize = 1.2E5; % 1E4 at 10nm boxsize, 1.2 um x 1.2 um 
      CC{handles.gui_number}.pars3.minsize= 20; % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
      CC{handles.gui_number}.pars3.mindots = 500; % min number of localizations per STORM dot
+     CC{handles.gui_number}.pars3.mindensity = 0; % min number of localizations per STORM dot
      CC{handles.gui_number}.pars3.startFrame = 1; 
      % step 4 parameters
     CC{handles.gui_number}.pars4.maxDrift = 6;
@@ -176,7 +181,7 @@ end
 if isempty(CC{handles.gui_number}.binfiles)
  error(['error, no alist.bin files found in folder ',...
      CC{handles.gui_number}.source]);
-end
+end   
 
 % Parse bin name and dax name for current image
     binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);
@@ -185,6 +190,12 @@ end
     set(handles.ImageBox,'String',binfile.name);
     imnum = CC{handles.gui_number}.imnum;
 
+    if isempty(CC{handles.gui_number}.pars1.BeadFolder)
+        CC{handles.gui_number}.pars1.BeadFolder = ...
+            [folder,filesep,'..',filesep,'Beads',filesep];
+    end
+    
+    
 % Actual Step Commands
 step = CC{handles.gui_number}.step;
 if step == 1
@@ -196,8 +207,7 @@ if step == 1
          dax = zeros(H,W,1,'uint16');
          for z=1:convZs
              try
-                 daxtemp = sum(ReadDax([folder,filesep,convname(z).name],....
-                     'endFrame',30),3);
+                 daxtemp = mean(ReadDax([folder,filesep,convname(z).name]),3);
                  dax = max(cat(3,dax,daxtemp),[],3);
              catch er
                  disp(er.message);
@@ -207,61 +217,142 @@ if step == 1
          figure(11); clf; imagesc(dax); colorbar; colormap hot;
          title('conventional image projected');
          try
-            conv0 =  regexprep([folder,filesep,daxname],'storm','conv_z0');
-            conv0 = mean(ReadDax(conv0,'endFrame',5),3);
+            conv0Name = regexprep([folder,filesep,daxname],'storm','conv_z0');
+            conv0 = mean(ReadDax(conv0Name),3);
          catch er
             disp(er.message);
             conv0 = dax;  
          end
+
+          %%% try to load lamina and beads
+         try
+            laminaName =  regexprep(conv0Name,'647','488');
+            lamina = mean(ReadDax(laminaName),3);
+         catch er
+            disp(er.message);
+            lamina = dax;  
+         end
+         
+         try
+             beadsName=regexprep(conv0Name,'647','561');
+             beads= mean(ReadDax(beadsName),3);
+         catch er
+            disp(er.message);
+            beads = dax;  
+         end
+         %%% try to correct channel misfits
+         try
+             BeadFolder = CC{handles.gui_number}.pars1.BeadFolder;
+             warpfile = [BeadFolder,'chromewarps.mat'];
+             load(warpfile);
+
+            warpedLamina = imtransform(lamina,tform_1_inv{3},...
+                'XYScale',1,'XData',[1 256],'YData',[1 256]);
+            warpedLamina = imtransform(warpedLamina,tform2D_inv{3},...
+                'XYScale',1,'XData',[1 256],'YData',[1 256]);
+
+            warpedBeads = imtransform(beads,tform_1_inv{2},...
+                'XYScale',1,'XData',[1 256],'YData',[1 256]);
+            warpedBeads = imtransform(warpedBeads,tform2D_inv{2},...
+                'XYScale',1,'XData',[1 256],'YData',[1 256]);
+         catch er
+             disp(er.message);
+         end
+         
+         conv0 = uint16(conv0);
+         warpedBeads = uint16(warpedBeads);
+         warpedLamina = uint16(warpedLamina);           
+         conv0 = imadjust(conv0,stretchlim(conv0,0));
+         warpedBeads = imadjust(warpedBeads,stretchlim(warpedBeads,0));
+         warpedLamina = imadjust(warpedLamina,stretchlim(warpedLamina,0));
+         
+         % save([ScratchPath,'test.mat'])
+        %  load([ScratchPath,'test.mat'])
+         
          axes(handles.axes1);
          set(gca,'color','k');
          set(gca,'XTick',[],'YTick',[]);
-         imagesc(conv0);
+         [H,W] = size(conv0);
+         convI = zeros(H,W,3,'uint16');
+         convI(:,:,1) = conv0;
+         convI(:,:,2) = warpedBeads;
+         convI(:,:,3) = warpedLamina;        
+        
+        % Plot results
+         axes(handles.axes1);
+         set(gca,'color','k');
+         set(gca,'XTick',[],'YTick',[]);
+         imagesc(convI);
          colormap hot;
          xlim([0,W]); ylim([0,H]);
          
          axes(handles.axes2);
-         imagesc(conv0); colormap hot;
+         imagesc(convI); colormap hot;
          set(gca,'color','k');
          set(gca,'XTick',[],'YTick',[]);
 
          % Save step data into global; 
-        CC{handles.gui_number}.conv = conv0; 
+        CC{handles.gui_number}.conv = conv0;  
+        CC{handles.gui_number}.maskBeads = warpedBeads;
+        CC{handles.gui_number}.convI = convI;
    
 elseif step == 2
         % load variables from previous step
         conv0 = CC{handles.gui_number}.conv;
+        convI = CC{handles.gui_number}.convI;
+        maskBeads = CC{handles.gui_number}.maskBeads;
         
         % load parameters
          saturate =  CC{handles.gui_number}.pars2.saturate; % 0.001;
          makeblack = CC{handles.gui_number}.pars2.makeblack; %  0.998; 
-        
+         beadDilate = CC{handles.gui_number}.pars2.beadDilate; %  2; 
+         beadThresh = CC{handles.gui_number}.pars2.beadThresh; %  .3; 
+         
+  
         % Step 2: Threshold to find spots  [make these parameter options]
          try
              daxMask = mycontrast(uint16(conv0),saturate,makeblack); 
          catch er
              disp(er.message)
          end
-         % figure(2); clf; imagesc(dax_mask); colorbar;
+         % figure(2); clf; imagesc(daxMask); colorbar;
          daxMask = daxMask > 1;
+         beadMask = imdilate(maskBeads,strel('disk',beadDilate));
+         beadMask = im2bw(beadMask,beadThresh);
+         
+%          save([ScratchPath,'test.mat']);
+%          load([ScratchPath,'test.mat']);
+
+         maskIm = convI;
+         maskIm(:,:,1) = maskIm(:,:,1) + uint16(2^16*daxMask);
+         maskIm(:,:,2) = maskIm(:,:,2) + uint16(2^16*beadMask);
+         daxMask = daxMask - beadMask > 0; 
+
+%           figure(1); clf; imagesc(beadMask);
+%            figure(2); clf; imagesc(daxMask);
+         
+         % plot mask
          axes(handles.axes1); cla;
          set(gca,'color','k');
          set(gca,'XTick',[],'YTick',[]);
-         imagesc(daxMask); 
+         imagesc(maskIm); 
          xlim([0,W]); ylim([0,H]);
          
         % Save step data into global
         CC{handles.gui_number}.daxMask = daxMask; 
         
+        
+        
 elseif step == 3
      % load variables from previous steps
      daxMask = CC{handles.gui_number}.daxMask;
-  
+     convI = CC{handles.gui_number}.convI;
      maxsize = CC{handles.gui_number}.pars3.maxsize;
      minsize = CC{handles.gui_number}.pars3.minsize;
      mindots = CC{handles.gui_number}.pars3.mindots; 
      startframe = CC{handles.gui_number}.pars3.startFrame; 
-         
+     mindensity = CC{handles.gui_number}.pars3.mindensity;
+     
      % Step 3: Load molecule list and bin it to create image
         mlist = ReadMasterMoleculeList([folder,filesep,binfile.name]);
         infilt = mlist.frame>startframe;   
@@ -276,16 +367,27 @@ elseif step == 3
         R = regionprops(mask,M,'PixelValues','Eccentricity',...
             'BoundingBox','Extent','Area','Centroid','PixelIdxList'); 
         aboveminsize = cellfun(@sum,{R.PixelValues}) > mindots;
-        R = R(aboveminsize);           
+        abovemindensity = cellfun(@sum,{R.PixelValues})./[R.Area] > mindensity;
+        R = R(aboveminsize & abovemindensity);           
         allpix = cat(1,R(:).PixelIdxList);
         mask = double(mask); 
         mask(allpix) = 3;
+        
+        keep = mask>2; 
+        reject = mask<2 & mask > 0;
+            
+%         save([ScratchPath,'test.mat']);
+%         load([ScratchPath,'test.mat']);
+%         
+         maskIm = imresize(convI,[h,w]);
+         maskIm(:,:,1) = maskIm(:,:,1) + uint16(2^16*keep);
+         maskIm(:,:,3) = maskIm(:,:,3) + uint16(2^16*reject);
         
         % plot mask in main figure window
         axes(handles.axes1); cla;
         set(gca,'color','k');
         set(gca,'XTick',[],'YTick',[]);
-        imagesc(mask); title('dot mask'); 
+        imagesc(maskIm); title('dot mask'); 
         xlim([0,w]); ylim([0,h]);
         
         % Export step data
@@ -302,6 +404,7 @@ elseif step == 4
     M = CC{handles.gui_number}.M; 
     Nclusters = length(R);
     conv0 = CC{handles.gui_number}.conv;
+    convI = CC{handles.gui_number}.convI;
     CC{handles.gui_number}.handles = handles;
       
     % Load user defined parameters
@@ -405,6 +508,8 @@ elseif step == 4
        cmp = cell(Nclusters,1); 
        vlists = cell(Nclusters,1); 
        allImaxes = cell(Nclusters,1); 
+       
+       figure(2); clf; imagesc(convI); 
      for n=1:Nclusters % n=3    
         % For dsiplay and judgement purposes 
         imaxes.zm = 20;
@@ -419,6 +524,10 @@ elseif step == 4
    % Add dot labels to overview image           
         axes(handles.axes2); hold on; text(imaxes.cx+6,imaxes.cy,...
          ['dot ',num2str(n)],'color','w');
+     figure(2);  hold on; text(imaxes.cx+6,imaxes.cy,...
+         ['dot ',num2str(n)],'color','w');
+     
+     
 
    % Get STORM image      
         I = plotSTORM_colorZ({mlist},imaxes,'filter',{infilt'},...
@@ -527,11 +636,11 @@ elseif step == 5
    MainLocs = zeros(Nclusters,1); 
    AllArea = zeros(Nclusters,1); 
    AllLocs = zeros(Nclusters,1); 
-   Zps = zeros(Nclusters,12); 
+   % Zps = zeros(Nclusters,12); 
    CC{handles.gui_number}.M2 = [];
    CC{handles.gui_number}.map = [];
    
-  %  n = 0; 
+  
    for nn=saveNs
        n=nn; % n=4
        % Histogram localizations on tunable scale
@@ -614,7 +723,10 @@ elseif step == 5
      % Update plots
         ChromatinPlots2(handles,nn);
    end
-   CC{handles.gui_number}.saveNs = saveNs; 
+   CC{handles.gui_number}.saveNs = saveNs;
+      if max(saveNs) > 1
+        set(handles.Xslider,'Value',max(saveNs));
+      end
     end
   %%       
    
@@ -655,7 +767,7 @@ elseif step == 6
     disp(['saving data in: ',savefolder])
    
     Iout2 = figure(2); clf;
-    imagesc(CC{handles.gui_number}.conv);
+    imagesc(CC{handles.gui_number}.convI);
     colormap hot; hold on;
     
     for n=saveNs
@@ -832,20 +944,39 @@ notCancel = true;
 
 if step == 1
  % just loading the image
+ 
+  dlg_title = 'Step 1 Pars: Load Image';  num_lines = 1;
+    Dprompt = {
+    'Location of chromewarps.mat for chromatic correction',... 1
+    };
+    Opts{1} = CC{handles.gui_number}.pars1.BeadFolder;
+    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
+    if isempty(Opts); notCancel = false; end
+    if notCancel
+     CC{handles.gui_number}.pars1.BeadFolder = Opts{1};
+    end
+    
 elseif step == 2
     dlg_title = 'Step 2 Pars: Conv. Segmentation';  num_lines = 1;
     Dprompt = {
     'fraction to saturate',... 1
     'fraction to make black',... 2
+    'Bead area dilation',... 3 
+    'Bead threshold',...  4
      };     %5 
 
     Opts{1} = num2str(CC{handles.gui_number}.pars2.saturate);
     Opts{2} = num2str(CC{handles.gui_number}.pars2.makeblack);
+    Opts{3} =  num2str(CC{handles.gui_number}.pars2.beadDilate);
+    Opts{4} =  num2str(CC{handles.gui_number}.pars2.beadThresh);
+    
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
     if isempty(Opts); notCancel = false; end
     if notCancel
      CC{handles.gui_number}.pars2.saturate = str2double(Opts{1});
      CC{handles.gui_number}.pars2.makeblack = str2double(Opts{2}); 
+     CC{handles.gui_number}.pars2.beadDilate= str2double(Opts{3}); 
+     CC{handles.gui_number}.pars2.beadThresh= str2double(Opts{4}); 
     end
 elseif step == 3
     dlg_title = 'Step 3 Pars: Filter Clusters';  num_lines = 1;
@@ -854,13 +985,16 @@ elseif step == 3
     'max dot size (boxes)',... 2
     'min dot size (boxes)',... 3
     'min localizations',...  4
-    'start frame'};     %5 
+    'start frame',...  5
+    'min average density',... 6
+    };     
 
     Opts{1} = num2str(CC{handles.gui_number}.pars3.boxSize);
     Opts{2} = num2str(CC{handles.gui_number}.pars3.maxsize);
     Opts{3} = num2str(CC{handles.gui_number}.pars3.minsize);
     Opts{4} = num2str(CC{handles.gui_number}.pars3.mindots);
     Opts{5} = num2str(CC{handles.gui_number}.pars3.startFrame);
+    Opts{6} = num2str(CC{handles.gui_number}.pars3.mindensity);
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
     if isempty(Opts); notCancel = false; end
     if notCancel
@@ -869,6 +1003,7 @@ elseif step == 3
     CC{handles.gui_number}.pars3.minsize = str2double(Opts{3}); % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
     CC{handles.gui_number}.pars3.mindots = str2double(Opts{4}); % min number of localizations per STORM dot
     CC{handles.gui_number}.pars3.startFrame = str2double(Opts{5});   
+    CC{handles.gui_number}.pars3.mindensity = str2double(Opts{6});   
     end
     
 elseif step == 4
@@ -1047,103 +1182,45 @@ end
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-
-
-
-% --- Executes during object creation, after setting all properties.
-function Xslider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to Xslider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
 % --- Executes on slider movement.
 function Yslider_Callback(hObject, eventdata, handles)
-% hObject    handle to Yslider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
 global CC
 if CC{handles.gui_number}.step == 4
-    
 end
 
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+function ImageBox_Callback(hObject, eventdata, handles)
+
+
+function SaveFolder_Callback(hObject, eventdata, handles)
+
 
 
 % --- Executes during object creation, after setting all properties.
 function Yslider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to Yslider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
 
+% --- Executes during object creation, after setting all properties.
+function Xslider_CreateFcn(hObject, eventdata, handles)
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
 
 % --- Executes during object creation, after setting all properties.
 function SourceFolder_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to SourceFolder (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function ImageBox_Callback(hObject, eventdata, handles)
-% hObject    handle to ImageBox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of ImageBox as text
-%        str2double(get(hObject,'String')) returns contents of ImageBox as a double
-
-
-
-
-function SaveFolder_Callback(hObject, eventdata, handles)
-% hObject    handle to SaveFolder (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of SaveFolder as text
-%        str2double(get(hObject,'String')) returns contents of SaveFolder as a double
-
-
 % --- Executes during object creation, after setting all properties.
 function SaveFolder_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to SaveFolder (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
 % --- Executes during object creation, after setting all properties.
 function ImageBox_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ImageBox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
