@@ -1,35 +1,35 @@
-function varargout = STORMrender(varargin)
-% STORMRENDER MATLAB code for STORMrender.fig
-%      STORMRENDER, by itself, creates a new STORMRENDER or raises the existing
+function varargout = STORMrenderBeta(varargin)
+% STORMRENDERBETA MATLAB code for STORMrenderBeta.fig
+%      STORMRENDERBETA, by itself, creates a new STORMRENDERBETA or raises the existing
 %      singleton*.
 %
-%      H = STORMRENDER returns the handle to a new STORMRENDER or the handle to
+%      H = STORMRENDERBETA returns the handle to a new STORMRENDERBETA or the handle to
 %      the existing singleton*.
 %
-%      STORMRENDER('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in STORMRENDER.M with the given input arguments.
+%      STORMRENDERBETA('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in STORMRENDERBETA.M with the given input arguments.
 %
-%      STORMRENDER('Property','Value',...) creates a new STORMRENDER or raises the
+%      STORMRENDERBETA('Property','Value',...) creates a new STORMRENDERBETA or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before STORMrender_OpeningFcn gets called.  An
+%      applied to the GUI before STORMrenderBeta_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to STORMrender_OpeningFcn via varargin.
+%      stop.  All inputs are passed to STORMrenderBeta_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help STORMrender
+% Edit the above text to modify the response to help STORMrenderBeta
 
-% Last Modified by GUIDE v2.5 16-Oct-2013 21:05:59
+% Last Modified by GUIDE v2.5 22-Jul-2013 11:16:17
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @STORMrender_OpeningFcn, ...
-                   'gui_OutputFcn',  @STORMrender_OutputFcn, ...
+                   'gui_OpeningFcn', @STORMrenderBeta_OpeningFcn, ...
+                   'gui_OutputFcn',  @STORMrenderBeta_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,13 +44,13 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before STORMrender is made visible.
-function STORMrender_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before STORMrenderBeta is made visible.
+function STORMrenderBeta_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to STORMrender (see VARARGIN)
+% varargin   command line arguments to STORMrenderBeta (see VARARGIN)
 
 global binfile SR
 if isempty(SR)
@@ -89,7 +89,7 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.LoadOps.chnFlag = {'750','647','561','488'};  
     SR{handles.gui_number}.LoadOps.dataset = 0;
 
-% Choose default command line output for STORMrender
+% Choose default command line output for STORMrenderBeta
 handles.output = hObject;
 
 % avoid startup error
@@ -102,9 +102,11 @@ set(handles.Yslider,'SliderStep',[1,3]);
  axes(handles.axes1); 
  set(gca,'color','k');
  set(gca,'XTick',[],'YTick',[]);
+ colormap hot;
  axes(handles.axes2); 
  set(gca,'color','k');
 set(gca,'XTick',[],'YTick',[]);
+colormap hot;
  axes(handles.axes3); 
  set(gca,'color','w');
 set(gca,'XTick',[],'YTick',[]);
@@ -132,12 +134,12 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes STORMrender wait for user response (see UIRESUME)
+% UIWAIT makes STORMrenderBeta wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = STORMrender_OutputFcn(hObject, eventdata, handles) 
+function varargout = STORMrenderBeta_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -2232,9 +2234,9 @@ c = str2double(Opts{2});
 
     % apply correction  
     SR{handles.gui_number}.mlist{c}.xc = ...
-        SR{handles.gui_number}.mlist{c}.x + dxc(SR{handles.gui_number}.mlist{c}.frame)';
+        SR{handles.gui_number}.mlist{c}.x - dxc(SR{handles.gui_number}.mlist{c}.frame)';
     SR{handles.gui_number}.mlist{c}.yc = ...
-        SR{handles.gui_number}.mlist{c}.y + dyc(SR{handles.gui_number}.mlist{c}.frame)';    
+        SR{handles.gui_number}.mlist{c}.y - dyc(SR{handles.gui_number}.mlist{c}.frame)';    
 
  update_maindisplay(hObject,handles);
  

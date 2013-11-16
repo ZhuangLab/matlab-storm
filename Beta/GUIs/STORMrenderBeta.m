@@ -2234,9 +2234,9 @@ c = str2double(Opts{2});
 
     % apply correction  
     SR{handles.gui_number}.mlist{c}.xc = ...
-        SR{handles.gui_number}.mlist{c}.x + dxc(SR{handles.gui_number}.mlist{c}.frame)';
+        SR{handles.gui_number}.mlist{c}.x - dxc(SR{handles.gui_number}.mlist{c}.frame)';
     SR{handles.gui_number}.mlist{c}.yc = ...
-        SR{handles.gui_number}.mlist{c}.y + dyc(SR{handles.gui_number}.mlist{c}.frame)';    
+        SR{handles.gui_number}.mlist{c}.y - dyc(SR{handles.gui_number}.mlist{c}.frame)';    
 
  update_maindisplay(hObject,handles);
  
