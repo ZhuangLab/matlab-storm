@@ -5,56 +5,53 @@ function SaveAs(h,savename,varargin)
 %--------------------------------------------------------------------------
 % Required Inputs:
 %
-% --- To Save a .mat file ---
-% SaveAs(fullMatfilename)
-% fullMatfilename must be a string corresponding filename for the '.mat'
-% file to be saved.  If not a full filepath the file will be saved in the
-% current working directory
-% 
-% SaveAs(fullMatfilename,variables)
-% variables is a cell array of the names of the variables to save.  
-% Note variables must be joined into a cell.  Example {'var1','var2'
+% h / handle        - handle to figure to be saved
+% savename / string - name (and full filepath if desired) to save figure as
+%                     Should include format (.png, .tif, .fig, .eps).  
 % 
 %--------------------------------------------------------------------------
-% Outputs
-% 
+% Outputs:
+% The file indicated by savename will be created.  If this file already
+% exists the user will be prompted to provide a new savename or overwrite
+% it.  Alternatively you may request the function to automatically generate
+% an new version of the filename.  
 % 
 %--------------------------------------------------------------------------
 % Optional Inputs
-% 
+% ifConflict / string / 'prompt'
+%               - If the file exists, this function can 'prompt' the
+%               user to overwite the file, enter a new name with the uiput
+%               gui, or cancel.  
+%               Passing the function SaveAs(...,'ifConflict','increment')
+%               will cause the function to automatically generate a new
+%               file name.  
 %
 %--------------------------------------------------------------------------
 % Notes
 %
 % This function wraps Matlab's saveas() function to avoid uintended 
-% overwriting of files. 
+% overwriting of files.
 % 
+% Required Additional Functions: 
+% ExtractPath, IncreaseSaveName, CheckList, CheckParameter
+%-------------------------------------------------------------------------
+% Alistair Boettiger
+% boettiger.alistair@gmail.com
+% November 2013 CC BY
+% 
+%-------------------------------------------------------------------------
+
+
 
 %--------------------------------------------------------------------------
 %% Default Optional Inputs
 %--------------------------------------------------------------------------
 verbose = true; 
-savevars = ''; 
 ifConflict = 'prompt';
 
 %--------------------------------------------------------------------------
 % Parse variable input
 %--------------------------------------------------------------------------
-
-if ishandle(usrIn)
-    h = usrIn;
-    savename = varargin{1};
-    savetype = 'savehandle';
-else
-    savename = usrIn;
-    savetype = 'savedata';
-    if nargin > 1
-        savevars = varargin{1};
-        saveall = false;
-    elseif nargin == 1 || isempty(savevars)
-        saveall = true;
-    end
-end
 
 if nargin > 2
     varpars = varargin(1:end);
@@ -84,50 +81,31 @@ end
 
 %------------------------------------------ saveas()
 % to save matlab figure file
-if strcmp(savetype,'savehandle')
-    if exist(savename,'file')
-        disp(['file ',savename, ' exists']);
-        userInput = input('Overwrite? y/n/c ','s');
-        if strcmp(userInput,'y')
-            savehandle(h,savename,verbose)
-        elseif strcmp(userInput,'n') && strcmp(ifConflict,'prompt')
-            currpath = ExtractPath(savename);
-            [savepath,savename] = uiputfile(currpath);
-            savename = [savepath,filesep,savename];
-            savehandle(h,savename,verbose)
-         elseif strcmp(userInput,'n') && strcmp(ifConflict,'increment')
-            savename = IncrementSaveName(savename);
-            savehandle(h,savename,verbose)
-         elseif strcmp(userInput,'c');
-             return;
+if exist(savename,'file') && strcmp(ifConflict,'prompt')
+    disp(['file ',savename, ' exists']);
+    userInput = input('Overwrite? y/n/c ','s');
+    if strcmp(userInput,'y')
+        savehandle(h,savename,verbose);
+    elseif strcmp(userInput,'n')
+        currpath = ExtractPath(savename);
+        [savePath,savename] = uiputfile(currpath);
+        if isempty(savename)
+            return
         end
-    else
-       savehandle(h,savename,verbose)
-    end  
+        savename = [savePath,filesep,savename];
+        savehandle(h,savename,verbose)     
+     elseif strcmp(userInput,'c');
+         return;
+    end
+elseif exist(savename,'file') && strcmp(ifConflict,'increment')
+    while exist(savename,'file')
+        savename = IncrementSaveName(savename);
+    end
+    savehandle(h,savename,verbose);
+else
+   savehandle(h,savename,verbose);
+end  
     
-% %--------------------------------------- save()
-% % for .mat file with list of variables
-% elseif strcmp(savetype,'savedata'); 
-%     if exist(savename,'file')
-%         disp(['file ',savename, ' exists']);
-%         userInput = input('Overwrite? y/n/c ','s');
-%         if strcmp(userInput,'y')
-%             savemat(savename,savevars,saveall,verbose)
-%         elseif strcmp(userInput,'n') && strcmp(ifConflict,'prompt')
-%             currpath = ExtractPath(savename);
-%             [savepath,savename] = uiputfile(currpath);
-%             savename = [savepath,filesep,savename];
-%             savemat(savename,savevars,saveall,verbose)
-%         elseif  strcmp(userInput,'n') && strcmp(ifConflict,'increment')
-%             savename = IncrementSaveName(savename);
-%             savemat(savename,savevars,saveall,verbose)
-%          elseif strcmp(userInput,'c');
-%              return;
-%         end
-%     else
-%         savemat(savename,savevars,saveall,verbose)
-%     end
-% end
 
 
 function savehandle(h,savename,verbose)
@@ -140,17 +118,4 @@ if verbose
 end
 
 
- 
-% function savemat(savename,savevars,saveall,verbose)
-% % savename - full file path to save
-% % savevars - matlab variables to save
-% % saveall - save all matlab variables (true/false)
-% % verbose - print saved file name and path to screen (true/false) 
-% if saveall
-%     save(savename);
-% else
-%     save(savename,savevars{:});
-% end
-% if verbose
-%     disp(['wrote ',savename]);
-% end
+
