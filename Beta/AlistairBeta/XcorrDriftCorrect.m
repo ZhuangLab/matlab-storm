@@ -6,8 +6,8 @@ function [x_drift,y_drift] = XcorrDriftCorrect(mlist,varargin)
 % [x_drift,y_drift] =  XcorrDriftCorrect(mlist,'imagesize',value,...
 %    'scale',value,'stepframe',value,'nm per pixel',value,'showplots',...
 %     value)
-% mlist.xc = mlist.x + x_drift(mlist.frame)';
-% mlist.yc = mlist.y + y_drift(mlist.frame)';
+% mlist.xc = mlist.x - x_drift(mlist.frame)';
+% mlist.yc = mlist.y - y_drift(mlist.frame)';
 %--------------------------------------------------------------------------
 % Required Inputs
 % mlist (molecule list structure)
@@ -112,8 +112,8 @@ for i=startframe+1:stepframe:Nframes  ;% i=4
    corrMmini = corrM(h-Hc/2+1:h+Hc/2,w-Wc/2+1:w+Wc/2);
    [~,indmax] =  max(corrMmini(:));
    [cy,cx] = ind2sub([Hc,Wc],indmax );
-   drift_x(t-1) = (cx-Wc/2);
-   drift_y(t-1) = (cy-Hc/2);
+   drift_x(t-1) = (Wc/2-cx);
+   drift_y(t-1) = (Hc/2-cy); %  FLIPPED sign 11/15/13
      %  figure(2); clf; imagesc(corrMmini);
 
 % Compute with the whole correlation map (may lead to errors)
