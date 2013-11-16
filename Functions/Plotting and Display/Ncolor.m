@@ -65,7 +65,11 @@ else
 end
 
 if nargout == 0
+    try
     imagesc(Io);
+    catch
+        imagesc(makeuint(Io,8));
+    end
 end
 
 

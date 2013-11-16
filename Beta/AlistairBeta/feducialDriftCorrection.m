@@ -1,4 +1,4 @@
-function [dxc,dyc,fedCoords] = feducialDriftCorrection(input1,varargin)
+function [dxc,dyc,fedCoords,drift_error] = feducialDriftCorrection(input1,varargin)
 %--------------------------------------------------------------------------
 % [dxc,dyc] = feducialDriftCorrection(binname)
 % [dxc,dyc] =  feducialDriftCorrection(mlist)

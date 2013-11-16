@@ -9,18 +9,25 @@ function value = CheckParameter(value, type, name)
 %
 % type/string or cell array of strings: A flag to specify the check
 %   conditions or the set of conditions to test
-%
+%   Valid types: 
+%           'positive',
+%           'nonnegative',
+%           'struct',
+%           'cell',
+%           'string'
+%           'boolean'
+%           'array' 
+% 
 % name/string: The name of the parameter to be checked
 %--------------------------------------------------------------------------
 % Outputs:
 % value: The value of the variable to be checked
 %
 %--------------------------------------------------------------------------
-% Jeffrey Moffitt
-% October 3, 2012
-% jeffmoffitt@gmail.com
-%
-% Version 1.0
+% Jeffrey Moffitt *  &  Alistair Boettiger #
+% * jeffmoffitt@gmail.com, # boettiger.alistair@gmail.com
+% October 2013 
+% Version 1.3
 %--------------------------------------------------------------------------
 % Creative Commons Liscence
 % Attribution-NonCommercial-ShareAlike 3.0 Unported License

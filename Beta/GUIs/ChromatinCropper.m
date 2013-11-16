@@ -69,9 +69,10 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
        {'Step 1: load conventional image';
         'Step 2: Find all spots in conventional image';
         'Step 3: load STORM image and filter on cluster properties';
-        'Step 4: Perform drift correction, Crop and plot STORM-image';
-        'Step 5: Quantify structural features';
-        'Step 6: Save data'};
+        'Step 4: Perform drift correction';
+        'Step 5: Crop and plot STORM-image';
+        'Step 6: Quantify structural features';
+        'Step 7: Save data'};
     
 % Cleanup Axes
     axes(handles.axes2);
@@ -90,7 +91,7 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     CC{handles.gui_number}.pars0.W = 256;
     CC{handles.gui_number}.pars0.npp = 160;
     % step1 parameters
-    CC{handles.gui_number}.pars1.BeadFolder = [];
+    CC{handles.gui_number}.pars1.BeadFolder = '';
     % step 2 parameters
      CC{handles.gui_number}.pars2.saturate = 0.001;
      CC{handles.gui_number}.pars2.makeblack = 0.998; 
@@ -109,14 +110,17 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     CC{handles.gui_number}.pars4.startFrame = 1;
     CC{handles.gui_number}.pars4.showPlots = true; 
     CC{handles.gui_number}.pars4.showExtraPlots = false; 
-    CC{handles.gui_number}.pars4.showColorTime = true; % This is useful but slow
     % step 5 parameters
-    CC{handles.gui_number}.pars5.boxSize = 32;
-    CC{handles.gui_number}.pars5.starframe= 1; % 
-	CC{handles.gui_number}.pars5.minloc = 1; % min number of localization per box
-	CC{handles.gui_number}.pars5.minSize = 30; % min size in number of boxes
+    CC{handles.gui_number}.pars5.scale = 2048;
+    CC{handles.gui_number}.pars5.zm = 1; 
+    CC{handles.gui_number}.pars5.showColorTime = true; % This is useful but slow
     % step 6 parameters
-    CC{handles.gui_number}.pars6.saveColorTime = false; % This is useful but slow
+    CC{handles.gui_number}.pars6.boxSize = 32;
+    CC{handles.gui_number}.pars6.startFrame= 1; % 
+	CC{handles.gui_number}.pars6.minloc = 1; % min number of localization per box
+	CC{handles.gui_number}.pars6.minSize = 30; % min size in number of boxes
+    % step 6 parameters
+    CC{handles.gui_number}.pars7.saveColorTime = false; % This is useful but slow
     % step X parameters for X-correlation drift correction
     CC{handles.gui_number}.parsX.stepFrame = 8000; % 'stepframe' / double / 10E3 -- number of frames to average
     CC{handles.gui_number}.parsX.scale  = 5; % 'scale' / double / 5 -- upsampling factor for binning localizations
@@ -199,7 +203,8 @@ end
 % Actual Step Commands
 step = CC{handles.gui_number}.step;
 if step == 1
-    
+          
+         goOn = true;
     % MaxProjection of Conventional Image    
          convname = regexprep([folder,filesep,daxname],'storm','conv*');
          convname = dir(convname);
@@ -230,7 +235,7 @@ if step == 1
             lamina = mean(ReadDax(laminaName),3);
          catch er
             disp(er.message);
-            lamina = dax;  
+            lamina = zeros(size(dax),'uint16');  
          end
          
          try
@@ -238,12 +243,12 @@ if step == 1
              beads= mean(ReadDax(beadsName),3);
          catch er
             disp(er.message);
-            beads = dax;  
+            beads = zeros(size(dax),'uint16');
          end
          %%% try to correct channel misfits
          try
              BeadFolder = CC{handles.gui_number}.pars1.BeadFolder;
-             warpfile = [BeadFolder,'chromewarps.mat'];
+             warpfile = [BeadFolder,filesep,'chromewarps.mat'];
              load(warpfile);
 
             warpedLamina = imtransform(lamina,tform_1_inv{3},...
@@ -256,46 +261,56 @@ if step == 1
             warpedBeads = imtransform(warpedBeads,tform2D_inv{2},...
                 'XYScale',1,'XData',[1 256],'YData',[1 256]);
          catch er
+             goOn = false;
              disp(er.message);
+             BeadFolder = uigetdir(folder,'..');
+             warpfile = [BeadFolder,filesep,'chromewarps.mat'];
+             load(warpfile);
+             disp(['found ',warpfile,' Rerun step to continue']);
+             CC{handles.gui_number}.pars1.BeadFolder = BeadFolder;
+                 
+           %  goOn = true;
          end
          
-         conv0 = uint16(conv0);
-         warpedBeads = uint16(warpedBeads);
-         warpedLamina = uint16(warpedLamina);           
-         conv0 = imadjust(conv0,stretchlim(conv0,0));
-         warpedBeads = imadjust(warpedBeads,stretchlim(warpedBeads,0));
-         warpedLamina = imadjust(warpedLamina,stretchlim(warpedLamina,0));
-         
-         % save([ScratchPath,'test.mat'])
-        %  load([ScratchPath,'test.mat'])
-         
-         axes(handles.axes1);
-         set(gca,'color','k');
-         set(gca,'XTick',[],'YTick',[]);
-         [H,W] = size(conv0);
-         convI = zeros(H,W,3,'uint16');
-         convI(:,:,1) = conv0;
-         convI(:,:,2) = warpedBeads;
-         convI(:,:,3) = warpedLamina;        
-        
-        % Plot results
-         axes(handles.axes1);
-         set(gca,'color','k');
-         set(gca,'XTick',[],'YTick',[]);
-         imagesc(convI);
-         colormap hot;
-         xlim([0,W]); ylim([0,H]);
-         
-         axes(handles.axes2);
-         imagesc(convI); colormap hot;
-         set(gca,'color','k');
-         set(gca,'XTick',[],'YTick',[]);
+         if goOn
+            conv0 = uint16(conv0);
+            warpedBeads = uint16(warpedBeads);
+            warpedLamina = uint16(warpedLamina);           
+            conv0 = imadjust(conv0,stretchlim(conv0,0));
+            warpedBeads = imadjust(warpedBeads,stretchlim(warpedBeads,0));
+            warpedLamina = imadjust(warpedLamina,stretchlim(warpedLamina,0));
 
-         % Save step data into global; 
-        CC{handles.gui_number}.conv = conv0;  
-        CC{handles.gui_number}.maskBeads = warpedBeads;
-        CC{handles.gui_number}.convI = convI;
-   
+            % save([ScratchPath,'test.mat'])
+            %  load([ScratchPath,'test.mat'])
+
+            axes(handles.axes1);
+            set(gca,'color','k');
+            set(gca,'XTick',[],'YTick',[]);
+            [H,W] = size(conv0);
+            convI = zeros(H,W,3,'uint16');
+            convI(:,:,1) = conv0;
+            convI(:,:,2) = warpedBeads;
+            convI(:,:,3) = warpedLamina;        
+
+            % Plot results
+            axes(handles.axes1);
+            set(gca,'color','k');
+            set(gca,'XTick',[],'YTick',[]);
+            imagesc(convI);
+            colormap hot;
+            xlim([0,W]); ylim([0,H]);
+
+            axes(handles.axes2);
+            imagesc(convI); colormap hot;
+            set(gca,'color','k');
+            set(gca,'XTick',[],'YTick',[]);
+
+            % Save step data into global; 
+            CC{handles.gui_number}.conv = conv0;  
+            CC{handles.gui_number}.maskBeads = warpedBeads;
+            CC{handles.gui_number}.convI = convI;
+         end
+         
 elseif step == 2
         % load variables from previous step
         conv0 = CC{handles.gui_number}.conv;
@@ -376,9 +391,6 @@ elseif step == 3
         keep = mask>2; 
         reject = mask<2 & mask > 0;
             
-%         save([ScratchPath,'test.mat']);
-%         load([ScratchPath,'test.mat']);
-%         
          maskIm = imresize(convI,[h,w]);
          maskIm(:,:,1) = maskIm(:,:,1) + uint16(2^16*keep);
          maskIm(:,:,3) = maskIm(:,:,3) + uint16(2^16*reject);
@@ -396,16 +408,11 @@ elseif step == 3
         CC{handles.gui_number}.R = R; 
         CC{handles.gui_number}.M = M; 
         
-elseif step == 4
+elseif step == 4  % DRIFT CORRECTION
     % Load variables
     mlist = CC{handles.gui_number}.mlist;
-    infilt = CC{handles.gui_number}.infilt;
-    R = CC{handles.gui_number}.R;
-    M = CC{handles.gui_number}.M; 
-    Nclusters = length(R);
-    conv0 = CC{handles.gui_number}.conv;
-    convI = CC{handles.gui_number}.convI;
-    CC{handles.gui_number}.handles = handles;
+    drift_err = '';
+ %   CC{handles.gui_number}.handles = handles;
       
     % Load user defined parameters
     maxDrift = CC{handles.gui_number}.pars4.maxDrift;
@@ -415,24 +422,18 @@ elseif step == 4
     showExtraPlots = CC{handles.gui_number}.pars4.showExtraPlots; 
     
     
-    % Initialize subplots Clean up main figure window
-    set(handles.subaxis1,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
-    set(handles.subaxis2,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
-    set(handles.subaxis3,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
-    set(handles.subaxis4,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
-    
     % -----------Apply Drift Correction------------------
     try
     beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
     beadbin = [folder,filesep,beadname];
-     [dxc,dyc] = feducialDriftCorrection(beadbin,'maxdrift',maxDrift,...
-         'showplots',showPlots,'fmin',fmin,'startframe',startFrame,...
-         'showextraplots',showExtraPlots);
-    missingframes = max(mlist.frame) - length(dxc);
-    dxc = [dxc; zeros(missingframes,1)];
-    dyc = [dyc; zeros(missingframes,1)];
-    mlist.xc = mlist.x - dxc(mlist.frame);
-    mlist.yc = mlist.y - dyc(mlist.frame); 
+     [x_drift,y_drift,~,drift_err] = feducialDriftCorrection(beadbin,...
+         'maxdrift',maxDrift,'showplots',showPlots,'fmin',fmin,...
+         'startframe',startFrame,'showextraplots',showExtraPlots);
+    missingframes = max(mlist.frame) - length(x_drift);
+    x_drift = [x_drift; zeros(missingframes,1)];
+    y_drift = [y_drift; zeros(missingframes,1)];
+    mlist.xc = mlist.x - x_drift(mlist.frame);
+    mlist.yc = mlist.y - y_drift(mlist.frame); 
     CC{handles.gui_number}.mlist = mlist; % update in global data
     goOn = true;
     retry = 0; 
@@ -480,8 +481,8 @@ elseif step == 4
         x_drift = [x_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
         y_drift = [y_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
         end
-        mlist.xc = mlist.x + x_drift(mlist.frame)';
-        mlist.yc = mlist.y + y_drift(mlist.frame)';
+        mlist.xc = mlist.x - x_drift(mlist.frame)';
+        mlist.yc = mlist.y - y_drift(mlist.frame)';
         goOn = true;
         
     elseif retry == 1;
@@ -489,15 +490,59 @@ elseif step == 4
         
     elseif retry == 3
         disp('skipping drift correction...')
+        x_drift = 0;
+        y_drift = 0;
         goOn = true; 
     end
     
     if goOn
-    % Conventional image in finder window
-     axes(handles.axes2); cla;
-     imagesc(conv0); colormap hot;
-     set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+             % plot mask in main figure window
+        axes(handles.axes1); cla;
+        Nframes = length(x_drift); 
+        if Nframes > 1
+        z = zeros(size(x_drift')); z= [z(1:end-800),NaN*ones(1,800)];
+        col = [double(1:Nframes-1),NaN];  % This is the color, vary with x in this case.
+         surface([x_drift';x_drift']*npp,[y_drift';y_drift']*npp,...
+             [z;z],[col;col],'facecol','no','edgecol','interp',...
+            'linew',1);    
+        colormap('jet');
+        set(gcf,'color','w'); 
+        xlabel('nm'); 
+        ylabel('nm'); 
+        xlim([min(x_drift*npp),max(x_drift*npp)]);
+        ylim([min(y_drift*npp),max(y_drift*npp)]);
+         text(mean(x_drift*npp),mean(y_drift*npp),...
+             ['Drift Correction Uncertainty: ',num2str(drift_err,3),'nm']);
+        end
+        
+        CC{handles.gui_number}.mlist = mlist; % update mlist; 
+    end
+ 
 
+elseif step == 5
+ %% Load step data
+    scale = CC{handles.gui_number}.pars5.scale/npp;
+    zm = CC{handles.gui_number}.pars5.zm;
+     
+    mlist = CC{handles.gui_number}.mlist; 
+    infilt = CC{handles.gui_number}.infilt;
+    R = CC{handles.gui_number}.R;
+    M = CC{handles.gui_number}.M; 
+    Nclusters = length(R);
+    conv0 = CC{handles.gui_number}.conv;
+    convI = CC{handles.gui_number}.convI;
+    
+        % Conventional image in finder window
+     axes(handles.axes2); cla;
+     imagesc(convI); colormap hot;
+     set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+    
+        % Initialize subplots Clean up main figure window
+    set(handles.subaxis1,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+    set(handles.subaxis2,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+    set(handles.subaxis3,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+    set(handles.subaxis4,'Visible','on'); set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+     
   %------------------ Split and Plot Clusters   -----------------------
       % Arrays to store plotting data in
        Istorm = cell(Nclusters,1);
@@ -512,13 +557,18 @@ elseif step == 4
        figure(2); clf; imagesc(convI); 
      for n=1:Nclusters % n=3    
         % For dsiplay and judgement purposes 
-        imaxes.zm = 20;
+        imaxes.zm = 256/(scale);
+        imaxes.scale = zm;
         imaxes.cx = R(n).Centroid(1)/cluster_scale;
         imaxes.cy = R(n).Centroid(2)/cluster_scale;
-        imaxes.xmin = max(imaxes.cx - imaxes.W/2/imaxes.zm,1);
-        imaxes.xmax = min(imaxes.cx + imaxes.W/2/imaxes.zm,imaxes.W);
-        imaxes.ymin = max(imaxes.cy - imaxes.H/2/imaxes.zm,1);
-        imaxes.ymax = min(imaxes.cy + imaxes.H/2/imaxes.zm,imaxes.H);
+        imaxes.xmin = max(imaxes.cx - scale/2,1);
+        imaxes.xmax = min(imaxes.cx + scale/2,W);
+        imaxes.ymin = max(imaxes.cy - scale/2,1);
+        imaxes.ymax = min(imaxes.cy + scale/2,H);
+%         imaxes.xmin = max(imaxes.cx - imaxes.W/2/(imaxes.zm),1);
+%         imaxes.xmax = min(imaxes.cx + imaxes.W/2/(imaxes.zm),imaxes.W);
+%         imaxes.ymin = max(imaxes.cy - imaxes.H/2/(imaxes.zm),1);
+%         imaxes.ymax = min(imaxes.cy + imaxes.H/2/(imaxes.zm),imaxes.H);
         allImaxes{n} = imaxes; 
 
    % Add dot labels to overview image           
@@ -552,16 +602,17 @@ elseif step == 4
        cellaxes.xmax = cellaxes.cx + cellaxes.W/2/cellaxes.zm;
        cellaxes.ymin = cellaxes.cy - cellaxes.H/2/cellaxes.zm;
        cellaxes.ymax = cellaxes.cy + cellaxes.H/2/cellaxes.zm;
-       Izmout = plotSTORM_colorZ({mlist},cellaxes,'Zsteps',1,'scalebar',500);
+       Izmout = plotSTORM_colorZ({mlist},cellaxes,...
+           'filter',{infilt'},'Zsteps',1,'scalebar',500);
        Icell{n} = sum(Izmout{1},3);
    
      % Gaussian Fitting and Cluster
        % Get subregion, exlude distant zs which are poorly fit
-        vlist = msublist(mlist,imaxes);
+        vlist = msublist(mlist,imaxes,'filter',infilt');
         vlist.c( vlist.z>=480 | vlist.z<-480 ) = 9;    
           % filt = (vlist.c~=9) ;        
      %  Indicate color as time. 
-        dxc = vlist.xc;
+        dxc = vlist.xc;% max(vlist.xc)-vlist.xc; % 
         dyc = max(vlist.yc)-vlist.yc;
         Nframes = double(max(mlist.frame));
         f = double(vlist.frame);
@@ -592,9 +643,9 @@ elseif step == 4
         set(handles.Xslider,'Max',Nclusters);  
         set(handles.Xslider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);
       end
-    end
+    
 
-elseif step == 5
+elseif step == 6
     %% Load data
     Nclusters = CC{handles.gui_number}.Nclusters;
     vlists = CC{handles.gui_number}.vlists;
@@ -620,11 +671,11 @@ elseif step == 5
     
     %================ Data Analysis
     % 2D subcluster vlist image
-    boxSize = CC{handles.gui_number}.pars5.boxSize;    
+    boxSize = CC{handles.gui_number}.pars6.boxSize;    
     cluster_scale = CC{handles.gui_number}.pars0.npp/boxSize;
-    startframe = CC{handles.gui_number}.pars5.starframe; %  1;
-    minloc = CC{handles.gui_number}.pars5.minloc; % 1;
-    minSize = CC{handles.gui_number}.pars5.minSize; % 30; 
+    startframe = CC{handles.gui_number}.pars6.startFrame; %  1;
+    minloc = CC{handles.gui_number}.pars6.minloc; % 1;
+    minSize = CC{handles.gui_number}.pars6.minSize; % 30; 
         
     % 3D subcluster
     minvoxels = 200;
@@ -732,7 +783,7 @@ elseif step == 5
    
    
    
-elseif step == 6
+elseif step == 7
     % Load variables
     Istorm = CC{handles.gui_number}.Istorm ;
     Iconv = CC{handles.gui_number}.Iconv;
@@ -793,7 +844,7 @@ elseif step == 6
         saveas(Iout,[savefolder,filesep,saveroot,'Istorm_',num2str(imnum),'_d',num2str(n),'.png']);
         pause(.01);
 
-        if CC{handles.gui_number}.pars6.saveColorTime
+        if CC{handles.gui_number}.pars7.saveColorTime
         Iout = figure(1); clf;
         colormap hot; caxis([0,2^16]);
         hold on;
@@ -874,7 +925,7 @@ global CC
              'color','w');
 
     axes(handles.subaxis3); hold off; cla;  %#ok<*LAXES>
-    if CC{handles.gui_number}.pars4.showColorTime
+    if CC{handles.gui_number}.pars5.showColorTime
      hold on;
     scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
     warning('off','MATLAB:hg:patch:RGBColorDataNotSupported');
@@ -1014,14 +1065,14 @@ elseif step == 4
     'start frame (1 = auto detect)',...        3
     'show drift correction plots?',...  4
     'show extra drift correction plots?',...  5 
-    'show dots colored-coded by frame number? (slow)'};   % 
+    };   % 
 
     Opts{1} = num2str(CC{handles.gui_number}.pars4.maxDrift);
     Opts{2} = num2str(CC{handles.gui_number}.pars4.fmin);
     Opts{3} = num2str(CC{handles.gui_number}.pars4.startFrame);
     Opts{4} = num2str(CC{handles.gui_number}.pars4.showPlots);
     Opts{5} = num2str(CC{handles.gui_number}.pars4.showExtraPlots);
-    Opts{6} = num2str(CC{handles.gui_number}.pars4.showColorTime);
+    
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
         if isempty(Opts); notCancel = false; end
     if notCancel
@@ -1030,38 +1081,58 @@ elseif step == 4
     CC{handles.gui_number}.pars4.startFrame= str2double(Opts{3});
     CC{handles.gui_number}.pars4.showPlots = str2double(Opts{4}); 
     CC{handles.gui_number}.pars4.showExtraPlots = str2double(Opts{5});
-    CC{handles.gui_number}.pars4.showColorTime = eval(Opts{6});
+    
+    end
+elseif step == 5
+    dlg_title = 'Step 5 Pars: render STORM images';  num_lines = 1;
+    Dprompt = {
+    'cropping box size (nm) ',...  % convert this to box size in nm
+    'zm for STORM',...        % convert this to something sensible
+    'show dots colored-coded by frame number? (slow)',...
+    };
+
+    Opts{1} = num2str(CC{handles.gui_number}.pars5.scale);
+    Opts{2} = num2str(CC{handles.gui_number}.pars5.zm);
+    Opts{3} = num2str(CC{handles.gui_number}.pars5.showColorTime);
+    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
+    if isempty(Opts); notCancel = false; end
+    if notCancel
+    CC{handles.gui_number}.pars5.scale = eval(Opts{1}); % 30
+    CC{handles.gui_number}.pars5.zm = eval(Opts{2});  %  1;
+    CC{handles.gui_number}.pars5.showColorTime = eval(Opts{3});
     end
     
-elseif step == 5
-    dlg_title = 'Step 5 Pars: Quantify Features';  num_lines = 1;
+    
+elseif step == 6
+    dlg_title = 'Step 6 Pars: Quantify Features';  num_lines = 1;
     Dprompt = {
     'Box Size (nm)',... 
     'start frame ',...        3
     'Min Localizations per box',...  4
     'Min Size (boxes)'};     %5 
 
-    Opts{1} = num2str(CC{handles.gui_number}.pars5.boxSize);
-    Opts{2} = num2str(CC{handles.gui_number}.pars5.starframe);
-    Opts{3} = num2str(CC{handles.gui_number}.pars5.minloc);
-    Opts{4} = num2str(CC{handles.gui_number}.pars5.minSize);
+    Opts{1} = num2str(CC{handles.gui_number}.pars6.boxSize);
+    Opts{2} = num2str(CC{handles.gui_number}.pars6.startFrame);
+    Opts{3} = num2str(CC{handles.gui_number}.pars6.minloc);
+    Opts{4} = num2str(CC{handles.gui_number}.pars6.minSize);
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
     if isempty(Opts); notCancel = false; end
     if notCancel
-    CC{handles.gui_number}.pars5.boxSize = eval(Opts{1}); % 30
-    CC{handles.gui_number}.pars5.starframe= eval(Opts{2});  %  1;
-	CC{handles.gui_number}.pars5.minloc= eval(Opts{3});  % 0;
-	CC{handles.gui_number}.pars5.minSize= eval(Opts{4});  % 30; 
+    CC{handles.gui_number}.pars6.boxSize = eval(Opts{1}); % 30
+    CC{handles.gui_number}.pars6.startFrame= eval(Opts{2});  %  1;
+	CC{handles.gui_number}.pars6.minloc= eval(Opts{3});  % 0;
+	CC{handles.gui_number}.pars6.minSize= eval(Opts{4});  % 30; 
     end
-elseif step == 6
-        dlg_title = 'Step 6 Pars: Data Export Options';  num_lines = 1;
+    
+elseif step == 7
+        dlg_title = 'Step 7 Pars: Data Export Options';  num_lines = 1;
     Dprompt = {
     'Save dots colored-coded by frame number? (slow)'};     %1 
-     Opts{1} = num2str(CC{handles.gui_number}.pars6.saveColorTime);
+     Opts{1} = num2str(CC{handles.gui_number}.pars7.saveColorTime);
      Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
     if isempty(Opts); notCancel = false; end
     if notCancel
-     CC{handles.gui_number}.pars6.saveColorTime = eval(Opts{1}); % 30
+     CC{handles.gui_number}.pars7.saveColorTime = eval(Opts{1}); % 30
     end
 end
     
@@ -1075,9 +1146,11 @@ global CC
 Dirs = CC{handles.gui_number}.Dirs;
 CC{handles.gui_number}.step = CC{handles.gui_number}.step +1;
 step = CC{handles.gui_number}.step;
-if step>6
-    step = 6;
-    CC{handles.gui_number}.step = step;
+if step>7
+    NextImage_Callback(hObject, eventdata, handles);
+    step = 1;
+    % step = 7;
+    % CC{handles.gui_number}.step = step;
 end
 set(handles.DirectionsBox,'String',Dirs{step});
     
@@ -1171,11 +1244,11 @@ function Xslider_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global CC
-if CC{handles.gui_number}.step == 4
+if CC{handles.gui_number}.step == 5
     n = round(get(hObject,'Value'));
     ChromatinPlots(handles, n);
 end
-if CC{handles.gui_number}.step >= 5
+if CC{handles.gui_number}.step >= 6
     n = round(get(hObject,'Value'));
     ChromatinPlots2(handles, n);
 end
