@@ -79,6 +79,14 @@ for i=1:length(type)
             if ~ischar(value)
                 error([name ' is not a string']);
             end
+        case 'filePath'
+            if ~exist(value) == 2 
+                error([name ' is not a valid path to a file']);
+            end
+        case 'fileDir'
+            if ~exist(value) == 7
+                error([name ' is not a valid path to a directory']);
+            end
         case 'cell'
             if ~iscell(value)
                 error([name 'is not a cell']);
