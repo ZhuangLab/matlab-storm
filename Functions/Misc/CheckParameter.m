@@ -86,6 +86,7 @@ for i=1:length(type)
         case 'fileDir'
             if ~exist(value) == 7
                 error([name ' is not a valid path to a directory']);
+            end
         case 'cell'
             if ~iscell(value)
                 error([name 'is not a cell']);
