@@ -22,7 +22,7 @@ function varargout = GUIDaoParameters(varargin)
 
 % Edit the above text to modify the response to help GUIDaoParameters
 
-% Last Modified by GUIDE v2.5 03-Apr-2013 10:53:24
+% Last Modified by GUIDE v2.5 23-Nov-2013 17:11:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -108,9 +108,14 @@ end
      set(handles.Ay,'String',SF{instanceID}.FitPars.Ay);
     set(handles.By,'String',SF{instanceID}.FitPars.By );
     set(handles.Cy,'String',SF{instanceID}.FitPars.Cy );
-    set(handles.Dy,'String',SF{instanceID}.FitPars.Dy );
-    
+    set(handles.Dy,'String',SF{instanceID}.FitPars.Dy );   
 
+    % ROI
+    set(handles.xmin,'String',SF{instanceID}.FitPars.xmin);
+    set(handles.xmax,'String',SF{instanceID}.FitPars.xmax);
+    set(handles.ymin,'String',SF{instanceID}.FitPars.ymin);
+    set(handles.ymax,'String',SF{instanceID}.FitPars.ymax);
+    
 % Choose default command line output for GUIDaoParameters
 handles.output = hObject;
 
@@ -186,6 +191,13 @@ SF{instanceID}.FitPars.By  = get(handles.By,'String');
 SF{instanceID}.FitPars.Cy  = get(handles.Cy,'String');
 SF{instanceID}.FitPars.Dy  = get(handles.Dy,'String');
 
+% ROI
+SF{instanceID}.FitPars.xmin = get(handles.xmin,'String');
+SF{instanceID}.FitPars.xmax = get(handles.xmax,'String');
+SF{instanceID}.FitPars.ymin = get(handles.ymin,'String');
+SF{instanceID}.FitPars.ymax = get(handles.ymax,'String');
+
+% Okay to proceed?
 SF{instanceID}.FitPars.OK = true;
 pause(.1); 
 close(GUIDaoParameters);
@@ -1098,6 +1110,98 @@ function endFrame_Callback(hObject, eventdata, handles)
 % --- Executes during object creation, after setting all properties.
 function endFrame_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to endFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function xmin_Callback(hObject, eventdata, handles)
+% hObject    handle to xmin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of xmin as text
+%        str2double(get(hObject,'String')) returns contents of xmin as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function xmin_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to xmin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function xmax_Callback(hObject, eventdata, handles)
+% hObject    handle to xmax (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of xmax as text
+%        str2double(get(hObject,'String')) returns contents of xmax as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function xmax_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to xmax (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function ymin_Callback(hObject, eventdata, handles)
+% hObject    handle to ymin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of ymin as text
+%        str2double(get(hObject,'String')) returns contents of ymin as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function ymin_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ymin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function ymax_Callback(hObject, eventdata, handles)
+% hObject    handle to ymax (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of ymax as text
+%        str2double(get(hObject,'String')) returns contents of ymax as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function ymax_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ymax (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 

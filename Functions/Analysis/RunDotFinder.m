@@ -93,8 +93,8 @@ function RunDotFinder(varargin)
 %--------------------------------------------------------------------------
 % Global variables 
 %--------------------------------------------------------------------------
-global defaultInsightPath
-global defaultDaoSTORM
+global InsightExe
+global DaoSTORMexe
 %--------------------------------------------------------------------------
 % Hardcoded Variables
 %--------------------------------------------------------------------------
@@ -311,12 +311,12 @@ for s=1:Sections % loop through all dax movies in que
          % Actually launch insightM and poll computer for number of processes
             if runinMatlab % 
                 if printprogress  % Print fitting progress to command line
-                    system([defaultInsightPath,' "',daxfile,'" "',parsfile,'"']);  
+                    system([InsightExe,' "',daxfile,'" "',parsfile,'" "',parsfile,'"']);  
                 else  % Don't print to command line (save output in text file)
-                    system([defaultInsightPath,' "',daxfile,'" "',parsfile,'" >' dpath,'\newlog',num2str(s),'.txt']); 
+                    system([InsightExe,' "',daxfile,'" "',parsfile,'" "',parsfile,'" >' dpath,'\newlog',num2str(s),'.txt']); 
                 end
             else
-               system_command = [defaultInsightPath,' "',daxfile,'" "',parsfile, '" && exit &']; 
+               system_command = [InsightExe,' "',daxfile,'" "',parsfile,'" "',parsfile, '" && exit &']; 
                prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
                batchwait = true;
             end
@@ -324,12 +324,12 @@ for s=1:Sections % loop through all dax movies in que
             binfile = [dpath,filesep,daxroots{s},datatype];
             if runinMatlab % 
                 if printprogress  % Print fitting progress to command line
-                    system([defaultDaoSTORM,' "',daxfile,'" "',binfile,'" "',parsfile,'"']);  
+                    system([DaoSTORMexe,' "',daxfile,'" "',binfile,'" "',parsfile,'"']);  
                 else  % Don't print to command line (save output in text file)
-                    system([defaultDaoSTORM,' "',daxfile,'" "',binfile,'" "',parsfile,'" >' dpath,'\newlog',num2str(s),'.txt']); 
+                    system([DaoSTORMexe,' "',daxfile,'" "',binfile,'" "',parsfile,'" >' dpath,'\newlog',num2str(s),'.txt']); 
                 end
             else  % Launch silently in the background
-                system_command = [defaultDaoSTORM,' "',daxfile,'" "',binfile,'" "',parsfile, '" && exit &']; 
+                system_command = [DaoSTORMexe,' "',daxfile,'" "',binfile,'" "',parsfile, '" && exit &']; 
                 prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
                 batchwait = true;
             end          
