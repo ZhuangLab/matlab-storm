@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 02-Nov-2013 15:18:56
+% Last Modified by GUIDE v2.5 16-Nov-2013 23:14:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -90,6 +90,8 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     CC{handles.gui_number}.pars0.H = 256;
     CC{handles.gui_number}.pars0.W = 256;
     CC{handles.gui_number}.pars0.npp = 160;
+    CC{handles.gui_number}.pars0.cmin = 0;
+    CC{handles.gui_number}.pars0.cmax = 1;
     % step1 parameters
     CC{handles.gui_number}.pars1.BeadFolder = '';
     % step 2 parameters
@@ -119,8 +121,9 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
     CC{handles.gui_number}.pars6.startFrame= 1; % 
 	CC{handles.gui_number}.pars6.minloc = 1; % min number of localization per box
 	CC{handles.gui_number}.pars6.minSize = 30; % min size in number of boxes
-    % step 6 parameters
+    % step 7 parameters
     CC{handles.gui_number}.pars7.saveColorTime = false; % This is useful but slow
+    CC{handles.gui_number}.pars7.saveroot = '';
     % step X parameters for X-correlation drift correction
     CC{handles.gui_number}.parsX.stepFrame = 8000; % 'stepframe' / double / 10E3 -- number of frames to average
     CC{handles.gui_number}.parsX.scale  = 5; % 'scale' / double / 5 -- upsampling factor for binning localizations
@@ -246,33 +249,48 @@ if step == 1
             beads = zeros(size(dax),'uint16');
          end
          %%% try to correct channel misfits
+         BeadFolder = CC{handles.gui_number}.pars1.BeadFolder;
+         
          try
-             BeadFolder = CC{handles.gui_number}.pars1.BeadFolder;
-             warpfile = [BeadFolder,filesep,'chromewarps.mat'];
-             load(warpfile);
+             if ~strcmp(BeadFolder,'skip')
+                 warpfile = [BeadFolder,filesep,'chromewarps.mat'];
+                 load(warpfile);
 
-            warpedLamina = imtransform(lamina,tform_1_inv{3},...
-                'XYScale',1,'XData',[1 256],'YData',[1 256]);
-            warpedLamina = imtransform(warpedLamina,tform2D_inv{3},...
-                'XYScale',1,'XData',[1 256],'YData',[1 256]);
+                warpedLamina = imtransform(lamina,tform_1_inv{3},...
+                    'XYScale',1,'XData',[1 256],'YData',[1 256]);
+                warpedLamina = imtransform(warpedLamina,tform2D_inv{3},...
+                    'XYScale',1,'XData',[1 256],'YData',[1 256]);
 
-            warpedBeads = imtransform(beads,tform_1_inv{2},...
-                'XYScale',1,'XData',[1 256],'YData',[1 256]);
-            warpedBeads = imtransform(warpedBeads,tform2D_inv{2},...
-                'XYScale',1,'XData',[1 256],'YData',[1 256]);
+                warpedBeads = imtransform(beads,tform_1_inv{2},...
+                    'XYScale',1,'XData',[1 256],'YData',[1 256]);
+                warpedBeads = imtransform(warpedBeads,tform2D_inv{2},...
+                    'XYScale',1,'XData',[1 256],'YData',[1 256]);
+             end
          catch er
              goOn = false;
              disp(er.message);
              BeadFolder = uigetdir(folder,'..');
-             warpfile = [BeadFolder,filesep,'chromewarps.mat'];
-             load(warpfile);
-             disp(['found ',warpfile,' Rerun step to continue']);
+             if BeadFolder == 0
+                BeadFolder = 'skip';
+             end 
              CC{handles.gui_number}.pars1.BeadFolder = BeadFolder;
-                 
-           %  goOn = true;
+             disp(BeadFolder)
+             if ~strcmp(BeadFolder,'skip')
+                 warpfile = [BeadFolder,filesep,'chromewarps.mat'];
+                 load(warpfile);
+                 disp(['found ',warpfile,' Rerun step to continue']);    
+             else % skip drift correction
+                  goOn = true;
+             end
          end
          
          if goOn
+             
+             if  strcmp(BeadFolder,'skip')
+                 warpedLamina = lamina;
+                 warpedBeads = beads;
+             end
+             
             conv0 = uint16(conv0);
             warpedBeads = uint16(warpedBeads);
             warpedLamina = uint16(warpedLamina);           
@@ -499,8 +517,10 @@ elseif step == 4  % DRIFT CORRECTION
              % plot mask in main figure window
         axes(handles.axes1); cla;
         Nframes = length(x_drift); 
+        try
         if Nframes > 1
-        z = zeros(size(x_drift')); z= [z(1:end-800),NaN*ones(1,800)];
+            buf = round(.05*Nframes); 
+        z = zeros(size(x_drift')); z= [z(1:end-buf),NaN*ones(1,buf)];
         col = [double(1:Nframes-1),NaN];  % This is the color, vary with x in this case.
          surface([x_drift';x_drift']*npp,[y_drift';y_drift']*npp,...
              [z;z],[col;col],'facecol','no','edgecol','interp',...
@@ -514,6 +534,8 @@ elseif step == 4  % DRIFT CORRECTION
          text(mean(x_drift*npp),mean(y_drift*npp),...
              ['Drift Correction Uncertainty: ',num2str(drift_err,3),'nm']);
         end
+        catch
+        end
         
         CC{handles.gui_number}.mlist = mlist; % update mlist; 
     end
@@ -522,16 +544,21 @@ elseif step == 4  % DRIFT CORRECTION
 elseif step == 5
  %% Load step data
     scale = CC{handles.gui_number}.pars5.scale/npp;
-    zm = CC{handles.gui_number}.pars5.zm;
-     
+    zm = CC{handles.gui_number}.pars5.zm;  
     mlist = CC{handles.gui_number}.mlist; 
     infilt = CC{handles.gui_number}.infilt;
     R = CC{handles.gui_number}.R;
-    M = CC{handles.gui_number}.M; 
+    
     Nclusters = length(R);
     conv0 = CC{handles.gui_number}.conv;
     convI = CC{handles.gui_number}.convI;
     
+    % Update M with drift correction
+      M = hist3([mlist.yc(infilt),mlist.xc(infilt)],...
+             {0:1/cluster_scale:H,0:1/cluster_scale:W});
+      CC{handles.gui_number}.M = M; 
+      
+      
         % Conventional image in finder window
      axes(handles.axes2); cla;
      imagesc(convI); colormap hot;
@@ -565,10 +592,6 @@ elseif step == 5
         imaxes.xmax = min(imaxes.cx + scale/2,W);
         imaxes.ymin = max(imaxes.cy - scale/2,1);
         imaxes.ymax = min(imaxes.cy + scale/2,H);
-%         imaxes.xmin = max(imaxes.cx - imaxes.W/2/(imaxes.zm),1);
-%         imaxes.xmax = min(imaxes.cx + imaxes.W/2/(imaxes.zm),imaxes.W);
-%         imaxes.ymin = max(imaxes.cy - imaxes.H/2/(imaxes.zm),1);
-%         imaxes.ymax = min(imaxes.cy + imaxes.H/2/(imaxes.zm),imaxes.H);
         allImaxes{n} = imaxes; 
 
    % Add dot labels to overview image           
@@ -638,10 +661,11 @@ elseif step == 5
               pause(.5); 
       end
       if Nclusters > 1
-        set(handles.Xslider,'Value',Nclusters);
-        set(handles.Xslider,'Min',1);
-        set(handles.Xslider,'Max',Nclusters);  
-        set(handles.Xslider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);
+        CC{handles.gui_number}.dotnum = Nclusters;
+        set(handles.DotSlider,'Value',Nclusters);
+        set(handles.DotSlider,'Min',1);
+        set(handles.DotSlider,'Max',Nclusters);  
+        set(handles.DotSlider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);
       end
     
 
@@ -776,7 +800,7 @@ elseif step == 6
    end
    CC{handles.gui_number}.saveNs = saveNs;
       if max(saveNs) > 1
-        set(handles.Xslider,'Value',max(saveNs));
+        set(handles.DotSlider,'Value',max(saveNs));
       end
     end
   %%       
@@ -785,31 +809,29 @@ elseif step == 6
    
 elseif step == 7
     % Load variables
-    Istorm = CC{handles.gui_number}.Istorm ;
-    Iconv = CC{handles.gui_number}.Iconv;
-    Itime = CC{handles.gui_number}.Itime;
     Icell = CC{handles.gui_number}.Icell;
-    Ihist = CC{handles.gui_number}.Ihist;
-    cmp = CC{handles.gui_number}.cmp;
     R = CC{handles.gui_number}.R;
     data = CC{handles.gui_number}.data;
-    % Nclusters = CC{handles.gui_number}.Nclusters;
+    saveroot = CC{handles.gui_number}.pars7.saveroot;
     
     % save parameters
     imnum = CC{handles.gui_number}.imnum;
     saveNs = CC{handles.gui_number}.saveNs; 
     savefolder = get(handles.SaveFolder,'String');
-    s1 = strfind(daxname,'quad_'); 
-    s2 = strfind(daxname,'_storm');
-    saveroot = daxname(s1+5:s2);
-    
+    if isempty(saveroot)
+        s1 = strfind(daxname,'quad_'); 
+        s2 = strfind(daxname,'_storm');
+        saveroot = daxname(s1+5:s2);
+        CC{handles.gui_number}.pars7.saveroot = saveroot;
+    end
     
     if isempty(savefolder)
         error('error, no save location specified'); 
     end
     % Test if savefolder exists
     if exist(savefolder,'dir') == 0
-        mk = input(['Folder ',savefolder,' does not exist.  Create it? y/n '],'s');
+        mk = input(['Folder ',savefolder,...
+            ' does not exist.  Create it? y/n '],'s');
         if strcmp(mk,'y')
             mkdir(savefolder);
         end
@@ -829,57 +851,80 @@ elseif step == 7
 
         % Run through figures, print out to fig 1 and save. 
         Iout = figure(1); clf; 
-        imagesc(Iconv{n}); colormap hot;
+        showConv(handles,n);
         set(gca,'color','k'); 
-        saveas(Iout,[savefolder,filesep,saveroot,'Iconv_',num2str(imnum),'_d',num2str(n),'.png']);
+        saveas(Iout,[savefolder,filesep,saveroot,...
+            'Iconv_',num2str(imnum),'_d',num2str(n),'.png']);
         pause(.01);
 
         Iout = figure(1); clf;
-        imagesc(Istorm{n}); colormap hot;
+        showSTORM(handles,n);
         set(gca,'color','w'); 
-        title(... 1.2*cluster_scale,2*cluster_scale,...
+        title(... 
             ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
                  num2str(DotSize),' maxD=',num2str(MaxD)],...
                  'color','k');
-        saveas(Iout,[savefolder,filesep,saveroot,'Istorm_',num2str(imnum),'_d',num2str(n),'.png']);
+        saveas(Iout,[savefolder,filesep,saveroot,...
+            'Istorm_',num2str(imnum),'_d',num2str(n),'.png']);
         pause(.01);
 
         if CC{handles.gui_number}.pars7.saveColorTime
-        Iout = figure(1); clf;
-        colormap hot; caxis([0,2^16]);
-        hold on;
-        scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
-        set(gca,'color','k'); set(gcf,'color','w'); 
-        xlabel('nm');     ylabel('nm'); 
-        saveas(Iout,[savefolder,filesep,saveroot,'Itime_',num2str(imnum),'_d',num2str(n),'.png']);
-        pause(.01);
+            Iout = figure(1); clf;
+            showDotTime(handles,n);
+            set(gca,'color','k'); set(gcf,'color','w'); 
+            xlabel('nm');     ylabel('nm'); 
+            saveas(Iout,[savefolder,filesep,saveroot,...
+                'Itime_',num2str(imnum),'_d',num2str(n),'.png']);
+            pause(.01);
         end
 
-        Iout = figure(1); clf; 
-        imagesc(Icell{n}); colormap hot;
-        set(gca,'color','k'); 
-        saveas(Iout,[savefolder,filesep,saveroot,'Icell_',num2str(imnum),'_d',num2str(n),'.png']);
+%        Iout = figure(1); clf; 
+%         imagesc(Icell{n}); colormap hot;
+%         set(gca,'color','k'); 
+%         saveas(Iout,[savefolder,filesep,saveroot,...
+%             'Icell_',num2str(imnum),'_d',num2str(n),'.png']);
+        imwrite(Icell{n},[savefolder,filesep,saveroot,...
+            'Icell_',num2str(imnum),'_d',num2str(n),'.png']);
         pause(.01);
 
         Iout = figure(1); clf;
-        imagesc(Ihist{n}); colormap hot;
+        showHist(handles,n);
         set(gca,'color','k');
-        saveas(Iout,[savefolder,filesep,saveroot,'Ihist_',num2str(imnum),'_d',num2str(n),'.png']);
-     
+        saveas(Iout,[savefolder,filesep,saveroot,...
+            'Ihist_',num2str(imnum),'_d',num2str(n),'.png']);
+%         imwrite(Ihist{n},[savefolder,filesep,saveroot,...
+%             'Ihist_',num2str(imnum),'_d',num2str(n),'.png']);
         
         imaxes = CC{handles.gui_number}.imaxes{n};
         vlist = CC{handles.gui_number}.vlists{n}; %#ok<NASGU>
-        save([savefolder,filesep,saveroot,'DotData_',num2str(imnum),'_d',num2str(n),'.mat'],'imaxes','vlist');
+        parData{1} = CC{handles.gui_number}.pars1;
+        parData{2} = CC{handles.gui_number}.pars2;
+        parData{3} = CC{handles.gui_number}.pars3;
+        parData{4} = CC{handles.gui_number}.pars4;
+        parData{5} = CC{handles.gui_number}.pars5;
+        parData{6} = CC{handles.gui_number}.pars6;
+        parData{7} = CC{handles.gui_number}.pars7;
+        parData{8} = CC{handles.gui_number}.pars0;
+        parData{9} = CC{handles.gui_number}.parsX;
+        
+        Imdata.Istorm = CC{handles.gui_number}.Istorm{n};
+        Imdata.Iconv = CC{handles.gui_number}.Iconv{n};
+        Imdata.Itime = CC{handles.gui_number}.Itime{n};
+        Imdata.Ihist = CC{handles.gui_number}.Ihist{n};
+        
+        save([savefolder,filesep,saveroot,'DotData_',num2str(imnum),...
+            '_d',num2str(n),'.mat'],'imaxes','vlist','parData','Imdata');
         
         Iout2 = figure(2); 
         text(imaxes.cx+6,imaxes.cy,...
          ['dot ',num2str(n)],'color','w'); 
      
-     disp(['saving data for dot',num2str(n),'...']);  
-     pause(.5); 
+         disp(['saving data for dot',num2str(n),'...']);  
+         pause(.5); 
     end
     
-    saveas(Iout2,[savefolder,filesep,saveroot,'Overview_',num2str(imnum),'.png']);
+    saveas(Iout2,[savefolder,filesep,saveroot,...
+        'Overview_',num2str(imnum),'.png']);
         
     
     figure(1); clf;
@@ -899,34 +944,42 @@ end % end if statement over steps
 
 function ChromatinPlots(handles, n)
 % plot data for cluster n in main figure window
-global CC
-    Istorm = CC{handles.gui_number}.Istorm ;
-    Iconv = CC{handles.gui_number}.Iconv;
-    Itime = CC{handles.gui_number}.Itime;
-    Ihist = CC{handles.gui_number}.Ihist;
-    cmp = CC{handles.gui_number}.cmp;
-    R = CC{handles.gui_number}.R;
-    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize;   
-    
-    TCounts = sum(R(n).PixelValues);
-    DotSize = length(R(n).PixelValues);
-    MaxD = max(R(n).PixelValues);
-    
+global CC   
     axes(handles.subaxis1); cla; %#ok<*LAXES>
-    imagesc(Iconv{n}); colormap hot;
-    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
-
+    showConv(handles,n);
+    
     axes(handles.subaxis2); cla; %#ok<*LAXES>
-    imagesc(Istorm{n}); colormap hot;
-    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
-    text(1.2*cluster_scale,2*cluster_scale,...
-        ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
-             num2str(DotSize),' maxD=',num2str(MaxD)],...
-             'color','w');
+    showSTORM(handles,n);
+    
+    axes(handles.subaxis3); hold off; cla; %#ok<*LAXES>
+    showDotTime(handles,n);
+    
+    axes(handles.subaxis4); cla; %#ok<*LAXES>
+    showHist(handles,n);
 
-    axes(handles.subaxis3); hold off; cla;  %#ok<*LAXES>
+function ChromatinPlots2(handles, n)
+% plot data for cluster n in main figure window 
+% called during cluster stat computation
+axes(handles.subaxis1); cla; %#ok<*LAXES>    
+showConv(handles,n);
+
+axes(handles.subaxis2); cla; %#ok<*LAXES>   
+showSTORM(handles,n);
+
+axes(handles.subaxis3); hold off; cla;  %#ok<*LAXES>
+showAreaPlot(handles,n);
+
+axes(handles.subaxis4); cla; %#ok<*LAXES>
+showHist(handles,n);
+    
+    
+function showDotTime(handles,n)    
+global CC  
+      
     if CC{handles.gui_number}.pars5.showColorTime
      hold on;
+    Itime = CC{handles.gui_number}.Itime;
+    cmp = CC{handles.gui_number}.cmp;
     scatter(Itime{n}(:,1),Itime{n}(:,2), 5, cmp{n}, 'filled');
     warning('off','MATLAB:hg:patch:RGBColorDataNotSupported');
     xlim([min(Itime{n}(:,1)),max(Itime{n}(:,1))]);
@@ -935,53 +988,53 @@ global CC
     set(gca,'color','k'); set(gcf,'color','w'); 
     set(gca,'XTick',[],'YTick',[]);
 
-    axes(handles.subaxis4); cla; %#ok<*LAXES>
-    imagesc(Ihist{n}); colormap hot;
-    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
-
-    
-
-function ChromatinPlots2(handles, n)
-% plot data for cluster n in main figure window
+function showConv(handles,n)
 global CC
-    Istorm = CC{handles.gui_number}.Istorm ;
-    Iconv = CC{handles.gui_number}.Iconv;
-    imnum = CC{handles.gui_number}.imnum; 
+    imagesc(CC{handles.gui_number}.Iconv{n}); colormap hot;
+    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+     
+
+function showSTORM(handles,n)
+global CC
+    cmin = CC{handles.gui_number}.pars0.cmin;
+    cmax = CC{handles.gui_number}.pars0.cmax;
+    Istorm = CC{handles.gui_number}.Istorm{n};
+    Istorm = imadjust(Istorm,[cmin,cmax],[0,1]);
     R = CC{handles.gui_number}.R;
-    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
-   
     TCounts = sum(R(n).PixelValues);
     DotSize = length(R(n).PixelValues);
     MaxD = max(R(n).PixelValues);
+    cluster_scale = CC{handles.gui_number}.pars0.npp/...
+                    CC{handles.gui_number}.pars3.boxSize;     
     
-    axes(handles.subaxis1); cla; %#ok<*LAXES>
-    imagesc(Iconv{n}); colormap hot;
-    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
-
-    axes(handles.subaxis2); cla; %#ok<*LAXES>
-    imagesc(Istorm{n}); colormap hot;
+    imagesc(Istorm); colormap hot;
     set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
     text(1.2*cluster_scale,2*cluster_scale,...
-        ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
-             num2str(DotSize),' maxD=',num2str(MaxD)],...
-             'color','w');
+    ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
+         num2str(DotSize),' maxD=',num2str(MaxD)],...
+         'color','w');
 
-         
-    axes(handles.subaxis3); hold off; cla;  %#ok<*LAXES>
+function showAreaPlot(handles,n)
+global CC
     try
-    Area = CC{handles.gui_number}.data.AllArea{imnum,n};
-    imagesc(CC{handles.gui_number}.M2{n}); %
+    cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize;     
+    Area = CC{handles.gui_number}.data.AllArea{CC{handles.gui_number}.imnum,n};
+    imagesc(CC{handles.gui_number}.map{n}); %
     text(1.2*cluster_scale,2*cluster_scale,...
         ['dot',num2str(n),' Area=',num2str(Area)],'color','w');
-    caxis([0,60]); colormap hot;
+    caxis([0,1]); colormap hot;
     set(gca,'XTick',[],'YTick',[]);
     catch er
         disp(er.message); 
     end
-
-    axes(handles.subaxis4); cla; %#ok<*LAXES>
-    imagesc(CC{handles.gui_number}.map{n}); 
+    
+function showHist(handles,n)
+global CC 
+    imagesc(CC{handles.gui_number}.Ihist{n}); 
     set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+
+
+
     
     
 % --- Executes on button press in StepParameters.
@@ -1000,6 +1053,7 @@ if step == 1
     Dprompt = {
     'Location of chromewarps.mat for chromatic correction',... 1
     };
+
     Opts{1} = CC{handles.gui_number}.pars1.BeadFolder;
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
     if isempty(Opts); notCancel = false; end
@@ -1127,12 +1181,15 @@ elseif step == 6
 elseif step == 7
         dlg_title = 'Step 7 Pars: Data Export Options';  num_lines = 1;
     Dprompt = {
-    'Save dots colored-coded by frame number? (slow)'};     %1 
+    'Save dots colored-coded by frame number? (slow)'...
+    'root for savename'};     %1 
      Opts{1} = num2str(CC{handles.gui_number}.pars7.saveColorTime);
+     Opts{2} = CC{handles.gui_number}.pars7.saveroot;
      Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
     if isempty(Opts); notCancel = false; end
     if notCancel
      CC{handles.gui_number}.pars7.saveColorTime = eval(Opts{1}); % 30
+     CC{handles.gui_number}.pars7.saveroot = Opts{2}; 
     end
 end
     
@@ -1233,33 +1290,38 @@ RunStep_Callback(hObject, eventdata, handles)
 cleardata = input('New folder selected.  Clear current data? y/n? ','s');
 if strcmp(cleardata,'y');
     CC{handles.gui_number}.data = [];
+     CC{handles.gui_number}.pars7.saveroot ='';
 end
 
 
 
 
 % --- Executes on slider movement.
-function Xslider_Callback(hObject, eventdata, handles)
-% hObject    handle to Xslider (see GCBO)
+function DotSlider_Callback(hObject, eventdata, handles)
+% hObject    handle to DotSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global CC
 if CC{handles.gui_number}.step == 5
     n = round(get(hObject,'Value'));
+    set(handles.DotNum,'String',num2str(n));
+    CC{handles.gui_number}.dotnum = n;
     ChromatinPlots(handles, n);
 end
 if CC{handles.gui_number}.step >= 6
     n = round(get(hObject,'Value'));
+    set(handles.DotNum,'String',num2str(n));
+    CC{handles.gui_number}.dotnum = n;
     ChromatinPlots2(handles, n);
 end
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-% --- Executes on slider movement.
-function Yslider_Callback(hObject, eventdata, handles)
-global CC
-if CC{handles.gui_number}.step == 4
-end
+% % --- Executes on slider movement.
+% function Yslider_Callback(hObject, eventdata, handles)
+% global CC
+% if CC{handles.gui_number}.step == 4
+% end
 
 function ImageBox_Callback(hObject, eventdata, handles)
 
@@ -1267,15 +1329,15 @@ function ImageBox_Callback(hObject, eventdata, handles)
 function SaveFolder_Callback(hObject, eventdata, handles)
 
 
+% 
+% % --- Executes during object creation, after setting all properties.
+% function Yslider_CreateFcn(hObject, eventdata, handles)
+% if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor',[.9 .9 .9]);
+% end
 
 % --- Executes during object creation, after setting all properties.
-function Yslider_CreateFcn(hObject, eventdata, handles)
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-% --- Executes during object creation, after setting all properties.
-function Xslider_CreateFcn(hObject, eventdata, handles)
+function DotSlider_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
@@ -1314,10 +1376,89 @@ Nfiles = length(dat);
 for n=currImage:Nfiles
     disp(['Analyzing image ',num2str(1),' of ',num2str(Nfiles),' ',...
         dat.Name]); 
-    for step = 1:6
+    for step = 1:7
         CC{handles.gui_number}.step = step;
         RunStep_Callback(hObject, eventdata, handles);
     end
     NextImage_Callback(hObject, eventdata, handles)
 end
 CC{handles.gui_number}.auto = false; 
+
+
+
+function DotNum_Callback(hObject, eventdata, handles)
+global CC
+CC{handles.gui_number}.dotnum = str2double(get(hObject,'String'));
+try
+ set(handles.DotSlider,'Value',CC{handles.gui_number}.dotnum);
+ DotSlider_Callback; 
+catch er
+    disp(er.message);
+    warning('value out of range.');
+end
+
+ 
+% Hints: get(hObject,'String') returns contents of DotNum as text
+%        str2double(get(hObject,'String')) returns contents of DotNum as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function DotNum_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on slider movement.
+function CMaxSlider_Callback(hObject, eventdata, handles)
+% hObject    handle to CMaxSlider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global CC
+CC{handles.gui_number}.pars0.cmax = get(hObject,'Value');
+if CC{handles.gui_number}.step > 4
+    axes(handles.subaxis2); cla;
+    showSTORM(handles,CC{handles.gui_number}.dotnum);
+end
+
+% --- Executes on slider movement.
+function CMinSlider_Callback(hObject, eventdata, handles)
+% hObject    handle to CMinSlider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global CC
+CC{handles.gui_number}.pars0.cmin = get(hObject,'Value');
+if CC{handles.gui_number}.step > 4
+    axes(handles.subaxis2); cla;
+    showSTORM(handles,CC{handles.gui_number}.dotnum);
+end
+
+% --- Executes during object creation, after setting all properties.
+function CMaxSlider_CreateFcn(hObject, eventdata, handles)
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function CMinSlider_CreateFcn(hObject, eventdata, handles)
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --------------------------------------------------------------------
+function FileMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to FileMenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function OptionsMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to OptionsMenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
