@@ -60,15 +60,13 @@ function I = plotSTORM_colorZ(mlist, imaxes, varargin)
 %% Hard coded inputs
 %--------------------------------------------------------------------------
 % (mostly shorthand)
-scale = imaxes.scale;
-H = imaxes.H;
-W = imaxes.W;
-zm = imaxes.zm;
+
+
 Cs = length(mlist);
 chns = find(true - cellfun(@isempty,mlist))';
 [ch,cw] = size(chns); 
 if ch>cw; chns = chns'; end % must be row vector! 
-showScalebar = true;
+
 
 %--------------------------------------------------------------------------
 %% Default inputs
@@ -87,6 +85,37 @@ Zrange = [-500,500]; % range in nm
 npp = 160; 
 scalebar = 500;
 CorrectDrift = true;
+showScalebar = true;
+verbose = false; 
+
+% If imaxes is not passed as a variable
+if nargin == 1 || ischar(varargin{1})
+    molist = cell2mat(mlist);
+    allx = cat(1,molist.xc);
+    ally = cat(1,molist.yc);
+    imaxes.xmin =  floor(min(allx));
+    imaxes.xmax = ceil(max(allx));
+    imaxes.ymin = floor(min(ally));
+    imaxes.ymax = ceil(max(ally));
+    imaxes.H = imaxes.ymax - imaxes.ymin;
+    imaxes.W = imaxes.xmax - imaxes.xmin; 
+    imaxes.zm = 10; % default zoom; 
+    imaxes.scale = 1; 
+end
+    
+% Add necessary fields to a minimal imaxes; 
+H = imaxes.H;
+W = imaxes.W;
+zm = imaxes.zm;
+if ~isfield(imaxes,'scale'); imaxes.scale = 1; end
+if ~isfield(imaxes,'xmin'); imaxes.xmin = 0; end
+if ~isfield(imaxes,'xmax'); imaxes.xmax = H; end
+if ~isfield(imaxes,'ymin'); imaxes.ymin = 0; end
+if ~isfield(imaxes,'ymax'); imaxes.ymax = W; end
+
+scale = imaxes.scale;
+
+
 %--------------------------------------------------------------------------
 
 
@@ -121,6 +150,8 @@ if nargin > 2
                 scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
             case 'correct drift'
                 CorrectDrift = CheckParameter(parameterValue,'nonnegative','correct drift');
+            case 'verbose'
+                verbose = CheckParameter(parameterValue,'boolean','verbose');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -136,83 +167,94 @@ end
 %% Main Function
 %--------------------------------------------------------------------------
 
-if scalebar < 1
-    showScalebar = false; 
-end
-
-% initialize variables
-sig = cell(Cs,1);
-x = cell(Cs,1); 
-y = cell(Cs,1); 
-z = cell(Cs,1); 
-
-
-for c=chns
-    if CorrectDrift
-        x{c} = mlist{c}.xc;
-        y{c} = mlist{c}.yc;
-        z{c} = mlist{c}.zc;
-    else
-        x{c} = mlist{c}.x;
-        y{c} = mlist{c}.y;
-        z{c} = mlist{c}.z;
+% Test if GPU is available
+try
+    GenGaussianSRImage(5,5,ones(5,1),ones(5,1),ones(5,1),...
+     'zoom',1,'MaxBlobs',10);
+catch
+    if verbose
+         disp('GPU not available'); 
     end
-    a = mlist{c}.a;
-    sig{c} = real(dotsize(c)./sqrt(a)); % 5
-end
-xsize = W/zm; 
-ysize = H/zm; 
 
-I = cell(max(chns),1); 
-for c=chns
-  I{c} = zeros(round(ysize*zm*scale),round(xsize*zm*scale),Zs,'uint16'); 
-  zmin = Zrange(1);
-  zmax = Zrange(2); 
+    if scalebar < 1
+        showScalebar = false; 
+    end
 
-  Zsteps = linspace(zmin,zmax,Zs);
-  Zsteps = [-inf,Zsteps,inf];
+    % initialize variables
+    sig = cell(Cs,1);
+    x = cell(Cs,1); 
+    y = cell(Cs,1); 
+    z = cell(Cs,1); 
 
-      maxint = 0;
-      Iz = zeros(round(ysize*zm*scale),round(xsize*zm*scale),Zs,'single');
-      for k=1:Zs
-          if length(x{c}) >1
-             inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & y{c}>imaxes.ymin & y{c}<imaxes.ymax & z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
-             try
-               plotdots = inbox & infilter{c}';
-             catch %#ok<CTCH>
-%                  size(inbox)
-%                  size(infilter{c})
-                 plotdots = inbox & infilter{c};
-             end
-                 
-             xi = (x{c}(plotdots)-imaxes.xmin);
-             yi = (y{c}(plotdots)-imaxes.ymin);
-             si = sig{c}(plotdots);
-             si(si<maxdotsize) = maxdotsize;  % 
-             Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,'zoom',zm*scale,'MaxBlobs',maxblobs)';    
-             try
-             Iz(:,:,k) = Itemp;
-             catch
-                 [hnew,wnew] = size(Itemp);
-                 Iz = zeros(hnew,wnew,Zs,'single');
-                 I{c} = zeros(hnew,wnew,Zs,'single');
+    for c=chns
+        if CorrectDrift
+            x{c} = mlist{c}.xc;
+            y{c} = mlist{c}.yc;
+            z{c} = mlist{c}.zc;
+        else
+            x{c} = mlist{c}.x;
+            y{c} = mlist{c}.y;
+            z{c} = mlist{c}.z;
+        end
+        a = mlist{c}.a;
+        sig{c} = real(dotsize(c)./sqrt(a)); % 5
+    end
+    xsize = W/zm; 
+    ysize = H/zm; 
+
+    I = cell(max(chns),1); 
+    for c=chns
+      I{c} = zeros(round(ysize*zm*scale),round(xsize*zm*scale),Zs,'uint16'); 
+      zmin = Zrange(1);
+      zmax = Zrange(2); 
+
+      Zsteps = linspace(zmin,zmax,Zs);
+      Zsteps = [-inf,Zsteps,inf];
+
+          maxint = 0;
+          Iz = zeros(round(ysize*zm*scale),round(xsize*zm*scale),Zs,'single');
+          for k=1:Zs
+              if length(x{c}) >1
+                 inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & ...
+                     y{c}>imaxes.ymin & y{c}<imaxes.ymax & ...
+                     z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
+                 try
+                   plotdots = inbox & infilter{c}';
+                 catch %#ok<CTCH>
+    %                  size(inbox)
+    %                  size(infilter{c})
+                     plotdots = inbox & infilter{c};
+                 end
+
+                 xi = (x{c}(plotdots)-imaxes.xmin);
+                 yi = (y{c}(plotdots)-imaxes.ymin);
+                 si = sig{c}(plotdots);
+                 si(si<maxdotsize) = maxdotsize;  % 
+                 Itemp=GenGaussianSRImage(xsize,ysize,xi,yi,si,...
+                     'zoom',zm*scale,'MaxBlobs',maxblobs)';    
+                 try
                  Iz(:,:,k) = Itemp;
-             end
-             maxint = max(Itemp(:)) + maxint;
+                 catch
+                     [hnew,wnew] = size(Itemp);
+                     Iz = zeros(hnew,wnew,Zs,'single');
+                     I{c} = zeros(hnew,wnew,Zs,'single');
+                     Iz(:,:,k) = Itemp;
+                 end
+                 maxint = max(Itemp(:)) + maxint;
+              end
           end
-      end
-      
-      for k=1:Zs
-          I{c}(:,:,k) = uint16(Iz(:,:,k)./maxint*2^16);
-      end
-      
-   % add scalebar
-    if showScalebar
-        scb = round(1:scalebar/npp*zm*scale);
-        h1 = round(imaxes.H*.9*scale);
-        I{c}(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Zs,'uint16'); % Add scale bar and labels
-    end     
-end  
-  
 
+          for k=1:Zs
+              I{c}(:,:,k) = uint16(Iz(:,:,k)./maxint*2^16);
+          end
+
+       % add scalebar
+        if showScalebar
+            scb = round(1:scalebar/npp*zm*scale);
+            h1 = round(imaxes.H*.9*scale);
+            I{c}(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Zs,'uint16'); % Add scale bar and labels
+        end     
+    end  
+  
+end
   

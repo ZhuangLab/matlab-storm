@@ -49,10 +49,19 @@ end
 
 Io = zeros(h,w,3,class(I));
 
-for c=1:cls
-    for cc = 1:3
-    Io(:,:,cc) = Io(:,:,cc) + I(:,:,c)*cmap(c,cc);
+% make white the default for single color images
+% make red cyan the default for dual color images
+if cls == 1
+   Io = I; 
+elseif cls == 2 
+    Io(:,:,3) = I(:,:,1);
+else
+    for c=1:cls
+        for cc = 1:3
+        Io(:,:,cc) = Io(:,:,cc) + I(:,:,c)*cmap(c,cc);
+        end
     end
+
 end
 
 if nargout == 0

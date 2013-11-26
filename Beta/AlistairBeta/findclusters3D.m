@@ -39,6 +39,7 @@ function [subcluster,fig3d] = findclusters3D(x,y,z,varargin)
 % 'datarange' / cell / 
 %                   -- {xrange,yrange,zrange} determines min and max to
 %                   plot.  
+% 'fitGauss' / logical / false
 % 'plotson' / logical / true
 %                   -- 3D colored plot of clustering
 %--------------------------------------------------------------------------
@@ -71,7 +72,9 @@ sigmablur=[6,6,3];
 minvoxels = [];      
 plotson = true;
 plotboundingbox = false;
+fitGauss = false;
 figh = [];
+
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Parameters
@@ -94,6 +97,8 @@ if nargin > 3
                 datarange = CheckParameter(parameterValue, 'cell', 'datarange');
             case 'sigmablur'
                 sigmablur = CheckParameter(parameterValue, 'positive', 'sigmablur');
+            case 'fitGauss'
+                fitGauss = CheckParameter(parameterValue, 'boolean', 'fitGauss'); 
             case 'figh'
                 figh = CheckParameter(parameterValue, 'nonnegative', 'figh');
             case 'plotson'
@@ -237,7 +242,11 @@ end
       yp = y(vi{nn});
       zp = z(vi{nn});
       % Gaussian fit to each subcluster
-      Gfxn = fit3Dgauss(xp,yp,zp,'showplot',false);
+      if fitGauss
+        Gfxn = fit3Dgauss(xp,yp,zp,'showplot',false);
+      else
+          Gfxn = zeros(6,1);
+      end
       
       % Save some stats on clusters
       subcluster.sigma(nn,:) = [Gfxn(4),Gfxn(5),Gfxn(6)];
