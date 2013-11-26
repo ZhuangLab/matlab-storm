@@ -29,6 +29,9 @@ function infoFiles = AnalyzeSTORM(varargin)
 %
 % 'includeSubdir'/boolean(false): Determine if STORM analysis is run on
 % all folders within the default directory
+% 
+% 'outputInMatlab'/boolean(false): Determine if the process is run in the
+% matlab command line or in an extrernal dos line'
 %--------------------------------------------------------------------------
 % Outputs:
 %
@@ -77,6 +80,7 @@ numParallel = 6;
 includeSubdir = false;
 hideterminal = false;
 verbalize = false;
+outputInMatlab = false;
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -115,6 +119,8 @@ if nargin > 1
                 numFrames = CheckParameter(parameterValue, 'positive', 'numFrames');
             case 'verbalize'
                 numFrames = CheckParameter(parameterValue, 'positive', 'numFrames');
+            case 'outputInMatlab'
+                outputInMatlab = CheckParameter(parameterValue, 'boolean', 'outputInMatlab');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -313,41 +319,47 @@ doneFlag = false(1, length(commands));
 activeFlag = false(1, length(commands));
 processes = cell(1, length(commands));
 while any(~doneFlag)
-    %----------------------------------------------------------------------
-    % Start a command
-    %----------------------------------------------------------------------
-    while sum(activeFlag) < numParallel
-        nextInd = find(doneFlag==0 & ~activeFlag);
-        if isempty(nextInd)
-            break;
+    if ~outputInMatlab
+        %----------------------------------------------------------------------
+        % Start a command
+        %----------------------------------------------------------------------
+        while sum(activeFlag) < numParallel
+            nextInd = find(doneFlag==0 & ~activeFlag);
+            if isempty(nextInd)
+                break;
+            end
+            nextInd = nextInd(1); 
+            processes{nextInd} = SystemRun(commands{nextInd},'Hidden',hideterminal);
+            activeFlag(nextInd) = true;
+            if verbose
+                display(['Executing ' commands{nextInd}]);
+            end
         end
-        nextInd = nextInd(1); 
-        processes{nextInd} = SystemRun(commands{nextInd},'Hidden',hideterminal);
-        activeFlag(nextInd) = true;
+
+        %----------------------------------------------------------------------
+        % Find the files that are done
+        %----------------------------------------------------------------------
+        oldActiveFlag = activeFlag;
+        for i=1:length(processes)
+            if ~strcmp(class(processes{i}), 'double')
+                doneFlag(i) = processes{i}.HasExited;
+                activeFlag(i) = ~processes{i}.HasExited;
+            end 
+        end
+
         if verbose
-            display(['Executing ' commands{nextInd}]);
+            inds = find(~activeFlag & oldActiveFlag);
+            for j=inds
+                display(['Finished: ' commands{j}]);
+            end
+        end
+
+        pause(waitTime);
+    else
+        for i=1:length(commands)
+            dos(commands{i});
         end
     end
-    
-    %----------------------------------------------------------------------
-    % Find the files that are done
-    %----------------------------------------------------------------------
-    oldActiveFlag = activeFlag;
-    for i=1:length(processes)
-        if ~strcmp(class(processes{i}), 'double')
-            doneFlag(i) = processes{i}.HasExited;
-            activeFlag(i) = ~processes{i}.HasExited;
-        end 
-    end
-    
-    if verbose
-        inds = find(~activeFlag & oldActiveFlag);
-        for j=inds
-            display(['Finished: ' commands{j}]);
-        end
-    end
-    
-    pause(waitTime);
 end
 
 %----------------------------------------------------------------------
