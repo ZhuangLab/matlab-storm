@@ -201,11 +201,17 @@ end
 %--------------------------------------------------------------------------
 
 % Test if GPU is available
+try
  Itest =   GenGaussianSRImage(1,1,1,1,1,'zoom',1,'MaxBlobs',10);
+catch er
+   % disp(er.message);
+    useGPU = false;
+    Itest = 0; 
+end
 if Itest < 1E-10  || ~useGPU; 
-    if verbose
-         disp('GPU not available'); 
-    end
+%     if verbose
+%          disp('GPU not available'); 
+%     end
     % Use CPU version of render instead:
     I = list2img(mlist,imaxes,'filter',infilter,'dotsize',dotsize,...
         'Zsteps',Zs,'Zrange',Zrange','nm per pixel',npp,...

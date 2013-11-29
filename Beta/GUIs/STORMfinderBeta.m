@@ -760,46 +760,6 @@ elseif FitMethod == 3
  RunDotFinder('daxfile',SF{handles.gui_number}.daxfile,'parsfile',...
      SF{handles.gui_number}.gpufile,'method','GPUmultifit'); 
 end
-% --------------------------------------------------------------------
-function MenuAnalyzeRegion_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuAnalyzeRegion (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global SF
-
-[x,y] = ginput(2); 
-x = round(x);
-y = round(y); % need to cut at even pixels
-xmin = min(x); 
-xmax = max(x);
-ymin = min(y);
-ymax = max(y); 
-xsize = xmax - xmin;
-ysize = ymax - ymin; 
-
-axes(handles.axes1); hold on;
-rectangle('Position',[xmin,ymin,xsize,ysize],'EdgeColor','w');
-axis off;   
-pause(.1); 
-[movie, infoFile] = ReadDaxBeta(SF{handles.gui_number}.daxfile,...
-    'subregion',[xmin,xmax,ymin,ymax]);
-disp('grabbing region...')
-infoFile.localName = ['Reg_x',num2str(xmin),'to',num2str(xmax),...
-    'y',num2str(ymin),'to',num2str(ymax),'_',infoFile.localName];
-
-WriteDAXFiles(movie,infoFile);
-daxname = [infoFile.localPath,infoFile.localName(1:end-4),'.dax'];
- FitMethod = get(handles.FitMethod,'Value');
-if FitMethod == 1
- RunDotFinder('daxfile',daxname,'parsfile',...
-     SF{handles.gui_number}.inifile,'method','insight');
-elseif FitMethod == 2
- RunDotFinder('daxfile',daxname,'parsfile',...
-     SF{handles.gui_number}.xmlfile,'method','DaoSTORM'); 
-elseif FitMethod == 3
- RunDotFinder('daxfile',daxname,'parsfile',...
-     SF{handles.gui_number}.gpufile,'method','GPUmultifit'); 
-end
 
 
 % --------------------------------------------------------------------

@@ -792,11 +792,13 @@ else
     Zsteps = 1;
 end
 
-SR{handles.gui_number}.I = plotSTORM_colorZ(mlist, SR{handles.gui_number}.imaxes,...
+
+SR{handles.gui_number}.I = list2img(mlist, SR{handles.gui_number}.imaxes,...
     'filter',SR{handles.gui_number}.infilter,...
     'Zrange',SR{handles.gui_number}.DisplayOps.zrange,...
     'dotsize',SR{handles.gui_number}.DisplayOps.DotScale,...
     'Zsteps',Zsteps,'scalebar',0,...
+    'N',6,...
     'correct drift',SR{handles.gui_number}.DisplayOps.CorrDrift);
 
 
@@ -856,7 +858,7 @@ Cs = length(SR{handles.gui_number}.mlist);
     SR{handles.gui_number}.infilter = cell(Cs,1);
     channels = find(1-cellfun(@isempty,SR{handles.gui_number}.mlist))';
     for i=channels
-        SR{handles.gui_number}.infilter{i} = true(size([SR{handles.gui_number}.mlist{i}.xc]))';
+        SR{handles.gui_number}.infilter{i} = true(size([SR{handles.gui_number}.mlist{i}.xc]));  % 
     end
     
 for c=1:length(handles.stormbutton)

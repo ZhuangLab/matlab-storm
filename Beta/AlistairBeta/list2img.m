@@ -48,7 +48,7 @@ npp = 160;
 scalebar = 500;
 CorrectDrift = true;
 showScalebar = true;
-
+fastMode = false;
 
 % If imaxes is not passed as a variable
 if nargin == 1 || ischar(varargin{1})
@@ -120,6 +120,10 @@ if ~isempty(varinput)
                 scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
             case 'correct drift'
                 CorrectDrift = CheckParameter(parameterValue,'nonnegative','correct drift');
+            case 'Fast'
+                fastMode =  CheckParameter(parameterValue,'boolean','Fast');
+            case 'N'
+                N  = CheckParameter(parameterValue,'positive','N');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -208,7 +212,9 @@ for c=chns
             yi = y{c}(plotdots)*zm-imaxes.ymin*zm;
             It = hist3([yi,xi],'Edges',{1:H,1:W}); % drop all molecules into chosen x,y bin   {1.5:h*zm+.5, 1.5:w*zm+.5}
             gaussblur = fspecial('gaussian',150,wc(n)); % create gaussian filter of appropriate width
-            It = imfilter(gc(n)*It,gaussblur); % convert into gaussian of appropriate width
+            if ~fastMode
+                It = imfilter(gc(n)*It,gaussblur); % convert into gaussian of appropriate width
+            end
           %  figure(3); clf; imagesc(It); title(num2str(n));
             I0 = I0 + It;
          end
