@@ -51,6 +51,13 @@ global DaoSTORMexe; % System executable command for DaoSTORM
 global ScratchPath;
 global PythonPath; 
 
+% MODIFY THESE PATHS 
+ScratchPath = [General_STORM,'Test_data\']; 
+defaultIniFile= [General_STORM,'STORM_Parameters\647zcal_storm2.ini'];
+defaultXmlFile = [General_STORM,'STORM_Parameters\647_mufit3d_pars.xml'];
+defaultGPUmFile =  [General_STORM,'STORM_Parameters\GPUmultiPars.mat'];
+
+
 % Add Dlls & Python to the system path anytime DaoSTORM is called.  
 PythonPath = 'C:\Python27\'; % 
 newDaoPath = [stormAnalysisPath,'3d_daostorm\'];
@@ -67,12 +74,6 @@ DaoSTORMcmd = ['python.exe ',newDaoPath,'mufit_analysis.py',' '];
 
 DaoSTORMexe = [SetPathCmd, DaoSTORMcmd];
 InsightExe = [basePath,filesep,'External', filesep,'Insight3', filesep, 'InsightM.exe'];
-
-% MODIFY THESE PATHS 
-ScratchPath = [General_STORM,'Test_data\']; 
-defaultIniFile= [General_STORM,'STORM_Parameters\647zcal_storm2.ini'];
-defaultXmlFile = [General_STORM,'STORM_Parameters\647_mufit3d_pars.xml'];
-defaultGPUmFile =  [General_STORM,'STORM_Parameters\GPUmultiPars.mat'];
 
 
 
