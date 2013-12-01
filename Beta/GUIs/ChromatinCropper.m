@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 16-Nov-2013 23:14:33
+% Last Modified by GUIDE v2.5 01-Dec-2013 16:17:14
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -257,9 +257,9 @@ if step == 1
                  load(warpfile);
 
                 warpedLamina = imtransform(lamina,tform_1_inv{3},...
-                    'XYScale',1,'XData',[1 256],'YData',[1 256]);
+                    'XYScale',1,'XData',[1 256],'YData',[1 256]); %#ok<USENS>
                 warpedLamina = imtransform(warpedLamina,tform2D_inv{3},...
-                    'XYScale',1,'XData',[1 256],'YData',[1 256]);
+                    'XYScale',1,'XData',[1 256],'YData',[1 256]); %#ok<USENS>
 
                 warpedBeads = imtransform(beads,tform_1_inv{2},...
                     'XYScale',1,'XData',[1 256],'YData',[1 256]);
@@ -911,6 +911,7 @@ elseif step == 7
         Imdata.Iconv = CC{handles.gui_number}.Iconv{n};
         Imdata.Itime = CC{handles.gui_number}.Itime{n};
         Imdata.Ihist = CC{handles.gui_number}.Ihist{n};
+        Imdata.name = CC{handles.gui_number}.binfiles(imnum).name;
         
         save([savefolder,filesep,saveroot,'DotData_',num2str(imnum),...
             '_d',num2str(n),'.mat'],'imaxes','vlist','parData','Imdata');
@@ -1462,3 +1463,34 @@ function OptionsMenu_Callback(hObject, eventdata, handles)
 % hObject    handle to OptionsMenu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuResumePrevious_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuResumePrevious (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global CC
+
+savefolder = get(handles.SaveFolder,'String');
+[fileName,filePath,notCancel] = uigetfile(savefolder);
+if notCancel ~= 0
+    disp('loading data..');
+    load([filePath,filesep,fileName]);
+    CC{handles.gui_number}.data = data;
+    CC{handles.gui_number}.pars0 = CCguiData.pars0;
+    CC{handles.gui_number}.pars1 = CCguiData.pars1;
+    CC{handles.gui_number}.pars2 = CCguiData.pars2;
+    CC{handles.gui_number}.pars3 = CCguiData.pars3;
+    CC{handles.gui_number}.pars4 = CCguiData.pars4;
+    CC{handles.gui_number}.pars5 = CCguiData.pars5;
+    CC{handles.gui_number}.pars6 = CCguiData.pars6;
+    CC{handles.gui_number}.pars7 = CCguiData.pars7;
+    CC{handles.gui_number}.parsX = CCguiData.parsX;
+    CC{handles.gui_number}.imnum = CCguiData.imnum-1;
+    NextImage_Callback(hObject, eventdata, handles);
+    
+end
+
+
+
