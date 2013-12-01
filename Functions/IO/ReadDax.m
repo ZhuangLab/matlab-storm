@@ -149,14 +149,18 @@ end
 %--------------------------------------------------------------------------
 
 TFrames = infoFile.number_of_frames;
+if isempty(endFrame)
+    endFrame = TFrames;
+end
 numFrames = endFrame - startFrame + 1;
 frameDim = infoFile.frame_dimensions;
 frameSize = infoFile.frame_dimensions(1)*infoFile.frame_dimensions(2);
 
+
 % Determine number of frames to load
 DoThis = 1; 
-if numFrames > 5000
-    DoThis = input(['Requested file has more than 5000 frames.  Are you sure ',...
+if numFrames > 3000
+    DoThis = input(['Requested file has more than 3000 frames.  Are you sure ',...
         'you want to load?  (Filling memory may crash the computer) ',...
         '0 = abort, 1 = continue, n = new end frame  ']);
     if DoThis > 1 
@@ -164,7 +168,8 @@ if numFrames > 5000
         DoThis = true;
     end
 end
-    
+   
+
 if DoThis
     % parse now outdated 'allFrames' for backwards compatability
     if ~isempty(allFrames) 
