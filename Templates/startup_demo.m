@@ -19,8 +19,8 @@ restoredefaultpath; % Clear previous paths
 warning on all
 %% Define matlab-storm Path
 
-basePath = 'C:\Users\Documents\Alistair\Github\matlab-storm';  %% MODIFY this path for the local machine
-stormAnalysisPath= 'C:\Users\Documents\Alistair\Github\storm-analysis';  %% MODIFY this path for the local machine
+basePath = 'C:\Users\Alistair\Documents\Github\matlab-storm';  %% MODIFY this path for the local machine
+stormAnalysisPath= 'C:\Users\Alistair\Documents\Github\storm-analysis';  %% MODIFY this path for the local machine
 % addpath('C:\Users\Documents\Alistair\Matlab');
 addpath(basePath, '-begin');
 
@@ -53,9 +53,9 @@ global PythonPath;
 
 % MODIFY THESE PATHS 
 ScratchPath = [General_STORM,'Test_data\']; 
-defaultIniFile= [General_STORM,'STORM_Parameters\647zcal_storm2.ini'];
-defaultXmlFile = [General_STORM,'STORM_Parameters\647_mufit3d_pars.xml'];
-defaultGPUmFile =  [General_STORM,'STORM_Parameters\GPUmultiPars.mat'];
+defaultIniFile= [basePath,'Templates\647zcal_storm2.ini'];
+defaultXmlFile = [basePath,'Templates\647_mufit3d_pars.xml'];
+defaultGPUmFile =  [basePath,'Templates\GPUmultiPars.mat'];
 
 
 % Add Dlls & Python to the system path anytime DaoSTORM is called.  
