@@ -473,7 +473,7 @@ end
 
 % load([ScratchPath, 'troubleshoot.mat']);
 
-% save([ScratchPath  'troubleshoot.mat']);
+% save([ScratchPath  'troubleshoot.mat']); disp('saving Troubeshooting data');
 
 cx_radius = match_radius;
 
@@ -481,12 +481,12 @@ cx_radius = match_radius;
 cmap = hsv(Nsamples);
 mark = {'o','o','.'};
       
-% plots for troubleshooting
-% k = 1; 
+% % plots for troubleshooting
+%  k = 1; 
 % figure(1); clf; 
 % for s=1:Nsamples
-%     plot(data(s).refchn(k).x,data(s).refchn(k).y,mark{s},'color',cmap(s,:)); hold on;
-%     plot(data(s).sample(k).x,data(s).sample(k).y,'+','color',cmap(s,:)); hold on;
+%     plot(data(s).refchn(k).x,data(s).refchn(k).y,'+','color',cmap(s,:)); hold on;
+%     plot(data(s).sample(k).x,data(s).sample(k).y,mark{s},'color',cmap(s,:)); hold on;
 % end
 
 tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
@@ -878,6 +878,18 @@ for s=1:Nsamples
 end
 set(gcf,'color','w');
 
+% SAVE transforms
+chn_warp_names = cell(Nsamples,2);
+for s=1:Nsamples
+    chn_warp_names{s,1} = data(s).sample(1).chn;
+    chn_warp_names{s,2} = data(s).refchn(1).chn;
+end
+
+save([pathin,filesep,'chromewarps.mat'],'tform_1','tform','tform2D',...
+    'cdf','cdf2D','cdf_thresh','cdf2D_thresh','thr','chn_warp_names',...
+    'tform_1_inv','tform_inv','tform2D_inv');
+disp(['wrote ',pathin,filesep,'chromewarps.mat']);  
+
 saveas(fig_warperr,[pathin,filesep,saveroot,'fig_warperr.png']);
 saveas(fig_xyerr,[pathin,filesep,saveroot,'fig_xyerr.png']);  
 saveas(fig_zdist,[pathin,filesep,saveroot,'fig_zdist.png']);
@@ -885,18 +897,9 @@ saveas(fig_xzerr,[pathin,filesep,saveroot,'fig_xyzerr.png']);
 saveas(fig_xyerr_all,[pathin,filesep,saveroot,'fig_xyerr_all.png']);
 saveas(fig_warperr_2d,[pathin,filesep,saveroot,'fig_warperr_2d.png']);
 
-chn_warp_names = cell(Nsamples,2);
-for s=1:Nsamples
-    chn_warp_names{s,1} = data(s).sample(1).chn;
-    chn_warp_names{s,2} = data(s).refchn(1).chn;
-end
 
 
-% SAVE transforms
-save([pathin,filesep,'chromewarps.mat'],'tform_1','tform','tform2D',...
-    'cdf','cdf2D','cdf_thresh','cdf2D_thresh','thr','chn_warp_names',...
-    'tform_1_inv','tform_inv','tform2D_inv');
-disp(['wrote ',pathin,filesep,'chromewarps.mat']);    
+  
 
 disp('3D bead fitting complete');
 

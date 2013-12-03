@@ -59,9 +59,7 @@ if isempty(strfind(A,'No Instance(s) Available'))
         startTime = str2double(hourS)*60*60+str2double(minS)*60+str2double(secS);
         if currTime - startTime > maxTime;
             stopProcess = ['wmic process ',idString,' delete '];
-            if verbose
-                disp(['aborting process ',idString]); 
-            end
+            disp(['aborting process ',idString]); 
             dos(stopProcess);
         end
     end

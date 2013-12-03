@@ -899,7 +899,8 @@ options.order = 3;
 options.K = [];
 N = [];
 
-iptchecknargin(2,4,nargin,mfilename);
+narginchk(2,4);
+% iptchecknargin(2,4,nargin,mfilename);
 
 % figure out if syntax is
 % CP2TFORM(CPSTRUCT,TRANSFORMTYPE,...) or

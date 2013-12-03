@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 01-Dec-2013 16:17:14
+% Last Modified by GUIDE v2.5 02-Dec-2013 14:46:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -107,8 +107,8 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
      CC{handles.gui_number}.pars3.mindensity = 0; % min number of localizations per STORM dot
      CC{handles.gui_number}.pars3.startFrame = 1; 
      % step 4 parameters
-    CC{handles.gui_number}.pars4.maxDrift = 6;
-    CC{handles.gui_number}.pars4.fmin = .35;
+    CC{handles.gui_number}.pars4.maxDrift = 3;
+    CC{handles.gui_number}.pars4.fmin = .5;
     CC{handles.gui_number}.pars4.startFrame = 1;
     CC{handles.gui_number}.pars4.showPlots = true; 
     CC{handles.gui_number}.pars4.showExtraPlots = false; 
@@ -122,7 +122,7 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
 	CC{handles.gui_number}.pars6.minloc = 1; % min number of localization per box
 	CC{handles.gui_number}.pars6.minSize = 30; % min size in number of boxes
     % step 7 parameters
-    CC{handles.gui_number}.pars7.saveColorTime = false; % This is useful but slow
+    CC{handles.gui_number}.pars7.saveColorTime = true; % This is useful but slow
     CC{handles.gui_number}.pars7.saveroot = '';
     % step X parameters for X-correlation drift correction
     CC{handles.gui_number}.parsX.stepFrame = 8000; % 'stepframe' / double / 10E3 -- number of frames to average
@@ -215,7 +215,7 @@ if step == 1
          dax = zeros(H,W,1,'uint16');
          for z=1:convZs
              try
-                 daxtemp = mean(ReadDax([folder,filesep,convname(z).name]),3);
+                 daxtemp = mean(ReadDax([folder,filesep,convname(z).name],'verbose',false),3);
                  dax = max(cat(3,dax,daxtemp),[],3);
              catch er
                  disp(er.message);
@@ -226,7 +226,7 @@ if step == 1
          title('conventional image projected');
          try
             conv0Name = regexprep([folder,filesep,daxname],'storm','conv_z0');
-            conv0 = mean(ReadDax(conv0Name),3);
+            conv0 = mean(ReadDax(conv0Name,'verbose',false),3);
          catch er
             disp(er.message);
             conv0 = dax;  
@@ -235,7 +235,7 @@ if step == 1
           %%% try to load lamina and beads
          try
             laminaName =  regexprep(conv0Name,'647','488');
-            lamina = mean(ReadDax(laminaName),3);
+            lamina = mean(ReadDax(laminaName,'verbose',false),3);
          catch er
             disp(er.message);
             lamina = zeros(size(dax),'uint16');  
@@ -243,7 +243,7 @@ if step == 1
          
          try
              beadsName=regexprep(conv0Name,'647','561');
-             beads= mean(ReadDax(beadsName),3);
+             beads= mean(ReadDax(beadsName,'verbose',false),3);
          catch er
             disp(er.message);
             beads = zeros(size(dax),'uint16');
@@ -1290,8 +1290,9 @@ RunStep_Callback(hObject, eventdata, handles)
 % Clear current data
 cleardata = input('New folder selected.  Clear current data? y/n? ','s');
 if strcmp(cleardata,'y');
-    CC{handles.gui_number}.data = [];
+     CC{handles.gui_number}.data = [];
      CC{handles.gui_number}.pars7.saveroot ='';
+     disp('data cleared'); 
 end
 
 
@@ -1494,3 +1495,14 @@ end
 
 
 
+
+
+% --------------------------------------------------------------------
+function MenuSetWorkingDir_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuSetWorkingDir (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global CC
+CC{handles.gui_number}.source = uigetdir;
+set(handles.SourceFolder,'String',CC{handles.gui_number}.source);
+SourceFolder_Callback(hObject, eventdata, handles);
