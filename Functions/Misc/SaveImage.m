@@ -64,7 +64,7 @@ if nargin > 2
         parameterValue = varpars{parameterIndex*2};
         switch parameterName
             case 'ifConflict'
-                ifConflict= CheckList(parameterValue, {'prompt','increment'}, 'ifConflict');
+                ifConflict= CheckList(parameterValue, {'prompt','increment','overwrite'}, 'ifConflict');
             case 'verbose'
                 verbose = CheckParameter(parameterValue,'boolean','verbose');
             otherwise
