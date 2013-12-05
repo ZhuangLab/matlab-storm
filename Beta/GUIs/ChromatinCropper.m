@@ -225,10 +225,17 @@ if step == 1
          figure(11); clf; imagesc(dax); colorbar; colormap hot;
          title('conventional image projected');
          try
+            % get conventional image name, 
+            if isempty(strfind(daxname,'647quad'))
+            conv0Name = ['647quad_',regexprep(daxname,'storm','conv_z0')];
+            conv0Name = [folder,filesep,conv0Name];
+            else
             conv0Name = regexprep([folder,filesep,daxname],'storm','conv_z0');
+            end
             conv0 = mean(ReadDax(conv0Name,'verbose',false),3);
          catch er
             disp(er.message);
+            disp(['could not find file ',conv0Name]);
             conv0 = dax;  
          end
 
@@ -256,17 +263,21 @@ if step == 1
                  warpfile = [BeadFolder,filesep,'chromewarps.mat'];
                  load(warpfile);
 
-                warpedLamina = imtransform(lamina,tform_1_inv{3},...
+                 chn488 = find(strcmp(chn_warp_names(:,1),'488'));
+                warpedLamina = imtransform(lamina,tform_1_inv{chn488},...
                     'XYScale',1,'XData',[1 256],'YData',[1 256]); %#ok<USENS>
-                warpedLamina = imtransform(warpedLamina,tform2D_inv{3},...
+                warpedLamina = imtransform(warpedLamina,tform2D_inv{chn488},...
                     'XYScale',1,'XData',[1 256],'YData',[1 256]); %#ok<USENS>
 
-                warpedBeads = imtransform(beads,tform_1_inv{2},...
+                 chn561 = find(strcmp(chn_warp_names(:,1),'561'));
+                warpedBeads = imtransform(beads,tform_1_inv{chn561},...
                     'XYScale',1,'XData',[1 256],'YData',[1 256]);
-                warpedBeads = imtransform(warpedBeads,tform2D_inv{2},...
+                warpedBeads = imtransform(warpedBeads,tform2D_inv{chn561},...
                     'XYScale',1,'XData',[1 256],'YData',[1 256]);
              end
          catch er
+             % save([ScratchPath,'test.mat']);
+             %  load([ScratchPath,'test.mat']);
              goOn = false;
              disp(er.message);
              BeadFolder = uigetdir(folder,'..');
