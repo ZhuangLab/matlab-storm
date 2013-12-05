@@ -150,16 +150,11 @@ end
 
 % Bin data in 3D, 
 %--------------------------------------------------------------------------
-voxel = [xrange(2)/bins(1),yrange(2)/bins(2),(zrange(2)-zrange(1))/bins(3)];
+voxel = [(xrange(2)-xrange(1))/bins(1),(yrange(2)-yrange(1))/bins(2),(zrange(2)-zrange(1))/bins(3)];
 M4 = hist4(x,y,z,'bins',bins,'datarange',{xrange,yrange,zrange});
 % % for troubleshooting
 % figure(4); clf; Ncolor(1000*M4); 
     
-%   %  Old way -- threshold the map, reject small clusters
-%     M5 = M4>6; % 10
-%     M5 = bwareaopen(M5,50); % 50
-%     R3 = regionprops(M5,M4,'PixelValues','WeightedCentroid','BoundingBox','PixelList');
- 
 
 % smooth data and apply watershed filter   
 %-----------------------------------------------------------

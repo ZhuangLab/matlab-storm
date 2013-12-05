@@ -78,10 +78,28 @@ else
 end
     
 
-% Add necessary fields to a minimal imaxes; 
-H = imaxes.H;
-W = imaxes.W;
+% Add necessary fields to a minimal imaxes;
+%  minimal imaxes is just imaxes.zm; 
 if ~isfield(imaxes,'scale'); imaxes.scale = 1; end
+if ~isfield(imaxes,'H') && ~isfield(imaxes,'xmin');
+    molist = cell2mat(mlist);
+    allx = cat(1,molist.xc);
+    ally = cat(1,molist.yc);
+    imaxes.xmin =  floor(min(allx));
+    imaxes.xmax = ceil(max(allx));
+    imaxes.ymin = floor(min(ally));
+    imaxes.ymax = ceil(max(ally));
+    imaxes.H =  (imaxes.ymax - imaxes.ymin)*imaxes.zm*imaxes.scale;
+    imaxes.W =  (imaxes.xmax - imaxes.xmin)*imaxes.zm*imaxes.scale; 
+elseif ~isfield(imaxes,'H') && isfield(imaxes,'xmin'); 
+    imaxes.H =  (imaxes.ymax - imaxes.ymin)*imaxes.zm;
+    imaxes.W =  (imaxes.xmax - imaxes.xmin)*imaxes.zm; 
+else
+    H = imaxes.H;
+    W = imaxes.W;
+end
+    
+
 if ~isfield(imaxes,'xmin'); imaxes.xmin = 0; end
 if ~isfield(imaxes,'xmax'); imaxes.xmax = H; end
 if ~isfield(imaxes,'ymin'); imaxes.ymin = 0; end
@@ -202,14 +220,15 @@ for c=chns
      Iz = zeros(H,W,Zs);          
      for k=1:Zs
          I0 = zeros(H,W);          
-         inZ =  z{c} > Zsteps(k) & z{c} < Zsteps(k+1);
+         inZ =  z{c} >= Zsteps(k) & z{c} < Zsteps(k+2);
          for n=1:N
              inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & ...
                      y{c}>imaxes.ymin & y{c}<imaxes.ymax;
-            inW = sigC{c} > wdth(n) & sigC{c} < wdth(n+1);
+            inW = sigC{c} >= wdth(n) & sigC{c} < wdth(n+1);
             plotdots = inbox & inW & inZ & infilter{c} ; % find all molecules which fall in this photon bin        
             xi = x{c}(plotdots)*zm-imaxes.xmin*zm;
             yi = y{c}(plotdots)*zm-imaxes.ymin*zm;
+           
             It = hist3([yi,xi],'Edges',{1:H,1:W}); % drop all molecules into chosen x,y bin   {1.5:h*zm+.5, 1.5:w*zm+.5}
             gaussblur = fspecial('gaussian',150,wc(n)); % create gaussian filter of appropriate width
             if ~fastMode
