@@ -79,7 +79,7 @@ if ~compact
     MList = repmat(MList, [1 numElements]);
 else
     for i=1:length(fieldNames)
-        MList.(fieldNames{i}) = eval([fieldTypes{i} '(' defaultValues{i} '*ones(1, ' ...
+        MList.(fieldNames{i}) = eval([fieldTypes{i} '(' defaultValues{i} '*ones(1, ', ...
             num2str(numElements) ') )']);
     end
 end
