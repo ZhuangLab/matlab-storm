@@ -17,13 +17,26 @@ display('------------------------------------------------------------------');
 warning off all
 restoredefaultpath; % Clear previous paths
 warning on all
+
+
+
+%% Define Global Variables
+global InsightExe; % System executable command for InsightM
+global DaoSTORMexe; % System executable command for DaoSTORM
+global defaultXmlFile; % path and name of default DaoSTORM parameters
+global defaultIniFile;  % path and name of default insight parameters
+global defaultGPUmFile; % path to default GPUmultifit pars 
+global ScratchPath; % place for matlab-storm to save temporary files
+
 %% Define matlab-storm Path
 
-basePath = 'C:\Users\Alistair\Documents\Github\matlab-storm';  %% MODIFY this path for the local machine
-stormAnalysisPath= 'C:\Users\Alistair\Documents\Github\storm-analysis';  %% MODIFY this path for the local machine
-% addpath('C:\Users\Documents\Alistair\Matlab');
-addpath(basePath, '-begin');
+% MODIFY THESE PATHS 
+ScratchPath = [basePath,'\..\ScratchPath\']; 
+basePath = 'C:\Users\Alistair\Documents\Github\matlab-storm';  
+stormAnalysisPath= 'C:\Users\Alistair\Documents\Github\storm-analysis';  
 
+
+addpath(basePath, '-begin');
 disp('Base path set to:')
 disp(['     ',basePath]);
 display('------------------------------------------------------------------');
@@ -42,50 +55,42 @@ addpath(BetaPaths);
 display('------------------------------------------------------------------');
 cd(basePath);
 
-%% Define Global Variables
-global InsightExe; % Path to InsightM.exe
-global defaultXmlFile; % path and name of default DaoSTORM parameters
-global defaultIniFile;  % path and name of default insight parameters
-global defaultGPUmFile; % path to default GPUmultifit pars 
-global DaoSTORMexe; % System executable command for DaoSTORM
-global ScratchPath;
-global PythonPath; 
 
-% MODIFY THESE PATHS 
-ScratchPath = [General_STORM,'Test_data\']; 
-defaultIniFile= [basePath,'Templates\647zcal_storm2.ini'];
-defaultXmlFile = [basePath,'Templates\647_mufit3d_pars.xml'];
-defaultGPUmFile =  [basePath,'Templates\GPUmultiPars.mat'];
+%% Define paths for other STORM analysis software 
 
+% Optionally change the default parameter files
+defaultIniFile = [basePath,'\Templates\647zcal_storm2.ini'];
+defaultXmlFile = [basePath,'\Templates\647_3dmufit_pars.xml'];
+defaultGPUmFile = [basePath,'\Templates\GPUmultiPars.mat'];
 
-% Add Dlls & Python to the system path anytime DaoSTORM is called.  
+% Insight3 Path (modify if necessary)
+InsightPath = [basePath,filesep,'External', filesep,'Insight3'];
+
+% Set all the necessary paths for DaoSTORM to run  
 PythonPath = 'C:\Python27\'; % 
-newDaoPath = [stormAnalysisPath,'3d_daostorm\'];
-windowsDllPath = [stormAnalysisPath,'windows_dll\'];
-
-% The necessary file paths
-SetPaths = {[PythonPath,';'];
-            [windowsDllPath,';']};
-
-% The new DaoSTORM command. 
-SetPathCmd = ['path=',SetPaths{:},' && '];
+newDaoPath = [stormAnalysisPath,filesep,'3d_daostorm\'];
+windowsDllPath = [stormAnalysisPath,filesep,'windows_dll\'];
+SetWindowsPaths = ['path=',PythonPath,';',windowsDllPath,';',' && '];
+SetPythonPaths =['set PYTHONPATH=%PYTHONPATH%;',stormAnalysisPath,'/; && '];
 DaoSTORMcmd = ['python.exe ',newDaoPath,'mufit_analysis.py',' '];
 
 
-DaoSTORMexe = [SetPathCmd, DaoSTORMcmd];
-InsightExe = [basePath,filesep,'External', filesep,'Insight3', filesep, 'InsightM.exe'];
+DaoSTORMexe = [SetWindowsPaths,SetPythonPaths,DaoSTORMcmd];
+InsightExe = [InsightPath, filesep, 'InsightM.exe'];
+
+demoDaoSTORMcall = ['[DaoSTORMexe,daxfile,',''' '',','defaultXmlFile]'];
+demoInsightMcall = ['[InsightExe,daxfile,',''' '',','defaultIniFile]'];
 
 
-
-display(['    Scratch Path set: ' ScratchPath]);
-display(['    Insight Executable set: ' InsightExe]);
-display(['    DaoSTORM Executable set: ' DaoSTORMexe]);
-display(['    Default .ini File Set: ' defaultIniFile]);
-display(['    Default .xml File Set: ' defaultXmlFile]);
-display(['    Default gpu parameters: ' defaultGPUmFile]);
+display('    Created New Global Variables:');
+display(['    ScratchPath = ' ScratchPath]);
+display(['    defaultIniFile = ' defaultIniFile]);
+display(['    defaultIniFile = ' defaultXmlFile]);
+display(['    defaultGPUmFile = ' defaultGPUmFile]);
+display(['    InsightExe = ' InsightExe]);
+display(['       To run, use "system(',demoInsightMcall,')"'   ]);
+display(['    DaoSTORMexe = ' DaoSTORMexe]);
+display(['       To run, use "system(',demoDaoSTORMcall,')"'   ]);
 display('------------------------------------------------------------------');
-
-
 %% cleanup 
-clear functionPaths BetaPaths MultiFitPath SetPaths SetPathCmd DaoSTORMcmd;
-clear newDaoPath windowsdllPath stormAnalysisPath;
+clear variables;
