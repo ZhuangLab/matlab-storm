@@ -1,6 +1,12 @@
 
+PlotsOn = true;
 
+daxfile = 'O:\2013-12-01_F08\Beads\647_zcal_0002.dax';
+[bead_path,daxname] = extractpath(daxfile);
+binfile = regexprep(daxfile,'.dax','_list.bin');
+froot = regexprep(daxname,'.dax','');
 
+mlist = ReadMasterMoleculeList(binfile);
 
 x = mlist.x;
 y = mlist.y;
@@ -27,10 +33,10 @@ if PlotsOn
     xlabel('frame','FontSize',14); 
     ylabel('stage position','FontSize',14); 
     set(gca,'FontSize',14);
-    saveas(stageplot,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_stage','.png']);
-    if verbose; 
-        disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_stage','.png']);
-    end
+%     saveas(stageplot,[bead_path,'\fig_',SaveRoot,Dao_root,froot,'_stage','.png']);
+%     if verbose; 
+%         disp(['wrote: ',bead_path,'\fig_',SaveRoot,Dao_root,froot,'_stage','.png']);
+%     end
 end
 [~,fstart] = min(zst);
 [~,fend] = max(zst);
@@ -39,12 +45,10 @@ if fstart > fend
     [~,fstart] = min(zst);
     [~,fend] = max(zst);
 end
-stagepos = zst(fstart:fend)
-figure(1); clf; plot(x,y,'k.');
+stagepos = zst(fstart:fend);
+
 
 % cluster localizations
-
-
 showextraplots = true;
 showplots = true;
 startframe = 290;
@@ -98,8 +102,8 @@ feducial_boxes = [fb(:,1),fb(:,3),...
 
 if showplots
     colormap gray;
-    figure(1); hold on; 
-    plot(x1s,y1s,'k.');
+    figure(2); hold on; 
+    plot(x1s,y1s,'r.');
 end
 
 %% Record position of feducial in every frame
@@ -114,7 +118,10 @@ numMols = length(mlist.x);
 incirc = false(Nfeducials,numMols);
 inmotion= false(Nfeducials,numMols);
 stagepos = cell(Nfeducials,1); 
-off = [-200,1150,-220,1350,-320];
+Wx = cell(Nfeducials,1);
+Wy = cell(Nfeducials,1); 
+off = zeros(1,Nfeducials);
+% off = [-200,1150,-220,1350,-320];
 % off = [-400,-200,-200,200]; 
 for i=1:Nfeducials
     incirc(i,:) = mlist.x > fb(i,1) & mlist.x <= fb(i,2) & mlist.y > fb(i,3) & mlist.y <= fb(i,4);
@@ -122,20 +129,42 @@ for i=1:Nfeducials
     stagepos{i} = zst(mlist.frame(incirc(i,:) & inmotion(i,:)));
     Fed_traj(mlist.frame(incirc(i,:)),i,1) = double(mlist.x(incirc(i,:)));
     Fed_traj(mlist.frame(incirc(i,:)),i,2) = double(mlist.y(incirc(i,:)));
+    Wx{i} = mlist.w(incirc(i,:) & inmotion(i,:)) ./...
+            mlist.ax(incirc(i,:) & inmotion(i,:));
+    Wy{i} = mlist.w(incirc(i,:) & inmotion(i,:)) .*...
+            mlist.ax(incirc(i,:) & inmotion(i,:));
+    
     if showplots
         figure(1); hold on; 
         rectangle('Position',feducial_boxes(i,:),'Curvature',[1,1]);
         plot( mlist.x(incirc(i,:)), mlist.y(incirc(i,:)),'.',...
             'MarkerSize',5,'color',Cmap(i,:));
         figure(2); hold on; 
-        plot(stagepos{i}+off(i), mlist.w(incirc(i,:) & inmotion(i,:)) ./...
-            mlist.ax(incirc(i,:) & inmotion(i,:)),'+','color',Cmap(i,:));
-        plot(stagepos{i}+off(i), mlist.w(incirc(i,:) & inmotion(i,:)) .*...
-            mlist.ax(incirc(i,:) & inmotion(i,:)),'.','color',Cmap(i,:));
+        plot(stagepos{i}+off(i),Wx{i} ,'+','color',Cmap(i,:));
+        plot(stagepos{i}+off(i),Wy{i} ,'.','color',Cmap(i,:));
         ylim([0,2000]);
     end
 end
 
 
+%% align all curves so wx and wy cross at z=0
+
+Wx = ZData(:,:,1);  % keeping code transparent
+Wy = ZData(:,:,2);  % keeping code transparent
+Z =  ZData(:,:,3);
+for n=1:Nmolecules
+     Zn = Z(n,:);
+    Wxn = Wx(n,:); 
+    Wyn = Wy(n,:);
+    [~,i] = min(abs( Wxn - Wyn));
+    Z(n,:) = Zn -Zn(i); 
+%     [Zn,zi] = sort(Z(n,:));
+%     Wxn = Wx(n,zi); 
+%     Wyn = Wy(n,zi);
+%     [~,i] = min(abs( Wxn - Wyn));
+%     Zn = Zn -Zn(i); 
+
+    % figure(1); plot(Zn, Wx(n,:),'g',Zn,Wy(n,:),'b');  hold on;
+end
 
 
