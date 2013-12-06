@@ -73,6 +73,7 @@ fileName = [];
 infoFile = [];
 verbose = true;
 orientation = 'normal';
+maxMemory = 1E9; % 1 Gb
 
 %--------------------------------------------------------------------------
 % Parse Required Input
@@ -109,6 +110,8 @@ for parameterIndex = 1:parameterCount,
             endFrame = CheckParameter(parameterValue, 'positive', 'endFrame');
         case 'infoFile'
             infoFile = CheckParameter(parameterValue, 'struct', 'infoFile');
+        case 'maxMemory'
+            maxMemory = CheckParameter(parameterValue, 'positive', 'maxMemory');
         case 'verbose'
             verbose = CheckParameter(parameterValue, 'boolean', 'verbose');
         case 'orientation'
@@ -156,13 +159,18 @@ numFrames = endFrame - startFrame + 1;
 frameDim = infoFile.frame_dimensions;
 frameSize = infoFile.frame_dimensions(1)*infoFile.frame_dimensions(2);
 
+memoryRequired = frameSize*numFrames*16/8;
+
 
 % Determine number of frames to load
 DoThis = 1; 
-if numFrames > 3000
+
+if memoryRequired > maxMemory
     DoThis = input([fileName,'  ',...
-        'Requested file has more than 3000 frames.  Are you sure ',...
-        'you want to load?  (Filling memory may crash the computer) ',...
+        'Requested file requires ',...  
+        num2str(memoryRequired/10E6,3),' Mbs. '
+        'Are you sure you want to load it? ',... 
+        '(Filling memory may crash the computer) ',...
         '0 = abort, 1 = continue, n = new end frame  ']);
     if DoThis > 1 
         endFrame = DoThis;
