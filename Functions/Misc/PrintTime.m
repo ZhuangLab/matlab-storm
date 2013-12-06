@@ -1,25 +1,24 @@
-function MList = CreateMoleculeList(numElements, varargin)
+function timeString = PrintTime(varargin)
 %--------------------------------------------------------------------------
-% MStruct = CreateMoleculeList(numElements)
-% This function creates an array of empty molecule structures. It is used
-% to allocate memory for molecule lists.  
-%--------------------------------------------------------------------------
-% Outputs:
-% MList/array of molecule structure: An empty array of molecule structures
+% timeString = PrintTime()
+% This function returns a string that contains the current time
 %--------------------------------------------------------------------------
 % Inputs:
-% numElements/integer(1): The number of elements to include in the molecule
-%   list
+%
 %--------------------------------------------------------------------------
-% Variable Inputs:
-% 'compact'/boolean (false): A flag which controls whether the molecule
-%   list is an array of structures or a structure with array elements
+% Outputs:
+% timeString: A string containing the current time
+%
 %--------------------------------------------------------------------------
 % Jeffrey Moffitt
+% May 18, 2013
 % jeffmoffitt@gmail.com
-% October 3, 2012
 %
 % Version 1.0
+%--------------------------------------------------------------------------
+% Creative Commons Liscence
+% Attribution-NonCommercial-ShareAlike 3.0 Unported License
+% 2013
 %--------------------------------------------------------------------------
 
 %--------------------------------------------------------------------------
@@ -27,27 +26,17 @@ function MList = CreateMoleculeList(numElements, varargin)
 %--------------------------------------------------------------------------
 quiet = 0;
 
-fieldNames = {'x','y','xc','yc','h','a','w','phi','ax','bg','i','c','density',...
-    'frame','length','link','z','zc'};
-
-fieldTypes = {'single','single','single','single','single','single','single',...
-    'single','single','single','single','int32','int32','int32','int32',...
-    'int32','single','single','single'};
-
-defaultValues = {'0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '1', '1',...
-    '0', '1', '0', '0', '0'};
 
 %--------------------------------------------------------------------------
-% Default Parameters
+% Default Variables
 %--------------------------------------------------------------------------
-compact = true;
+verbose = false;
+displayDate = false;
 
 %--------------------------------------------------------------------------
-% Parse Required Input
+% Parse Required Inputs
 %--------------------------------------------------------------------------
-if nargin < 1
-    numElements = 0; %Return empty, compact MList
-end
+
 %--------------------------------------------------------------------------
 % Parse Variable Input
 %--------------------------------------------------------------------------
@@ -61,8 +50,10 @@ if nargin > 1
         parameterName = varargin{parameterIndex*2 - 1};
         parameterValue = varargin{parameterIndex*2};
         switch parameterName
-            case 'compact'
-                compact = CheckParameter(parameterValue, 'boolean', parameterName);
+            case 'verbose'
+                verbose = CheckParameter(parameterValue, 'boolean', 'verbose');
+            case 'displayDate'
+                displayDate = CheckParameter(parameterValue, 'boolean', 'displayDate');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -70,18 +61,17 @@ if nargin > 1
 end
 
 %--------------------------------------------------------------------------
-% Create Molecule Structure
+% Get Time and Format
 %--------------------------------------------------------------------------
-if ~compact
-    for i=1:length(fieldNames)
-        MList.(fieldNames{i}) = eval([fieldTypes{i} '(' defaultValues{i} ')']);
-    end
-    MList = repmat(MList, [1 numElements]);
-else
-    for i=1:length(fieldNames)
-        MList.(fieldNames{i}) = eval([fieldTypes{i} '(' defaultValues{i} '*ones(' ...
-            num2str(numElements) ', 1) )']);
-    end
+time = clock;
+
+dateString = [];
+if displayDate
+    dateString = [num2str(time(2)) '/' num2str(time(3)) '/' num2str(time(1)) ' '];
 end
+secondString = ['0' num2str(round(time(6)))];
+minuteString = ['0' num2str(round(time(5)))];
+
+timeString = [dateString num2str(time(4)) ':' minuteString((end-1):end) ':' secondString((end-1):end)];
 
 

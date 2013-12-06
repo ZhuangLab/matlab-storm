@@ -217,8 +217,6 @@ if DoThis
     movie = fread(fid, dataSize, '*uint16', 'b');
     fclose(fid);
 
-
-
     try % Catch corrupt files
         if numFrames == 1
             movie = reshape(movie, frameDim)';
@@ -229,6 +227,7 @@ if DoThis
                 otherwise
 
             end
+
         end
     catch
         display('Serious error somewhere here...check file for corruption');

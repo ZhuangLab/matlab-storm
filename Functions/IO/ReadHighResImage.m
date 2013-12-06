@@ -137,7 +137,7 @@ switch returnForm
         %HRImage is already compact
     case 'image'
         image = zeros([HRImage.dim' max(HRImage.frame)]);
-        for i= unique(HRImage.frame')
+        for i= 1:max(HRImage.frame')
             tempImage = zeros(HRImage.dim');
             pixels = HRImage.pixelInd(HRImage.frame == i) + 1; % Add 1 to adjust between C and matlab indexing
             tempImage(pixels) = HRImage.intensity(HRImage.frame==i);
@@ -146,6 +146,10 @@ switch returnForm
         HRImage = image;
     otherwise
         display(['Error: ' returnForm ' is not a valid option for returnForm']);
+end
+
+if verbose
+    display(['Loaded: ' fileName]);
 end
 
 %--------------------------------------------------------------------------

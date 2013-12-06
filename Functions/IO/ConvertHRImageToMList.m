@@ -125,12 +125,12 @@ for i=1:numFrames
     area = [objs.Area];
     intensity = [objs.MeanIntensity];
     
-    MList.x(idx) = (centroid(1:2:end)-1)/upSample + 0.5 + 0.5/upSample;
-    MList.y(idx) = (centroid(2:2:end)-1)/upSample + 0.5 + 0.5/upSample;
-    MList.xc(idx) = (centroid(1:2:end)-1)/upSample + 0.5 + 0.5/upSample;
-    MList.yc(idx) = (centroid(2:2:end)-1)/upSample + 0.5 + 0.5/upSample;
-    MList.i(idx) = area.*intensity;
-    MList.frame(idx) = int32(double(i)*ones(1, length(objs)));
+    MList.x(idx,1) = (centroid(1:2:end)-1)/upSample + 0.5 + 0.5/upSample;
+    MList.y(idx,1) = (centroid(2:2:end)-1)/upSample + 0.5 + 0.5/upSample;
+    MList.xc(idx,1) = (centroid(1:2:end)-1)/upSample + 0.5 + 0.5/upSample;
+    MList.yc(idx,1) = (centroid(2:2:end)-1)/upSample + 0.5 + 0.5/upSample;
+    MList.i(idx,1) = area.*intensity;
+    MList.frame(idx,1) = int32(double(i)*ones(1, length(objs)));
     
     if verbose
         display(['Found ' num2str(length(objs)) ' molecules in frame ' num2str(i)]);
@@ -145,6 +145,9 @@ for i=1:length(MList_fields);
     MList.(MList_fields{i}) = MList.(MList_fields{i})(1:(count-1));
 end
 
+
+
+
 %--------------------------------------------------------------------------
 % Save molecule list
 %--------------------------------------------------------------------------
@@ -158,4 +161,3 @@ if savePath ~= -1
     end
 end
     
-

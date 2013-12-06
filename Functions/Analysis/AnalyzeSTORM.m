@@ -29,6 +29,9 @@ function infoFiles = AnalyzeSTORM(varargin)
 %
 % 'includeSubdir'/boolean(false): Determine if STORM analysis is run on
 % all folders within the default directory
+% 
+% 'outputInMatlab'/boolean(false): Determine if the process is run in the
+% matlab command line or in an extrernal dos line'
 %--------------------------------------------------------------------------
 % Outputs:
 %
@@ -53,13 +56,14 @@ function infoFiles = AnalyzeSTORM(varargin)
 quiet = 0;
 waitTime = 15; % Determines the wait between pooling jobs to see if they are done in seconds
 maxTime = 60; % Determines the maximum duration of analysis in minutes
-methodList = {'insight', 'multifit', 'L1H'};
+methodList = {'insight', 'multifit', 'L1H', 'daoSTORM'};
 
 %--------------------------------------------------------------------------
 % Global Variables
 %--------------------------------------------------------------------------
 global defaultDataPath;
 global defaultInsightPath;
+global defaultMultiFitPath;
 
 %--------------------------------------------------------------------------
 % Default Variables
@@ -72,8 +76,11 @@ numFrames = 10;
 method = 'insight';
 verbose = true;
 overwrite = true;
-numParallel = 4;
+numParallel = 6;
 includeSubdir = false;
+hideterminal = false;
+verbalize = false;
+outputInMatlab = false;
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -106,9 +113,29 @@ if nargin > 1
                 numParallel = CheckParameter(parameterValue, 'positive', 'numParallel');
             case 'includeSubdir'
                 includeSubdir = CheckParameter(parameterValue, 'boolean', 'includeSubdir');
+            case 'hideterminal'
+                hideterminal = CheckParameter(parameterValue, 'boolean', 'hideterminal');
+            case 'numFrames'
+                numFrames = CheckParameter(parameterValue, 'positive', 'numFrames');
+            case 'verbalize'
+                numFrames = CheckParameter(parameterValue, 'positive', 'numFrames');
+            case 'outputInMatlab'
+                outputInMatlab = CheckParameter(parameterValue, 'boolean', 'outputInMatlab');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
+    end
+end
+
+%--------------------------------------------------------------------------
+% Define default exePath for desired method
+%--------------------------------------------------------------------------
+if ~any(cellfun(@(x)strcmp(x, 'exePath'), varargin))
+    switch method
+        case 'insight'
+            exePath = defaultInsightPath;
+        case {'multifit', 'daoSTORM'}
+            exePath = defaultMultiFitPath;
     end
 end
 
@@ -125,6 +152,14 @@ if isempty(configFile)
                 error(['No .ini file in directory.']);
             end
             configFile = [analysisPath configFile.name];
+        case {'multifit', 'daoSTORM'}
+            configFile = dir([analysisPath '*.xml']);
+            if length(configFile) > 1
+                error(['Too many .xml files in directory. Please specify desired config file.']);
+            elseif isempty(configFile)
+                error(['No .xml file in directory.']);
+            end
+            configFile = [analysisPath configFile.name];
         otherwise
     end
 end
@@ -135,6 +170,7 @@ if verbose
     display('-------------------------------------------------------------');
     display(['Analysis Directory: ' analysisPath]);
     display(['Configuration File: ' configFile ]);
+    display(['Analysis Method: ' method]);
 end
 
 %--------------------------------------------------------------------------
@@ -201,9 +237,18 @@ end
 fileNames = {};
 binFileNames = {};
 filePaths = {};
+
+prefix = [];
+switch method
+    case 'insight'
+        prefix = [];
+    case {'multifit', 'daoSTORM'}
+        prefix = '_dao';
+end
+
 for i=1:length(infoFiles)
     fileNames{i} =  [infoFiles(i).localName(1:(end-4)) '.dax'];
-    binFileNames{i} = [infoFiles(i).localName(1:(end-4)) '_list.bin'];
+    binFileNames{i} = [infoFiles(i).localName(1:(end-4)) prefix '_list.bin'];
     filePaths{i} = infoFiles(i).localPath;
 end
 
@@ -228,6 +273,7 @@ for i=1:length(dataPaths)
             if verbose
                 for i=find(ind)
                     display(['Overwriting ' filePaths{i} binFileNames{i}]);
+                    delete([filePaths{i} binFileNames{i}]);
                 end
             end
         else
@@ -249,68 +295,80 @@ end
 commands = {};
 jobNames = {};
 for i=1:length(fileNames)
-    displayCommand = ['echo ' 'Analyzing: ' filePaths{i} fileNames{i} ' && '];
-    commands{i} = [displayCommand exePath ' ' '"' filePaths{i} fileNames{i} '" "' configFile '" && exit &'];
+    switch method
+        case 'insight'
+            displayCommand = ['echo ' 'Analyzing: ' filePaths{i} fileNames{i} ' && '];
+            commands{i} = [displayCommand exePath ' ' '"' filePaths{i} fileNames{i} '" "' configFile '" && exit &'];
+        case {'multifit', 'daoSTORM'}
+            displayCommand = ['echo ' 'Analyzing: ' filePaths{i} fileNames{i} ' && '];
+            commands{i} = [displayCommand exePath ' ' '"' filePaths{i} fileNames{i} '" ' ... 
+                ' "' filePaths{i} binFileNames{i} '" ' ...
+                ' "' configFile '"'];
+    end
     jobNames{i} = ''; 
 end
 if verbose
     display('-------------------------------------------------------------');
 end
+
 %--------------------------------------------------------------------------
 % Start STORM Analysis
 %--------------------------------------------------------------------------
 startTime = now;
-doneFlag = zeros(1, length(commands));
-jobEnd = zeros(1, length(commands));
-while sum(doneFlag) < length(commands)
-    
-    %----------------------------------------------------------------------
-    % Start a command
-    %----------------------------------------------------------------------
-    while (sum(~strcmp(jobNames, '')) < numParallel) 
-        nextInd = find(doneFlag==0 & strcmp(jobNames, '')); % Find first zero index
-        if isempty(nextInd)
-            break;
+doneFlag = false(1, length(commands));
+activeFlag = false(1, length(commands));
+processes = cell(1, length(commands));
+while any(~doneFlag)
+    if ~outputInMatlab
+        %----------------------------------------------------------------------
+        % Start a command
+        %----------------------------------------------------------------------
+        while sum(activeFlag) < numParallel
+            nextInd = find(doneFlag==0 & ~activeFlag);
+            if isempty(nextInd)
+                break;
+            end
+            nextInd = nextInd(1); 
+            processes{nextInd} = SystemRun(commands{nextInd},'Hidden',hideterminal);
+            activeFlag(nextInd) = true;
+            if verbose
+                display(['Executing ' commands{nextInd}]);
+            end
         end
-        nextInd = nextInd(1); 
-        dos(commands{nextInd});
+
+        %----------------------------------------------------------------------
+        % Find the files that are done
+        %----------------------------------------------------------------------
+        oldActiveFlag = activeFlag;
+        for i=1:length(processes)
+            if ~strcmp(class(processes{i}), 'double')
+                doneFlag(i) = processes{i}.HasExited;
+                activeFlag(i) = ~processes{i}.HasExited;
+            end 
+        end
+
         if verbose
-            display(['Executing ' commands{nextInd}]);
+            inds = find(~activeFlag & oldActiveFlag);
+            for j=inds
+                display(['Finished: ' commands{j}]);
+            end
         end
-        jobNames{nextInd} = [filePaths{nextInd} binFileNames{nextInd}];
-        jobEnd(nextInd) = addtodate(now, maxTime, 'minute'); %Job must stop by this time
-    end
-    
-    %----------------------------------------------------------------------
-    % Find the files that are done
-    %----------------------------------------------------------------------
-    currentBinFileNames = {};
-    currentBinFileTimes = [];
-    for i=1:length(dataPaths)
-        currentBinFiles = dir([dataPaths{i} '*_list.bin']);
-        for j=1:length(currentBinFiles)
-            currentBinFileNames{end+1} = [dataPaths{i} currentBinFiles(j).name];
+
+        pause(waitTime);
+    else
+        for i=1:length(commands)
+            dos(commands{i});
         end
-        currentBinFileTimes = [currentBinFileTimes currentBinFiles.datenum];
     end
-    doneInd = find(ismember(currentBinFileNames, jobNames) & ... %Is there an existing bin file
-        currentBinFileTimes > startTime);%that was made after the analysis started
-    
-    errorInd = find(~strcmp(jobNames, '') & ... %Is there a running job
-        jobEnd < now); % that has been running too long
-    
-    for i=doneInd
-        if verbose
-            display(['Finished ' jobNames{i}]);
-        end
-        jobNames{i} = '';
-        doneFlag(i) = 1;
-    end
-    
-    for i=errorInd
-        display(['Analysis of ' jobNames{i} ' ran too long']);
-        jobNames{i} = '';
-        doneFlag(i) = -1;
-    end
-    pause(waitTime);
+end
+
+%----------------------------------------------------------------------
+% Just for fun
+%----------------------------------------------------------------------
+if verbalize
+    NET.addAssembly('System.Speech');
+    speaker = System.Speech.Synthesis.SpeechSynthesizer();
+    speaker.Rate = 1;
+    speaker.Volume = 100;
+    speaker.Speak('Analysis Complete.');
 end

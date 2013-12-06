@@ -98,6 +98,13 @@ for i=1:length(ax)
                 set(y_handle, 'FontSize', fontSize);
             end
         end
+        
+        if ismember('ZLabel', axis_fields)
+            y_handle = get(ax(i), 'ZLabel');
+            if ismember('FontSize', fieldnames(get(y_handle)))
+                set(y_handle, 'FontSize', fontSize);
+            end
+        end
 
         if ismember('Title', axis_fields)
             t_handle = get(ax(i), 'Title');

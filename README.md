@@ -34,9 +34,5 @@ Everyone is welcome to contribute to matlab-storm but any code contributed must 
 	`authors = {Alistair Boettiger and Jeff Moffitt}`
 
 
-2. GPU code for rapid rendering of STORM images from molecule lists was written by Fang Huang in collaboration with Keith Lidke.  See the Lidke lab [software page](http://panda3.phys.unm.edu/~klidke/software.html) for additional details.  Please cite:
->  Huang, F., Schwartz, S. L., Byars, J. M. & Lidke, K. a Simultaneous multiple-emitter fitting for single molecule super-resolution imaging. Biomedical optics express 2, 1377–93 (2011).
-
-=======
 ## Additional Software for Analysis
 Some aspects of this analysis package depend on the Insight3 which can be provided by request (contact Matt Kilroy kilroy at chem.harvard.edu). For instructions on integrating this software with `matlab-storm`, contact Alistair or Jeff. 
