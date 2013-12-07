@@ -140,7 +140,6 @@ if ~isempty(infoFile) && ~isempty(fileName)
     error('You cannot specify info files and file names');
 end
 
-
  
 %--------------------------------------------------------------------------
 % Load info files if needed
@@ -164,21 +163,32 @@ end
 %--------------------------------------------------------------------------
 
 TFrames = infoFile.number_of_frames;
+if isempty(endFrame)
+    endFrame = TFrames;
+end
 numFrames = endFrame - startFrame + 1;
 frameDim = infoFile.frame_dimensions;
 frameSize = infoFile.frame_dimensions(1)*infoFile.frame_dimensions(2);
 
+memoryRequired = frameSize*numFrames*16/8;
+
+
 % Determine number of frames to load
 DoThis = 1; 
-if numFrames > 5000
-    DoThis = input(['Requested file has more than 5000 frames.  Are you sure ',...
-        'you want to load?  (Filling memory may crash the computer) ',...
+
+if memoryRequired > maxMemory
+    DoThis = input([fileName,'  ',...
+        'Requested file requires ',...  
+        num2str(memoryRequired/10E6,3),' Mbs. '
+        'Are you sure you want to load it? ',... 
+        '(Filling memory may crash the computer) ',...
         '0 = abort, 1 = continue, n = new end frame  ']);
     if DoThis > 1 
         endFrame = DoThis;
         DoThis = true;
     end
 end
+   
     
 if DoThis
     % Determine number of frames to load
@@ -246,27 +256,12 @@ if DoThis
 
            movie = multiparse(memoryMap,orientation,region);
            infoFile = UpdateInfo(infoFile,region);
-
-    %     [ri,ci,zi] = meshgrid(xi:xe,yi:ye,region.frame1:region.nframes);
-    %     ind = sub2ind([frameDim(1),frameDim(2),TFrames],ri(:),ci(:),zi(:));
-    %     ind = sort(ind); 
-    %     movie = memoryMap.Data(ind);  clear ind; %keeping memory small
-    %     movie = swapbytes(movie);
-    %     xs = xe-xi+uint32(1);
-    %     ys = ye-yi+uint32(1);
-    %     movie = reshape(movie,[xs,ys,numFrames]);
-    %     if strcmp(orientation,'normal')
-    %      movie = permute(reshape(movie, [xs,ys,numFrames]), [2 1 3]);
-    %     end
-          % figure(9); clf; imagesc(movie(:,:,1)); colorbar;
-
         %--------------------------------------------------
 
 
 
     %------------------ QuadViewRegion ------------------------
     else
-
         memoryMap = memmapfile([infoFile.localPath fileName], ...
                 'Format', 'uint16', ...
                 'Writable', false, ...
@@ -280,7 +275,6 @@ if DoThis
         lowerleft = multiparse(memoryMap,orientation,region); % lowerleft
         region.sr = uint32([frameDim(1)/2+1,frameDim(1),frameDim(2)/2+1,frameDim(2)]);
         lowerright = multiparse(memoryMap,orientation,region); % lowerright
-
         movie = {upperleft,upperright,lowerleft,lowerright};
         infoFile = UpdateInfo(infoFile,region);
         %--------------------------------------------------
@@ -297,8 +291,10 @@ end
 
 %-----------------  sub-functions
     function movie = multiparse(memoryMap,orientation,region)
-        [ri,ci,zi] = meshgrid(region.sr(1):region.sr(2),region.sr(3):region.sr(4),region.frame1:region.nframes);
-        inds = sub2ind([region.frameDim(1),region.frameDim(2),region.TFrames],ri(:),ci(:),zi(:));
+        [ri,ci,zi] = meshgrid(region.sr(1):region.sr(2),...
+            region.sr(3):region.sr(4),region.frame1:region.nframes);
+        inds = sub2ind([region.frameDim(1),region.frameDim(2),region.TFrames],...
+                        ri(:),ci(:),zi(:));
         movie = memoryMap.Data(sort(inds)); 
         movie = swapbytes(movie);
         xs = region.sr(2)-region.sr(1)+uint32(1);
@@ -315,43 +311,4 @@ end
         info.vend = ys;
         info.frame_dimensions = [info.hend,info.vend];
         info.file = [info.localPath,info.localName(1:end-4),'.dax'];
-
-
-%  % Old memory maps (to delete in later update) 
-% 
-% %------------------ top bottom split ------------------------
-% format = {...
-%     'int16' [frameDim(1),frameDim(2)/2] 'top'; ...
-%     'int16' [frameDim(1),frameDim(2)/2] 'bottom';};
-% Offset = startFrame-1;
-% 
-% memoryMap = memmapfile([infoFile.localPath fileName], ...
-%         'Format', format, ...
-%         'Writable', false, ...
-%         'Offset', Offset, ...
-%         'Repeat', numFrames);
-% 
-% toponly = swapbytes(memoryMap.Data(3).top');
-% 
-% %--------------------------------------------------
-% 
-% % --------------- left right split ------------------
-% format = {...
-%     'uint16' [frameDim(1)/2,1] 'values';};
-% Offset = (startFrame-1)*frameDim(2);
-% 
-% memoryMap = memmapfile([infoFile.localPath fileName], ...
-%         'Format', format, ...
-%         'Writable', false, ...
-%         'Offset', Offset, ...
-%         'Repeat', numFrames*frameDim(2)*2);
-% 
-% Dax = memoryMap.Data(2:2:end);
-% movie = cat(1,Dax.values);
-% movie = swapbytes(reshape(movie,[frameDim(1)/2,frameDim(2),numFrames]));
-% movie = permute(reshape(movie, [frameDim(1)/2,frameDim(2),numFrames]), [2 1 3]);
-%  figure(1); clf; imagesc(movie(:,:,2))
-% %------------------------------------------------------------------------
-% 
-% 
 
