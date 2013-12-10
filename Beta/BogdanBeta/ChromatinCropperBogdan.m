@@ -252,9 +252,12 @@ warpedBeads = imtransform(warpedBeads,tform2D_inv{2},'XYScale',1,'XData',[1 256]
          set(gca,'XTick',[],'YTick',[]);
          [H,W] = size(conv0);
          I = zeros(H,W,3);
+% I(:,:,1) = conv0/max(max(conv0));
+% I(:,:,2) = warpedBeads/max(max(warpedBeads));
+% I(:,:,3) = warpedLamina/max(max(warpedLamina));
 I(:,:,1) = conv0/max(max(conv0));
-I(:,:,2) = warpedBeads/max(max(warpedBeads));
-I(:,:,3) = warpedLamina/max(max(warpedLamina));
+I(:,:,2) = beads/max(max(beads));
+I(:,:,3) = lamina/max(max(lamina));
 CC{handles.gui_number}.maskBeads = warpedBeads;
 CC{handles.gui_number}.convI = I;
 %im2bw(warpedBeads,0.4); 
