@@ -17,7 +17,7 @@ function fighand = cdfplotall(data,varargin)
 %% Default Parameters
 %--------------------------------------------------------------------------
 groupnames = repmat({''},length(data),1); 
-clrmap = 'hsv';
+clrmap = 'jet';
 fighand = [];
 xlab = '';
 
@@ -69,7 +69,7 @@ end
 N = length(data); 
 gnames = cell(N,1); 
 if ischar(clrmap)
-    cmap =eval([clrmap,'(N+1)']);
+    cmap =eval([clrmap,'(N)']);
 else
     cmap = clrmap;
 end
