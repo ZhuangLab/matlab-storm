@@ -1,4 +1,6 @@
 
+% startup;
+
 PlotsOn = true;
 
 daxfile = 'O:\2013-12-01_F08\Beads\647_zcal_0002.dax';
@@ -120,6 +122,8 @@ inmotion= false(Nfeducials,numMols);
 stagepos = cell(Nfeducials,1); 
 Wx = cell(Nfeducials,1);
 Wy = cell(Nfeducials,1); 
+xpos = cell(Nfeducials,1);
+ypos = cell(Nfeducials,1); 
 off = zeros(1,Nfeducials);
 % off = [-200,1150,-220,1350,-320];
 % off = [-400,-200,-200,200]; 
@@ -129,16 +133,16 @@ for i=1:Nfeducials
     stagepos{i} = zst(mlist.frame(incirc(i,:) & inmotion(i,:)));
     Fed_traj(mlist.frame(incirc(i,:)),i,1) = double(mlist.x(incirc(i,:)));
     Fed_traj(mlist.frame(incirc(i,:)),i,2) = double(mlist.y(incirc(i,:)));
-    Wx{i} = mlist.w(incirc(i,:) & inmotion(i,:)) ./...
-            mlist.ax(incirc(i,:) & inmotion(i,:));
-    Wy{i} = mlist.w(incirc(i,:) & inmotion(i,:)) .*...
-            mlist.ax(incirc(i,:) & inmotion(i,:));
-    
+    Wx{i} = double( mlist.w(incirc(i,:) & inmotion(i,:)) ./...
+                    mlist.ax(incirc(i,:) & inmotion(i,:)) );
+    Wy{i} = double( mlist.w(incirc(i,:) & inmotion(i,:)) .*...
+                    mlist.ax(incirc(i,:) & inmotion(i,:)) );
+    xpos{i} = mlist.x(incirc(i,:));
+    ypos{i} = mlist.y(incirc(i,:));
     if showplots
         figure(1); hold on; 
         rectangle('Position',feducial_boxes(i,:),'Curvature',[1,1]);
-        plot( mlist.x(incirc(i,:)), mlist.y(incirc(i,:)),'.',...
-            'MarkerSize',5,'color',Cmap(i,:));
+        plot( xpos{i},ypos{i},'.','MarkerSize',5,'color',Cmap(i,:));
         figure(2); hold on; 
         plot(stagepos{i}+off(i),Wx{i} ,'+','color',Cmap(i,:));
         plot(stagepos{i}+off(i),Wy{i} ,'.','color',Cmap(i,:));
@@ -149,22 +153,107 @@ end
 
 %% align all curves so wx and wy cross at z=0
 
-Wx = ZData(:,:,1);  % keeping code transparent
-Wy = ZData(:,:,2);  % keeping code transparent
-Z =  ZData(:,:,3);
-for n=1:Nmolecules
-     Zn = Z(n,:);
-    Wxn = Wx(n,:); 
-    Wyn = Wy(n,:);
-    [~,i] = min(abs( Wxn - Wyn));
-    Z(n,:) = Zn -Zn(i); 
-%     [Zn,zi] = sort(Z(n,:));
-%     Wxn = Wx(n,zi); 
-%     Wyn = Wy(n,zi);
-%     [~,i] = min(abs( Wxn - Wyn));
-%     Zn = Zn -Zn(i); 
 
-    % figure(1); plot(Zn, Wx(n,:),'g',Zn,Wy(n,:),'b');  hold on;
+            
+Z = cell(Nfeducials,1); 
+Wxf = cell(Nfeducials,1); 
+Wyf = cell(Nfeducials,1); 
+wX = cell(Nfeducials,1); 
+wY = cell(Nfeducials,1); 
+figure(2); clf; figure(3); clf;
+for  i=1:Nfeducials  %  i = 10:5:37 %  i =7
+    [m,k] = min(abs( Wx{i} -Wy{i}));
+    if m<50
+        zz = stagepos{i} - stagepos{i}(k);
+        [wx,Wxf{i}] = FitZcurve(zz,Wx{i},'PlotsOn',true);
+        [wy,Wyf{i}] = FitZcurve(zz,Wy{i},'PlotsOn',true);
+    else
+        wx = NaN; wy = NaN; zz = NaN; 
+    end
+    
+    if isnan(wx)
+        wy = wx;
+        zz = wx;
+        Wyf{i} = [];
+    elseif isnan(wy)
+        wx = wy;
+        zz = wy;
+        Wxf{i} = []; 
+    end
+    Z{i} = zz(zz>-600 & zz<600); 
+    wX{i} = wx(zz>-600 & zz<600);
+    wY{i} = wy(zz>-600 & zz<600);
+    
+    figure(2); hold on; 
+        plot( zz,wx,'+','color',Cmap(i,:));
+        plot( zz,wy,'.','color',Cmap(i,:));
+        ylim([0,2000]); xlim([-600,600]);
+    figure(3); hold on;
+        plot(zz,Wx{i} ,'+','color',Cmap(i,:),'MarkerSize',5);
+        plot(zz,Wy{i} ,'.','color',Cmap(i,:),'MarkerSize',5);
+        ylim([0,2000]); xlim([-600,600]);
+        i
+end
+figure(2); set(gcf,'color','w'); set(gca,'FontSize',16);
+xlabel('Z-position'), ylabel('dot-width'); legend('wx','wy');
+title('curve fits');
+
+figure(3); set(gcf,'color','w'); set(gca,'FontSize',16);
+xlabel('Z-position'), ylabel('dot-width'); legend('wx','wy');
+title('raw data');
+%% see if curves could align any better by cross-correlation
+figure(7); clf;
+shift = NaN*zeros(Nfeducials,1);
+shiftY = NaN*zeros(Nfeducials,1);
+r=find(~cellfun(@isempty,wX),1,'first');
+for i=1:Nfeducials
+    if ~isempty(wX{i})
+        xc = xcorr(wX{r},wX{i});
+        figure(6) ;clf; plot(xc)
+
+        L = length(wX{r});
+        [~,s] = max(xc);
+        shift(i) = s-L;
+        
+        figure(7); 
+        plot(Z{r},wX{r}); hold on; 
+        plot(Z{i}+shift(i), wX{i},'r');
+    end
+    
+     if ~isempty(wY{i})
+        xc = xcorr(wY{r},wY{i});
+        figure(6) ;clf; plot(xc)
+
+        L = length(wY{r});
+        [~,s] = max(xc);
+        shiftY(i) = s-L;
+        
+        figure(7); 
+        plot(Z{r},wY{r}); hold on; 
+        plot(Z{i}+shiftY(i), wY{i},'r');
+    end
+    
+    
 end
 
-
+%%
+wy0s = NaN*zeros(Nfeducials,1);
+wx0s = NaN*zeros(Nfeducials,1);
+zrY = NaN*zeros(Nfeducials,1);
+zrX = NaN*zeros(Nfeducials,1);
+for i=1:Nfeducials
+    if ~isempty(Wyf{i})
+        wy0s(i) = Wyf{i}.w0;
+        zrY(i) = Wyf{i}.zr;
+    end
+    if ~isempty(Wxf{i})
+        wx0s(i) = Wxf{i}.w0;
+        zrX(i) = Wxf{i}.zr;
+    end
+end
+X = zeros(26);
+idx = sub2ind([26,26],round(feducial_boxes(:,1)/10),round(feducial_boxes(:,2)/10));
+X(idx) = wx0s;
+X(idx) = wy0s;
+figure(6); imagesc(X);
+title('wy0s');
