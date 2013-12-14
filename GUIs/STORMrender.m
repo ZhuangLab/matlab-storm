@@ -1,35 +1,35 @@
-function varargout = STORMrenderBeta(varargin)
-% STORMRENDERBETA MATLAB code for STORMrenderBeta.fig
-%      STORMRENDERBETA, by itself, creates a new STORMRENDERBETA or raises the existing
+function varargout = STORMrender(varargin)
+% STORMRENDER MATLAB code for STORMrender.fig
+%      STORMRENDER, by itself, creates a new STORMRENDER or raises the existing
 %      singleton*.
 %
-%      H = STORMRENDERBETA returns the handle to a new STORMRENDERBETA or the handle to
+%      H = STORMRENDER returns the handle to a new STORMRENDER or the handle to
 %      the existing singleton*.
 %
-%      STORMRENDERBETA('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in STORMRENDERBETA.M with the given input arguments.
+%      STORMRENDER('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in STORMRENDER.M with the given input arguments.
 %
-%      STORMRENDERBETA('Property','Value',...) creates a new STORMRENDERBETA or raises the
+%      STORMRENDER('Property','Value',...) creates a new STORMRENDER or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before STORMrenderBeta_OpeningFcn gets called.  An
+%      applied to the GUI before STORMrender_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to STORMrenderBeta_OpeningFcn via varargin.
+%      stop.  All inputs are passed to STORMrender_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help STORMrenderBeta
+% Edit the above text to modify the response to help STORMrender
 
-% Last Modified by GUIDE v2.5 22-Jul-2013 11:16:17
+% Last Modified by GUIDE v2.5 14-Dec-2013 11:33:39
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @STORMrenderBeta_OpeningFcn, ...
-                   'gui_OutputFcn',  @STORMrenderBeta_OutputFcn, ...
+                   'gui_OpeningFcn', @STORMrender_OpeningFcn, ...
+                   'gui_OutputFcn',  @STORMrender_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,13 +44,13 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before STORMrenderBeta is made visible.
-function STORMrenderBeta_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before STORMrender is made visible.
+function STORMrender_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to STORMrenderBeta (see VARARGIN)
+% varargin   command line arguments to STORMrender (see VARARGIN)
 
 global binfile SR
 if isempty(SR)
@@ -89,7 +89,7 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.LoadOps.chnFlag = {'750','647','561','488'};  
     SR{handles.gui_number}.LoadOps.dataset = 0;
 
-% Choose default command line output for STORMrenderBeta
+% Choose default command line output for STORMrender
 handles.output = hObject;
 
 % avoid startup error
@@ -134,12 +134,12 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes STORMrenderBeta wait for user response (see UIRESUME)
+% UIWAIT makes STORMrender wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = STORMrenderBeta_OutputFcn(hObject, eventdata, handles) 
+function varargout = STORMrender_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -792,11 +792,13 @@ else
     Zsteps = 1;
 end
 
-SR{handles.gui_number}.I = plotSTORM_colorZ(mlist, SR{handles.gui_number}.imaxes,...
+
+SR{handles.gui_number}.I = list2img(mlist, SR{handles.gui_number}.imaxes,...
     'filter',SR{handles.gui_number}.infilter,...
     'Zrange',SR{handles.gui_number}.DisplayOps.zrange,...
     'dotsize',SR{handles.gui_number}.DisplayOps.DotScale,...
     'Zsteps',Zsteps,'scalebar',0,...
+    'N',6,...
     'correct drift',SR{handles.gui_number}.DisplayOps.CorrDrift);
 
 
@@ -856,7 +858,7 @@ Cs = length(SR{handles.gui_number}.mlist);
     SR{handles.gui_number}.infilter = cell(Cs,1);
     channels = find(1-cellfun(@isempty,SR{handles.gui_number}.mlist))';
     for i=channels
-        SR{handles.gui_number}.infilter{i} = true(size([SR{handles.gui_number}.mlist{i}.xc]))';
+        SR{handles.gui_number}.infilter{i} = true(size([SR{handles.gui_number}.mlist{i}.xc]));  % 
     end
     
 for c=1:length(handles.stormbutton)
@@ -1641,7 +1643,7 @@ function vlist = MolsInView(handles)
          vlist{c} = msublist(mlist{c},imaxes,'filter',infilter{c});
          vlist{c}.channel = c; 
          vlist{c}.infilter = infilter{c};
-         vlist{c}.locinfilter = infilter{c}(infilter{c}' & vlist{c}.inbox)';
+         vlist{c}.locinfilter = infilter{c}(infilter{c} & vlist{c}.inbox);
       end
     end  
   
