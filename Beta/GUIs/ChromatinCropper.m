@@ -227,7 +227,7 @@ if step == 1
          try
             % get conventional image name, 
             if isempty(strfind(daxname,'647quad'))
-            conv0Name = ['647quad_',regexprep(daxname,'storm','conv_z0')];
+            conv0Name = ['splitdax\647quad_',regexprep(daxname,'storm','conv_z0')];
             conv0Name = [folder,filesep,conv0Name];
             else
             conv0Name = regexprep([folder,filesep,daxname],'storm','conv_z0');
@@ -294,6 +294,10 @@ if step == 1
                   goOn = true;
              end
          end
+         
+          save([ScratchPath,'test.mat']);
+%          load([ScratchPath,'test.mat']);
+         
          
          if goOn
              

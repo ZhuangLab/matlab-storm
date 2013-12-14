@@ -22,6 +22,8 @@ function splitQVdax(pathin,varargin)
 %           Number of frames to load at once
 % delete / boolean / false
 %           Delete original file after data has been split
+% maxsize / double / 1E3
+%           skip files larger than this (in Mb)
 % verbose / boolean / true
 %           Print messages to screen
 %--------------------------------------------------------------------------
@@ -47,6 +49,7 @@ step = 2500;
 verbose = true; 
 promptoverwrite = true;
 delFile = false;
+maxsize = 1E3;
 % pathin = 'K:\2013-10-26_D12\QVDax\';
 
 QVc{1,1} = 1:256;  QVc{1,2} = 1:256;
@@ -63,6 +66,8 @@ if nargin > 1
         parameterName = varargin{parameterIndex*2 - 1};
         parameterValue = varargin{parameterIndex*2};
         switch parameterName  
+            case 'maxsize'
+                maxsize = CheckParameter(parameterValue,'positive','maxsize'); 
             case 'alldax'
                 alldax= CheckParameter(parameterValue,'struct','alldax');
             case 'QVorder'
@@ -87,6 +92,9 @@ end
 if isempty(alldax)
     alldax = dir([pathin,filesep,'*.dax']); 
 end
+
+inrange = ([alldax.bytes] < maxsize*1E6); 
+alldax = alldax(inrange); 
 
 if isempty(savepath)
     savepath = pathin;
