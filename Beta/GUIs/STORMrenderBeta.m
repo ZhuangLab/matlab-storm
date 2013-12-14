@@ -1643,7 +1643,7 @@ function vlist = MolsInView(handles)
          vlist{c} = msublist(mlist{c},imaxes,'filter',infilter{c});
          vlist{c}.channel = c; 
          vlist{c}.infilter = infilter{c};
-         vlist{c}.locinfilter = infilter{c}(infilter{c}' & vlist{c}.inbox)';
+         vlist{c}.locinfilter = infilter{c}(infilter{c} & vlist{c}.inbox);
       end
     end  
   

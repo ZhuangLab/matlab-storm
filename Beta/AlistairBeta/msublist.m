@@ -40,7 +40,7 @@ function vlist = msublist(mlist,imaxes,varargin)
 %-------------------------------------------------------------------------
 % default inputs
 %-------------------------------------------------------------------------
-infilter = true(1,length(mlist.x)); 
+infilter = true(length(mlist.x),1); 
 %
 %--------------------------------------------------------------------------
 %% Parse variable input
@@ -68,19 +68,24 @@ end
 
 
 inbox = mlist.x>imaxes.xmin & mlist.x < imaxes.xmax & mlist.y>imaxes.ymin & mlist.y<imaxes.ymax;
-vlist.x = (mlist.x(inbox & infilter')-imaxes.xmin);
-vlist.y = (mlist.y(inbox & infilter')-imaxes.ymin);
-vlist.z = (mlist.z(inbox & infilter'));
-vlist.xc = (mlist.xc(inbox & infilter')-imaxes.xmin);
-vlist.yc = (mlist.yc(inbox & infilter')-imaxes.ymin);
-vlist.zc = (mlist.zc(inbox & infilter'));
-vlist.a= (mlist.a(inbox & infilter'));
-vlist.i= (mlist.i(inbox & infilter'));
-vlist.h= (mlist.h(inbox & infilter'));
-vlist.frame= (mlist.frame(inbox & infilter'));
-vlist.length= (mlist.length(inbox & infilter'));
-vlist.w= (mlist.w(inbox & infilter'));
-vlist.c= (mlist.c(inbox & infilter'));
+d1 = size(infilter,1);
+if d1==1
+    infilter = infilter';
+end
+
+vlist.x = (mlist.x(inbox & infilter)-imaxes.xmin);
+vlist.y = (mlist.y(inbox & infilter)-imaxes.ymin);
+vlist.z = (mlist.z(inbox & infilter));
+vlist.xc = (mlist.xc(inbox & infilter)-imaxes.xmin);
+vlist.yc = (mlist.yc(inbox & infilter)-imaxes.ymin);
+vlist.zc = (mlist.zc(inbox & infilter));
+vlist.a= (mlist.a(inbox & infilter));
+vlist.i= (mlist.i(inbox & infilter));
+vlist.h= (mlist.h(inbox & infilter));
+vlist.frame= (mlist.frame(inbox & infilter));
+vlist.length= (mlist.length(inbox & infilter));
+vlist.w= (mlist.w(inbox & infilter));
+vlist.c= (mlist.c(inbox & infilter));
 
  vlist.imaxes = imaxes; 
  vlist.inbox = inbox; 
