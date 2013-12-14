@@ -73,7 +73,7 @@ fileName = [];
 infoFile = [];
 verbose = true;
 orientation = 'normal';
-maxMemory = 1E9; % 1 Gb
+maxMemory = 10E9; % 1 Gb
 
 %--------------------------------------------------------------------------
 % Parse Required Input
@@ -156,8 +156,9 @@ if isempty(endFrame)
     endFrame = TFrames;
 end
 numFrames = endFrame - startFrame + 1;
-frameDim = infoFile.frame_dimensions;
-frameSize = infoFile.frame_dimensions(1)*infoFile.frame_dimensions(2);
+frameDim = [infoFile.frame_dimensions(1)/infoFile.binning(1),...
+            infoFile.frame_dimensions(2)/infoFile.binning(2)];
+frameSize = frameDim(1)*frameDim(2);
 
 memoryRequired = frameSize*numFrames*16/8;
 
@@ -165,10 +166,11 @@ memoryRequired = frameSize*numFrames*16/8;
 % Determine number of frames to load
 DoThis = 1; 
 
+
 if memoryRequired > maxMemory
     DoThis = input([fileName,'  ',...
         'Requested file requires ',...  
-        num2str(memoryRequired/10E6,3),' Mbs. '
+        num2str(memoryRequired/10E6,3),' Mbs. ',...
         'Are you sure you want to load it? ',... 
         '(Filling memory may crash the computer) ',...
         '0 = abort, 1 = continue, n = new end frame  ']);
