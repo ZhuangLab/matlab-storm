@@ -1,15 +1,174 @@
+function [newFile,wx_fit,wy_fit] = CalcZcurves(daxfile,varargin)
+%  CompZcal(daxfile)
+%                   -- Computes z calibration from the analyzed daxfile and
+%                   saves a new parameters file parsfile_zfit which has the
+%                   updated z-fitting parameters.  
+%  CompZcal(daxfile,'templateFile',parsfile,'newFile',parsfile)
+%                   -- Overwrites existing parsfile z-calibration values
+%                   with new ones.  
+%--------------------------------------------------------------------------
+%% Required Inputs
+% daxfile / string
+%                   -- name of bead movie with localized beads in x,y,w
+% parsfile /string
+%                   -- Parameter file to copy all parameters from aside
+%                   from the z-fit parameters computed here.  
+%--------------------------------------------------------------------------
+% Outputs:
+% pars_nm / string 
+%                  -- name of the parameter file written by the function
+%                  which contains the new z-fit parameters
+% wx_fit / cfit  
+%                  -- Matlab fit object containing the wx(z) equation
+% wy_fit / cfit 
+%                  -- Matlab fit object containing the wy(z) equation
+%--------------------------------------------------------------------------
+%% Optional Inputs:
+% 'ParameterFlag' / type / default
+%
+% 'templateFile'/ string '' 
+%           - parameter file to use as a template (get all values save
+%           z-cal from this file).  Make same as newfile to update just the
+%           z-cal parameters.  
+% 'newFile' / string / ''
+%           - name of parameter file to write with the new values.  
+% 'parstype' / string / '.xml' 
+%           - parameter type for saved file '.xml' for daoSTORM, '.ini'
+%              for insightM
+% 'startframe' / double / 1   
+%           - frame to use to ID all bead positions
+% 'fmin' / double / .8
+%           - molecule on for at least this fraction of frames
+% 'maxdrift' / double / 1     
+%           - max distance in pixels a bead may move and still be linked
+% 'maxOutlier' / double / 300
+%           - max outlier from preliminary z-fit (nm)
+% 'endTrim' / double / .1
+%           - fraction of ends of curve to ignore
+% 'maxWidth' / double / 1500
+%           - max width of beads PSF (nm)
+% 'w0Range' / double / 80
+%           - max 95% confidence range for w0
+% 'zrRange' / double / 300
+%           - max 95% confidence range for zr
+% 'showPlots' / boolean / true
+% 'showExtraPlots' / boolean / false
+% 'verbose' / boolean / true
+%
+%--------------------------------------------------------------------------
+%
+% Alistair Boettiger
+% boettiger@fas.harvard.edu
+% December 15, 2013
+% Copyright Creative Commons 3.0 CC BY.    
+%
 
-% startup;
+%--------------------------------------------------------------------------
+%% Global Parameters
+%--------------------------------------------------------------------------
+global defaultXmlFile defaultIniFile;
+   
+%--------------------------------------------------------------------------
+%% Default Parameters
+%--------------------------------------------------------------------------
+showExtraPlots = false;
+showPlots = true;
+verbose = true;
+parstype = '.xml';
+templateFile = '';
+newFile = ''; 
 
-PlotsOn = true;
+% for clustering of localizations
+startframe = 1; % 290;
+maxdrift = 1;
+fmin = .8;
 
-daxfile = 'O:\2013-12-01_F08\Beads\647_zcal_0002.dax';
+% For z-curve fitting
+maxOutlier = 300;
+endTrim = .1;
+maxWidth = 1500; 
+w0Range = [100,600];
+zrRange = [100,700];
+gRange = [-600,600];
+
+% daxfile = 'O:\2013-12-01_F08\Beads\647_zcal_0002.dax';
+
+
+
+
+%--------------------------------------------------------------------------
+%% Parse mustHave variables
+%--------------------------------------------------------------------------
+if nargin < 1
+   error([mfilename,' expects at least 2 inputs, daxfile and parsfile']);
+end
+
+%--------------------------------------------------------------------------
+%% Parse Variable Input Arguments
+%--------------------------------------------------------------------------
+if nargin > 1
+    if (mod(length(varargin), 2) ~= 0 ),
+        error(['Extra Parameters passed to the function ''' mfilename ''' must be passed in pairs.']);
+    end
+    parameterCount = length(varargin)/2;
+
+    for parameterIndex = 1:parameterCount,
+        parameterName = varargin{parameterIndex*2 - 1};
+        parameterValue = varargin{parameterIndex*2};
+        switch parameterName   
+            case 'startframe'
+                startframe = CheckParameter(parameterValue, 'positive', 'startframe');
+            case 'maxdrift'
+                maxdrift = CheckParameter(parameterValue, 'positive', 'maxdrift');
+            case 'fmin'
+                fmin = CheckParameter(parameterValue, 'positive', 'fmin');
+            case 'maxOutlier'
+                maxOutlier = CheckParameter(parameterValue, 'positive', 'maxOutlier');
+            case 'endTrim'
+                endTrim = CheckParameter(parameterValue, 'positive', 'endTrim');
+            case 'maxWidth'
+                maxWidth = CheckParameter(parameterValue, 'positive', 'maxWidth');
+            case 'w0Range'
+                w0Range = CheckParameter(parameterValue, 'array', 'w0Range');
+            case 'zrRange'
+                zrRange = CheckParameter(parameterValue, 'array', 'zrRange');
+            case 'gRange'
+                gRange = CheckParameter(parameterValue, 'array', 'gRange');
+            case 'parstype'
+                parstype = CheckParameter(parameterValue, 'string', 'parstype');
+            case 'templateFile'
+                templateFile = CheckParameter(parameterValue, 'string', 'templateFile');
+            case 'newFile'
+                newFile = CheckParameter(parameterValue, 'string', 'newFile');
+            case 'showPlots'
+                showPlots = CheckParameter(parameterValue, 'boolean', 'showPlots');
+            case 'showExtraPlots'
+                showExtraPlots = CheckParameter(parameterValue, 'boolean', 'showExtraPlots');
+            case 'verbose'
+                verbose = CheckParameter(parameterValue, 'boolean', 'verbose');
+            otherwise
+                error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.' '  See help ' mfilename]);
+        end
+    end
+end
+
+
+if ~isempty(newFile)
+    parstype = newFile(4:end);
+    if ~strcmp(newfile(4),'.')
+        error('parameter file name must contain extension (.ini or .xml)');
+    end
+end
+
+%% Main Function
+
+% Load molecule list
 [bead_path,daxname] = extractpath(daxfile);
 binfile = regexprep(daxfile,'.dax','_list.bin');
 froot = regexprep(daxname,'.dax','');
-
 mlist = ReadMasterMoleculeList(binfile);
 
+% Some short-hand
 x = mlist.x;
 y = mlist.y;
 frame = mlist.frame;
@@ -17,6 +176,7 @@ wx = mlist.w ./ mlist.ax;   % /
 wy = mlist.w .* mlist.ax;  % *
 z = mlist.z;
 
+% Get the stage file 
 scanzfile = [bead_path,'\',froot,'.off'];
 fid = fopen(scanzfile);
 stage = textscan(fid, '%d\t%f\t%f\t%f','headerlines',1);
@@ -29,7 +189,7 @@ nm_per_offsetunit = zrange/(maxoffset - offset_start);
 
 zst = -stage{2}*nm_per_offsetunit; 
 zst = zst - zst(1);
-if PlotsOn
+if showExtraPlots
     stageplot = figure; plot(zst); 
     set(gcf,'color','w');
     xlabel('frame','FontSize',14); 
@@ -47,17 +207,9 @@ if fstart > fend
     [~,fstart] = min(zst);
     [~,fend] = max(zst);
 end
-stagepos = zst(fstart:fend);
 
 
-% cluster localizations
-showextraplots = true;
-showplots = true;
-startframe = 290;
-maxdrift = 2;
-fmin = .5;
-
-% Step 1, find all molecules that are "ON" in startframe.
+% ---------- Match Molecules across frames
 if startframe == 1
     startframe = min(mlist.frame);
 end
@@ -65,7 +217,7 @@ p1s = mlist.frame==startframe;
 x1s = mlist.x(p1s);
 y1s = mlist.y(p1s);
 
-if showextraplots
+if showExtraPlots
    figure(2); clf; 
    plot(mlist.x,mlist.y,'k.','MarkerSize',1);
    hold on;
@@ -102,7 +254,7 @@ fb = fb(feducials,:);
 feducial_boxes = [fb(:,1),fb(:,3),...
     fb(:,2)-fb(:,1),fb(:,4)-fb(:,3)];
 
-if showplots
+if showExtraPlots
     colormap gray;
     figure(2); hold on; 
     plot(x1s,y1s,'r.');
@@ -112,24 +264,28 @@ end
 
 Nfeducials = length(x1s);
 Nframes = double(max(mlist.frame));
-Fed_traj = NaN*ones(Nframes,Nfeducials,2);
-figure(1); clf;
-figure(2); clf; 
+numLocs = length(mlist.x);
+
 Cmap = jet(Nfeducials);
-numMols = length(mlist.x);
-incirc = false(Nfeducials,numMols);
-inmotion= false(Nfeducials,numMols);
+Fed_traj = NaN*ones(Nframes,Nfeducials,2);
+incirc = false(Nfeducials,numLocs);
+inmotion= false(Nfeducials,numLocs);
 stagepos = cell(Nfeducials,1); 
 Wx = cell(Nfeducials,1);
 Wy = cell(Nfeducials,1); 
 xpos = cell(Nfeducials,1);
 ypos = cell(Nfeducials,1); 
 off = zeros(1,Nfeducials);
-% off = [-200,1150,-220,1350,-320];
-% off = [-400,-200,-200,200]; 
+
+if showExtraPlots
+    figure(1); clf;
+    figure(2); clf; 
+end
+
 for i=1:Nfeducials
-    incirc(i,:) = mlist.x > fb(i,1) & mlist.x <= fb(i,2) & mlist.y > fb(i,3) & mlist.y <= fb(i,4);
-    inmotion(i,:) = mlist.frame >= fstart & mlist.frame <= fend; 
+    incirc(i,:) = mlist.x > fb(i,1) & mlist.x <= fb(i,2) & ...
+                  mlist.y > fb(i,3) & mlist.y <= fb(i,4);
+    inmotion(i,:) = mlist.frame > fstart & mlist.frame < fend; 
     stagepos{i} = zst(mlist.frame(incirc(i,:) & inmotion(i,:)));
     Fed_traj(mlist.frame(incirc(i,:)),i,1) = double(mlist.x(incirc(i,:)));
     Fed_traj(mlist.frame(incirc(i,:)),i,2) = double(mlist.y(incirc(i,:)));
@@ -139,7 +295,7 @@ for i=1:Nfeducials
                     mlist.ax(incirc(i,:) & inmotion(i,:)) );
     xpos{i} = mlist.x(incirc(i,:));
     ypos{i} = mlist.y(incirc(i,:));
-    if showplots
+    if showExtraPlots
         figure(1); hold on; 
         rectangle('Position',feducial_boxes(i,:),'Curvature',[1,1]);
         plot( xpos{i},ypos{i},'.','MarkerSize',5,'color',Cmap(i,:));
@@ -152,108 +308,121 @@ end
 
 
 %% align all curves so wx and wy cross at z=0
-
-
             
+
+
 Z = cell(Nfeducials,1); 
+ZZ = cell(Nfeducials,1); 
 Wxf = cell(Nfeducials,1); 
 Wyf = cell(Nfeducials,1); 
 wX = cell(Nfeducials,1); 
 wY = cell(Nfeducials,1); 
-figure(2); clf; figure(3); clf;
-for  i=1:Nfeducials  %  i = 10:5:37 %  i =7
+% err = inf*ones(Nfeducials,1); 
+if showExtraPlots
+    figure(2); clf; figure(3); clf;
+end
+for  i=1:Nfeducials  
     [m,k] = min(abs( Wx{i} -Wy{i}));
     if m<50
         zz = stagepos{i} - stagepos{i}(k);
-        [wx,Wxf{i}] = FitZcurve(zz,Wx{i},'PlotsOn',true);
-        [wy,Wyf{i}] = FitZcurve(zz,Wy{i},'PlotsOn',true);
+        [wx,Wxf{i}] = FitZcurve(zz,Wx{i},'PlotsOn',showExtraPlots,...
+            'maxOutlier',maxOutlier,'endTrim',endTrim,'maxWidth',maxWidth,...
+            'w0Range',w0Range,'zrRange',zrRange,'gRange',gRange);
+        [wy,Wyf{i}] = FitZcurve(zz,Wy{i},'PlotsOn',showExtraPlots,...
+            'maxOutlier',maxOutlier,'endTrim',endTrim,'maxWidth',maxWidth,...
+            'w0Range',w0Range,'zrRange',zrRange,'gRange',gRange);
     else
-        wx = NaN; wy = NaN; zz = NaN; 
+        zz = 0; 
+        wx = NaN; 
+        wy = NaN; 
     end
     
-    if isnan(wx)
-        wy = wx;
-        zz = wx;
-        Wyf{i} = [];
-    elseif isnan(wy)
-        wx = wy;
-        zz = wy;
-        Wxf{i} = []; 
+    if isnan(wx) | isnan(wy) %#ok<OR2>
+        zz = 0; 
+        wx = NaN; 
+        wy = NaN;        
     end
+    off(i) = stagepos{i}(k);
+    ZZ{i} = zz;
     Z{i} = zz(zz>-600 & zz<600); 
     wX{i} = wx(zz>-600 & zz<600);
     wY{i} = wy(zz>-600 & zz<600);
     
-    figure(2); hold on; 
-        plot( zz,wx,'+','color',Cmap(i,:));
-        plot( zz,wy,'.','color',Cmap(i,:));
-        ylim([0,2000]); xlim([-600,600]);
-    figure(3); hold on;
-        plot(zz,Wx{i} ,'+','color',Cmap(i,:),'MarkerSize',5);
-        plot(zz,Wy{i} ,'.','color',Cmap(i,:),'MarkerSize',5);
-        ylim([0,2000]); xlim([-600,600]);
-        i
-end
-figure(2); set(gcf,'color','w'); set(gca,'FontSize',16);
-xlabel('Z-position'), ylabel('dot-width'); legend('wx','wy');
-title('curve fits');
-
-figure(3); set(gcf,'color','w'); set(gca,'FontSize',16);
-xlabel('Z-position'), ylabel('dot-width'); legend('wx','wy');
-title('raw data');
-%% see if curves could align any better by cross-correlation
-figure(7); clf;
-shift = NaN*zeros(Nfeducials,1);
-shiftY = NaN*zeros(Nfeducials,1);
-r=find(~cellfun(@isempty,wX),1,'first');
-for i=1:Nfeducials
-    if ~isempty(wX{i})
-        xc = xcorr(wX{r},wX{i});
-        figure(6) ;clf; plot(xc)
-
-        L = length(wX{r});
-        [~,s] = max(xc);
-        shift(i) = s-L;
-        
-        figure(7); 
-        plot(Z{r},wX{r}); hold on; 
-        plot(Z{i}+shift(i), wX{i},'r');
-    end
-    
-     if ~isempty(wY{i})
-        xc = xcorr(wY{r},wY{i});
-        figure(6) ;clf; plot(xc)
-
-        L = length(wY{r});
-        [~,s] = max(xc);
-        shiftY(i) = s-L;
-        
-        figure(7); 
-        plot(Z{r},wY{r}); hold on; 
-        plot(Z{i}+shiftY(i), wY{i},'r');
-    end
-    
-    
-end
-
-%%
-wy0s = NaN*zeros(Nfeducials,1);
-wx0s = NaN*zeros(Nfeducials,1);
-zrY = NaN*zeros(Nfeducials,1);
-zrX = NaN*zeros(Nfeducials,1);
-for i=1:Nfeducials
-    if ~isempty(Wyf{i})
-        wy0s(i) = Wyf{i}.w0;
-        zrY(i) = Wyf{i}.zr;
-    end
-    if ~isempty(Wxf{i})
-        wx0s(i) = Wxf{i}.w0;
-        zrX(i) = Wxf{i}.zr;
+    % Compute confidence limits
+%     if sum(zz) ~= 0
+%         cI = confint(Wxf{i});
+%         errX = (cI(2,:) - cI(1,:))./coeffvalues(Wxf{i});
+%         cI = confint(Wyf{i});
+%         errY = (cI(2,:) - cI(1,:))./coeffvalues(Wyf{i});
+%         err(i) = nanmean([errX,errY]);
+%     end
+   
+    if showExtraPlots
+        figure(2); hold on; 
+            plot( zz,wx,'+','color',Cmap(i,:));
+            plot( zz,wy,'.','color',Cmap(i,:));
+            ylim([0,1300]); xlim([-600,600]);
+        figure(3); hold on;
+        if sum(zz) ~= 0
+            plot(zz,Wx{i} ,'+','color',Cmap(i,:),'MarkerSize',5);
+            plot(zz,Wy{i} ,'.','color',Cmap(i,:),'MarkerSize',5);
+            ylim([0,1300]); xlim([-600,600]);
+        end
     end
 end
-X = zeros(26);
-idx = sub2ind([26,26],round(feducial_boxes(:,1)/10),round(feducial_boxes(:,2)/10));
-X(idx) = wx0s;
-X(idx) = wy0s;
-figure(6); imagesc(X);
-title('wy0s');
+
+if showExtraPlots
+    figure(2); set(gcf,'color','w'); set(gca,'FontSize',16);
+    xlabel('Z-position'), ylabel('dot-width'); legend('wx','wy');
+    title('curve fits');
+    figure(3); set(gcf,'color','w'); set(gca,'FontSize',16);
+    xlabel('Z-position'), ylabel('dot-width'); legend('wx','wy');
+    title('raw data');
+end
+
+[~,i] = max(cellfun(@(x) max(x)-min(x),Z));  % i= 37
+wx_fit = Wxf{i};
+wy_fit = Wyf{i};
+if verbose
+    disp(wx_fit);
+    disp(wy_fit);
+end
+
+if showPlots
+    zcurvePlot = figure(1); clf; 
+    plot( ZZ{i},Wx{i},'+','color',Cmap(i,:),'MarkerSize',1); hold on;
+    plot( ZZ{i},Wy{i},'.','color',Cmap(i,:),'MarkerSize',1);
+    plot( Z{i},wX{i},'-','color',Cmap(i,:),'lineWidth',3); hold on;
+    plot( Z{i},wY{i},'-','color',Cmap(i,:),'lineWidth',3);
+    for i=1:Nfeducials
+        if sum(ZZ{i}) ~= 0
+        plot( ZZ{i},Wx{i},'+','color',Cmap(i,:),'MarkerSize',1); hold on;
+        plot( ZZ{i},Wy{i},'.','color',Cmap(i,:),'MarkerSize',1);
+        end
+    end
+    ylim([0,1300]); xlim([-600,600]);
+    set(gcf,'color','w'); set(gca,'FontSize',16);
+    xlabel('Z-position'), ylabel('dot-width'); legend('wx','wy');
+    title('curve fits');
+    savePlot = regexprep(daxfile,'.dax','_zfit.png');
+    saveas(zcurvePlot,savePlot);
+    if verbose; 
+        disp(['wrote: ',savePlot]);
+    end
+end
+
+%% write Data
+if isempty(templateFile)
+    if strcmp(parstype,'.xml')
+        templateFile = defaultXmlFile;
+    elseif strcmp(parstype,'.ini')
+        templateFile = defaultIniFile;
+    end
+end
+
+if isempty(newFile)
+    newFile = regexprep(daxfile,'.dax',['_zpars',parstype]);
+end
+    
+writeZfit2ini(templateFile,newFile,wx_fit,wy_fit,'verbose',true,'parstype',parstype)
+
