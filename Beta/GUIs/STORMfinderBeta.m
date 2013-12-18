@@ -881,6 +881,7 @@ function MenuComputeZcal_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 global SF
+daxfile = SF{handles.gui_number}.daxfile;
 FitMethod = get(handles.FitMethod,'Value');
 if FitMethod == 1
     parsfile = SF{handles.gui_number}.inifile;
@@ -899,38 +900,88 @@ end
 dlg_title = 'Compute Z-calibration';
 num_lines = 1;
 Zprompt = {
-    'NewParsRoot'; % 
+    'New Parameter file name (will have daxname if blank)'; % 
+    'Template Parameter file name (type "open" to get file selection window)';
     'Run in Matlab?';
     'Run Silently?';
     'overwrite? (1=y,0=n,2=ask me)';
     'Show plots?';
-    'Z window to estimate stage tilt';
-    'string to append in saveplots'};
+    'Show extra plots?';
+    'Edit calibration parameters?'};
 
 try
-    SF{handles.gui_number}.Zopts = ...
-        inputdlg(Zprompt,dlg_title,num_lines,SF{handles.gui_number}.Zopts);
-catch
-    SF{handles.gui_number}.Zopts = {
-        '_zpars',...
+    Zopts = inputdlg(Zprompt,dlg_title,num_lines,...
+                    SF{handles.gui_number}.Zopts);
+catch % Reset defaults if nothing is loaded
+    Zopts = {
+        '',...
+        '',...
         'true',...
         'false',...
         '2',...
         'true',...
-        '100',...
-        ''}; 
-    SF{handles.gui_number}.Zopts = inputdlg(Zprompt,dlg_title,num_lines,SF{handles.gui_number}.Zopts);
+        'false',...
+        'false'};   
+Zopts = inputdlg(Zprompt,dlg_title,num_lines,Zopts);
 end
 
-Zopts = SF{handles.gui_number}.Zopts; % short-hand
+if ~isfield(SF{handles.gui_number},'Zpars')
+    SF{handles.gui_number}.Zpars = {...
+                                    '1'
+                                    '1'
+                                    '0.8'
+                                    '300'
+                                    '0.1'
+                                    '1500'
+                                    '[100 600]'
+                                    '[100 700]'
+                                    '[-600 600]'
+                                    };
+end
+Zpars = SF{handles.gui_number}.Zpars;
+
+if strcmp(Zopts{2},'open')
+    startfolder = extractpath(daxfile);
+    [filename,pathname,okay] = uigetfile({'*.xml','DaoSTORM pars (*.xml)';...
+    '*.ini','Insight pars (*.ini)'},'Select parameter file',startfolder);
+    if okay~=0
+        Zopts{2} = [pathname,filesep,filename]; 
+    end
+end
+
+if eval(Zopts{8})
+    dlg_title = 'Set Z-calibration parameters';
+    num_lines = 1;
+    parameterDescriptions = {...
+        'start frame to ID feducials'
+        'max allowed drift of feducial during movie'
+        'molecule on for at least this fraction of frames'
+        'max outlier from preliminary z-fit (nm)'
+        'fraction of ends of curve to ignore'
+        'max width of beads PSF (nm)'
+        'range of allowed w0'
+        'range of allowed zr'
+        'range of allowed g'
+    };
+    Zpars = inputdlg(parameterDescriptions,dlg_title,num_lines,...
+                    SF{handles.gui_number}.Zpars);
+end
 
 % Fit dots
 if ~isempty(Zopts)
- AutoZcal(SF{handles.gui_number}.daxfile,'parsfile',parsfile,'method',method,...
-       'NewParsRoot',Zopts{1},'runinMatlab',eval(Zopts{2}),...
-       'printprogress',eval(Zopts{3}),'overwrite',eval(Zopts{4}),...
-    'PlotsOn',eval(Zopts{5}),'zwindow',eval(Zopts{6}),'SaveRoot',Zopts{7});
+     RunDotFinder('daxfile',daxfile,'parsfile',parsfile,'method',method,...
+     'runinMatlab',eval(Zopts{3}),'hideterminal',eval(Zopts{4}),...
+     'overwrite',eval(Zopts{5}),'printprogress',true,'verbose',false);
+ 
+    CalcZcurves(daxfile,'newFile',Zopts{1},'templateFile',Zopts{2},...
+    'startframe',eval(Zpars{1}),'maxdrift',eval(Zpars{2}),'fmin',eval(Zpars{3}),...
+    'maxOutlier',eval(Zpars{4}),'endTrim',eval(Zpars{5}),'maxWidth',eval(Zpars{6}),...
+    'w0Range',eval(Zpars{7}),'zrRange',eval(Zpars{8}),'gRange',eval(Zpars{9}),...
+    'showPlots',eval(Zopts{6}),...
+    'showExtraPlots',eval(Zopts{7}),'verbose',true);
 end
+SF{handles.gui_number}.Zopts = Zopts; 
+SF{handles.gui_number}.Zpars = Zpars; 
 
 % --------------------------------------------------------------------
 function MenuChromeWarp_Callback(hObject, eventdata, handles) %#ok<*INUSL>
