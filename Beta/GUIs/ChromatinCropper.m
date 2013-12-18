@@ -263,7 +263,7 @@ if step == 1
                  warpfile = [BeadFolder,filesep,'chromewarps.mat'];
                  load(warpfile);
 
-                 chn488 = find(strcmp(chn_warp_names(:,1),'488'));
+                 chn488 = find(strcmp(chn_warp_names(:,1),'488')); %#ok<NODEF>
                 warpedLamina = imtransform(lamina,tform_1_inv{chn488},...
                     'XYScale',1,'XData',[1 256],'YData',[1 256]); %#ok<USENS>
                 warpedLamina = imtransform(warpedLamina,tform2D_inv{chn488},...
@@ -295,7 +295,7 @@ if step == 1
              end
          end
          
-          save([ScratchPath,'test.mat']);
+%          save([ScratchPath,'test.mat']);
 %          load([ScratchPath,'test.mat']);
          
          
@@ -837,6 +837,11 @@ elseif step == 7
         s1 = strfind(daxname,'quad_'); 
         s2 = strfind(daxname,'_storm');
         saveroot = daxname(s1+5:s2);
+        if isempty(s1)
+            s1 = 1;
+            saveroot = daxname(s1:s2);
+        end
+        
         CC{handles.gui_number}.pars7.saveroot = saveroot;
     end
     
@@ -892,13 +897,9 @@ elseif step == 7
                 'Itime_',num2str(imnum),'_d',num2str(n),'.png']);
             pause(.01);
         end
+% 
 
-%        Iout = figure(1); clf; 
-%         imagesc(Icell{n}); colormap hot;
-%         set(gca,'color','k'); 
-%         saveas(Iout,[savefolder,filesep,saveroot,...
-%             'Icell_',num2str(imnum),'_d',num2str(n),'.png']);
-        imwrite(Icell{n},[savefolder,filesep,saveroot,...
+        imwrite(makeuint(Icell{n},8),hot(256),[savefolder,filesep,saveroot,...
             'Icell_',num2str(imnum),'_d',num2str(n),'.png']);
         pause(.01);
 
@@ -936,6 +937,8 @@ elseif step == 7
          ['dot ',num2str(n)],'color','w'); 
      
          disp(['saving data for dot',num2str(n),'...']);  
+         disp(['wrote ',savefolder,filesep,saveroot,'DotData_',...
+             num2str(imnum),'_d',num2str(n),'.mat']);
          pause(.5); 
     end
     
@@ -955,6 +958,8 @@ elseif step == 7
     CCguiData = CC{handles.gui_number};  %#ok<NASGU>
     save([savefolder,filesep,saveroot,'data.mat'],'data','CCguiData');
     
+    save([ScratchPath,'test.mat']);
+    % load([ScratchPath,'test.mat']);
 end % end if statement over steps
    
 

@@ -23,6 +23,8 @@ warning on all
 %% Define Global Variables
 global InsightExe; % System executable command for InsightM
 global DaoSTORMexe; % System executable command for DaoSTORM
+global defaultInsightPath; % Alternate Name for System executable command for InsightM
+global defaultMultiFitPath;  % Alternate Name for  System executable command for DaoSTORM
 global defaultXmlFile; % path and name of default DaoSTORM parameters
 global defaultIniFile;  % path and name of default insight parameters
 global defaultGPUmFile; % path to default GPUmultifit pars 
@@ -31,10 +33,10 @@ global ScratchPath; % place for matlab-storm to save temporary files
 %% Define matlab-storm Path
 
 % MODIFY THESE PATHS 
-ScratchPath = [basePath,'\..\ScratchPath\']; 
-basePath = 'C:\Users\Alistair\Documents\Github\matlab-storm';  
-stormAnalysisPath= 'C:\Users\Alistair\Documents\Github\storm-analysis';  
 
+basePath = 'C:\Users\Alistair\Documents\Github\matlab-storm\';  
+stormAnalysisPath= 'C:\Users\Alistair\Documents\Github\storm-analysis\';  
+ScratchPath = 'C:\Users\Alistair\Documents\Scratch\'; 
 
 addpath(basePath, '-begin');
 disp('Base path set to:')
@@ -59,9 +61,9 @@ cd(basePath);
 %% Define paths for other STORM analysis software 
 
 % Optionally change the default parameter files
-defaultIniFile = [basePath,'\Templates\647zcal_storm2.ini'];
-defaultXmlFile = [basePath,'\Templates\647_3dmufit_pars.xml'];
-defaultGPUmFile = [basePath,'\Templates\GPUmultiPars.mat'];
+defaultIniFile = [basePath,'Templates\647zcal_storm2.ini'];
+defaultXmlFile = [basePath,'Templates\647_3dmufit_pars.xml'];
+defaultGPUmFile = [basePath,'Templates\GPUmultiPars.mat'];
 
 % Insight3 Path (modify if necessary)
 InsightPath = [basePath,filesep,'External', filesep,'Insight3'];
@@ -77,6 +79,9 @@ DaoSTORMcmd = ['python.exe ',newDaoPath,'mufit_analysis.py',' '];
 
 DaoSTORMexe = [SetWindowsPaths,SetPythonPaths,DaoSTORMcmd];
 InsightExe = [InsightPath, filesep, 'InsightM.exe'];
+ % Alternate Name for System executable command for InsightM
+defaultInsightPath = DaoSTORMexe;
+defaultMultiFitPath = InsightExe;
 
 demoDaoSTORMcall = ['[DaoSTORMexe,daxfile,',''' '',','defaultXmlFile]'];
 demoInsightMcall = ['[InsightExe,daxfile,',''' '',','defaultIniFile]'];
