@@ -40,6 +40,7 @@ function splitQVdax(pathin,varargin)
 %         savepath,'delete',true);
 % end
 
+% pathin = 'O:\2013-11-26_E11\'
 %% default parameters
 alldax = [];
 QVorder = {'647', '561', '750', '488'};
@@ -224,10 +225,10 @@ for d=1:D  % Main loop over daxfiles
             warning(['Saved file size was ',num2str(dat.bytes),...
                 ' Expected files size was ',num2str(expectedSize)]);
             correctBits(cn) = 0; 
-        elseif dat.bytes == expectedSize && delFile
+        elseif dat.bytes == expectedSize
             correctBits(cn) = 1;
-            disp('File Marked for Deletion'); 
         end
+        
         
     end
     correctBits
