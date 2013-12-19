@@ -237,7 +237,7 @@ function MenuAutoMultiLoad_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuAutoMultiLoad (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SR ScratchPath  %#ok<NUSED>
+global SR scratchPath  %#ok<NUSED>
 
 handles=ClearCurrentData(hObject,eventdata,handles);
 stoprun = 0;
@@ -292,8 +292,8 @@ if ~stoprun
      i=SR{handles.gui_number}.LoadOps.dataset;
  end
  
- % save([ScratchPath,'test.mat']);
- % load([ScratchPath,'test.mat']);
+ % save([scratchPath,'test.mat']);
+ % load([scratchPath,'test.mat']);
  
  hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
     binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
@@ -301,8 +301,8 @@ if ~stoprun
         disp('no data found for in channels:');
         disp(SR{handles.gui_number}.LoadOps.chnFlag(logical(1-hasdata)))
     end
-    %  save([ScratchPath,'test.mat']); 
-    % load([ScratchPath,'test.mat']); 
+    %  save([scratchPath,'test.mat']); 
+    % load([scratchPath,'test.mat']); 
     
     
     SR{handles.gui_number}.fnames = SR{handles.gui_number}.allfnames(hasdata,i);
@@ -360,8 +360,8 @@ end
     function handles = AddStormLayer(hObject,handles,Sname,layer_number)
         % Adds a new radio button to the OverlayPanel, which can toggle this
         % channel on and off.  
-    global SR ScratchPath  %#ok<NUSED>
-    % save([ScratchPath,'test2.mat']); 
+    global SR scratchPath  %#ok<NUSED>
+    % save([scratchPath,'test2.mat']); 
     
     disp('Adding New STORM layer');
     
@@ -440,7 +440,7 @@ end
 
         
  function MultiBinLoad(hObject,eventdata,handles,binnames)
-     global SR ScratchPath  %#ok<NUSED>
+     global SR scratchPath  %#ok<NUSED>
      % ----------------------------------------------------
      % Passed Inputs:
      % binnames
@@ -518,7 +518,7 @@ function MenuLoadOptions_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuLoadOptions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SR ScratchPath  %#ok<NUSED>
+global SR scratchPath  %#ok<NUSED>
 
     dlg_title = 'Update Load Options';
     num_lines = 1;
@@ -874,7 +874,7 @@ loadim(hObject,eventdata, handles); % calls plotdata function
 % --- Executes on button press in ApplyFilter.
 function ApplyFilter_Callback(hObject, eventdata, handles)
 % chose filter
-  global  SR ScratchPath  %#ok<NUSED>
+  global  SR scratchPath  %#ok<NUSED>
   filts = SR{handles.gui_number}.filts;
     contents = cellstr(get(handles.choosefilt,'String')); % returns choosefilt contents as cell array
     par = contents{get(handles.choosefilt,'Value')}; % returns selected item from choosefilt 
@@ -916,7 +916,7 @@ disp('this function still under development');
  
  
 function update_maindisplay(hObject,handles)
-global  SR ScratchPath  %#ok<NUSED>
+global  SR scratchPath  %#ok<NUSED>
 
 I = SR{handles.gui_number}.I;
 imaxes = SR{handles.gui_number}.imaxes;
@@ -945,8 +945,8 @@ channels = zeros(1,Cs); % Storm Channels
     active_overlays = find(overlays);
     
 
-% save([ScratchPath,'test.mat'],'handles','I','active_channels','channels','overlays','active_overlays');
-% load([ScratchPath,'test.mat']);
+% save([scratchPath,'test.mat'],'handles','I','active_channels','channels','overlays','active_overlays');
+% load([scratchPath,'test.mat']);
 
 % Stack all image layers (channels, z-dimensions, and overlays)
 %   into a common matrix for multicolor rendering.  Apply indicated
@@ -1035,7 +1035,7 @@ global SR
 
 % ------
  function scalecolor(hObject,handles)
- global SR ScratchPath %#ok<NUSED>
+ global SR scratchPath %#ok<NUSED>
  
  
  % hObject    handle to LevelsChannel (see GCBO)
@@ -1060,8 +1060,8 @@ set(handles.MinIntBox,'String',num2str(minin));
    
 
 
-% save([ScratchPath,'test.mat']);
-% load([ScratchPath,'test.mat']);
+% save([scratchPath,'test.mat']);
+% load([scratchPath,'test.mat']);
 
 % If it's STORM data, record data range from I and store max min as
 % cmax / cmin
@@ -1110,8 +1110,8 @@ end
    set(gca,'XTick',[],'YTick',[]);
    alpha .5;
 
- %      save([ScratchPath,'test.mat']);
- %     load([ScratchPath,'test.mat']);  figure(3); clf;
+ %      save([scratchPath,'test.mat']);
+ %     load([scratchPath,'test.mat']);  figure(3); clf;
   clear raw_ints;        
   update_maindisplay(hObject,handles);
   guidata(hObject, handles);
@@ -1234,7 +1234,7 @@ function zoomtool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to zoomtool (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SR ScratchPath %#ok<NUSED>
+global SR scratchPath %#ok<NUSED>
 
 imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
@@ -1258,8 +1258,8 @@ set(handles.displayzm,'String',num2str(imaxes.zm,2));
 SR{handles.gui_number}.imaxes = imaxes;
 UpdateSliders(hObject,eventdata,handles)
 
-%  save([ScratchPath,'test.mat']);
- % load([ScratchPath,'test.mat']);
+%  save([scratchPath,'test.mat']);
+ % load([scratchPath,'test.mat']);
 
 % plot box
 axes(handles.axes2); hold on;
@@ -1368,7 +1368,7 @@ function Render3D_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-global SR ScratchPath
+global SR scratchPath
 I = SR{handles.gui_number}.I;
 imaxes = SR{handles.gui_number}.imaxes;
 % currently hard-coded, should be user options 
@@ -1419,8 +1419,8 @@ if SR{handles.gui_number}.DisplayOps.ColorZ && SR{handles.gui_number}.DisplayOps
             channels(c) = get(handles.stormbutton(c),'Value');
         end
 
-        % save([ScratchPath,'test.mat']);
-        % load([ScratchPath,'test.mat']);
+        % save([scratchPath,'test.mat']);
+        % load([scratchPath,'test.mat']);
         active_channels = find(channels);
         figure; clf; 
         Im3D(I(active_channels),'resolution',res,'zStepSize',zstp,'xyStepSize',xyp,...
@@ -1494,7 +1494,7 @@ end
 
 % --------------------------------------------------------------------
 function plot3Ddots_ClickedCallback(hObject, eventdata, handles)
-global SR ScratchPath
+global SR scratchPath
 
 if ~isfield(SR{handles.gui_number},'plt3Dfig')
 SR{handles.gui_number}.plt3Dfig =[];
@@ -1512,8 +1512,8 @@ if ~isempty(SR{handles.gui_number}.plt3Dfig)
     end
 end
 SR{handles.gui_number}.plt3Dfig = figure; 
-% save([ScratchPath,'testdat.mat']);
-% load([ScratchPath,'testdat.mat']);
+% save([scratchPath,'testdat.mat']);
+% load([scratchPath,'testdat.mat']);
 for c = chns
     if length(vlist{c}.x) > 2000
         msize = 1;
@@ -1528,7 +1528,7 @@ end
 xlabel('x (nm)'); ylabel('y (nm)'); zlabel('z (nm)'); 
 title(lab); 
 
-% save([ScratchPath,'testdat.mat']);
+% save([scratchPath,'testdat.mat']);
 
 
 
@@ -1537,7 +1537,7 @@ function plotColorByFrame_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to plotColorByFrame (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SR ScratchPath
+global SR scratchPath
 
 if ~isfield(SR{handles.gui_number},'pltColorByFramefig')
 SR{handles.gui_number}.pltColorByFramefig =[];
@@ -1554,8 +1554,8 @@ if ~isempty(SR{handles.gui_number}.pltColorByFramefig)
     end
 end
 SR{handles.gui_number}.pltColorByFramefig = figure; 
-% save([ScratchPath,'testdat.mat']);
-% load([ScratchPath,'testdat.mat']);
+% save([scratchPath,'testdat.mat']);
+% load([scratchPath,'testdat.mat']);
 for c = chns
     if length(vlist{c}.x) > 2000
         msize = 1;
@@ -1584,7 +1584,7 @@ title(lab);
 
 % --------------------------------------------------------------------
 function plot2Ddots_ClickedCallback(hObject, eventdata, handles) %#ok<*INUSD,*DEFNU>
-global SR ScratchPath
+global SR scratchPath
 
 if ~isfield(SR{handles.gui_number},'plt3Dfig')
 SR{handles.gui_number}.plt3Dfig =[];
@@ -1602,8 +1602,8 @@ if ~isempty(SR{handles.gui_number}.plt3Dfig)
     end
 end
 SR{handles.gui_number}.plt3Dfig = figure; 
-% save([ScratchPath,'testdat.mat']);
-% load([ScratchPath,'testdat.mat']);
+% save([scratchPath,'testdat.mat']);
+% load([scratchPath,'testdat.mat']);
 for c = chns
     if length(vlist{c}.x) > 2000
         msize = 1;
@@ -1922,7 +1922,7 @@ end
     %    - subfunction of MenuOverlay, also called each time image resizes
     %    in order to maintain overlay display.  
     function IntegrateOverlay(hObject,handles)
-    global   SR ScratchPath  %#ok<NUSED>
+    global   SR scratchPath  %#ok<NUSED>
     if isfield(SR{handles.gui_number},'Overlay_opts');
     Overlay_opts =  SR{handles.gui_number}.Overlay_opts;
     imaxes = SR{handles.gui_number}.imaxes;
@@ -2199,7 +2199,7 @@ function MenuCorrelDrift_Callback(hObject, eventdata, handles)
 %           corrected values.  
 % 
 %--------------------------------------------------------------------------
-global SR ScratchPath
+global SR scratchPath
 
 %--------------------------------------------------------------------------
 % Get parameters: 
@@ -2232,7 +2232,7 @@ c = str2double(Opts{2});
     'nm per pixel',eval(Opts{4}),...
     'showplots',eval(Opts{5}) );
   
-% save([ScratchPath,'troubleshoot.mat'],'-v7.3'); 
+% save([scratchPath,'troubleshoot.mat'],'-v7.3'); 
 
     % apply correction  
     SR{handles.gui_number}.mlist{c}.xc = ...
