@@ -96,7 +96,7 @@ function CalcChromeWarp(pathin,varargin)
 %--------------------------------------------------------------------------
 % Global Variables
 %--------------------------------------------------------------------------
-global ScratchPath
+global scratchPath
 
 
 %--------------------------------------------------------------------------
@@ -392,7 +392,7 @@ for m=1:Nmovies
 end
 
 
-% save([ScratchPath,'trouble1.mat']);
+% save([scratchPath,'trouble1.mat']);
 
 
 % split data into reference channels and samples 
@@ -457,11 +457,11 @@ for m=1:Nmovies
                 
                 catch er
                     disp(er.message); 
-                    % save([ScratchPath, filesep, 'troubleshoot.mat']); 
-                    % load([ScratchPath, filesep, 'troubleshoot.mat']); 
+                    % save([scratchPath, filesep, 'troubleshoot.mat']); 
+                    % load([scratchPath, filesep, 'troubleshoot.mat']); 
                     disp(['failed to load ',pathin,filesep, beadmovie(m).binname{c,n}]);
                     disp(['skipping field: ',num2str(n)]); 
-                   %  disp(['saved data as ,'ScratchPath, filesep, 'troubleshoot.mat']);
+                   %  disp(['saved data as ,'scratchPath, filesep, 'troubleshoot.mat']);
                 end 
           end  
     end
@@ -471,9 +471,9 @@ end
  %% match molecules in each section
 % (much less ambiguious than matching superimposed selection list). 
 
-% load([ScratchPath, 'troubleshoot.mat']);
+% load([scratchPath, 'troubleshoot.mat']);
 
-% save([ScratchPath  'troubleshoot.mat']); disp('saving Troubeshooting data');
+% save([scratchPath  'troubleshoot.mat']); disp('saving Troubeshooting data');
 
 cx_radius = match_radius;
 
