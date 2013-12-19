@@ -62,15 +62,15 @@ methodList = {'insight', 'multifit', 'L1H', 'daoSTORM'};
 % Global Variables
 %--------------------------------------------------------------------------
 global defaultDataPath;
-global defaultInsightPath;
-global defaultMultiFitPath;
+global insightExe;
+global daoSTORMexe;
 
 %--------------------------------------------------------------------------
 % Default Variables
 %--------------------------------------------------------------------------
 analysisPath = defaultDataPath;
 infoFiles = [];
-exePath = defaultInsightPath;
+exePath = insightExe;
 configFile = [];
 numFrames = 10;
 method = 'insight';
@@ -133,9 +133,9 @@ end
 if ~any(cellfun(@(x)strcmp(x, 'exePath'), varargin))
     switch method
         case 'insight'
-            exePath = defaultInsightPath;
+            exePath = insightExe;
         case {'multifit', 'daoSTORM'}
-            exePath = defaultMultiFitPath;
+            exePath = daoSTORMexe;
     end
 end
 
