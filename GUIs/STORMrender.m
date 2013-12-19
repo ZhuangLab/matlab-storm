@@ -22,7 +22,7 @@ function varargout = STORMrender(varargin)
 
 % Edit the above text to modify the response to help STORMrender
 
-% Last Modified by GUIDE v2.5 14-Dec-2013 11:33:39
+% Last Modified by GUIDE v2.5 19-Dec-2013 16:16:16
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -593,9 +593,12 @@ function imsetup(hObject,eventdata, handles)
     
     
     
-    
-    imaxes.H = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
-    imaxes.W = SR{handles.gui_number}.infofile.frame_dimensions(1);
+%     
+%     imaxes.H = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
+%     imaxes.W = SR{handles.gui_number}.infofile.frame_dimensions(1);
+%     
+    imaxes.H = SR{handles.gui_number}.infofile.hend; % actual size of image
+    imaxes.W = SR{handles.gui_number}.infofile.vend;
     imaxes.scale = 2;  % upscale on display
     imaxes.zm = 1;
     imaxes.cx = imaxes.W/2;
