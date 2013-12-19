@@ -123,7 +123,7 @@ function FindDots_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to FindDots (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global  SF InsightExe DaoSTORMexe ScratchPath
+global  SF insightExe daoSTORMexe scratchPath
 
     FitMethod = get(handles.FitMethod,'Value');
    
@@ -132,13 +132,13 @@ global  SF InsightExe DaoSTORMexe ScratchPath
   %  daxroot = regexprep(daxfile(k(end)+1:end),'.dax','');
     
     if FitMethod == 1 % InsightM  
-        if isempty(InsightExe)
-            error(['InsightExe not found.  ',...
-                'Please set the global variable InsightExe ',...
+        if isempty(insightExe)
+            error(['insightExe not found.  ',...
+                'Please set the global variable insightExe ',...
                 'to specify the location of insightM.exe in the ',...
                 'Insight3 folder on your computer.']);
         end
-        insight = InsightExe; 
+        insight = insightExe; 
         
         % InsightM /.ini files don't have a max frames parameter, so
         % instead we write a new dax menufile that has only 1 frame.  
@@ -150,7 +150,7 @@ global  SF InsightExe DaoSTORMexe ScratchPath
         
        % write temp daxfile
         mov_temp = 'mov_temp.dax';
-        daxtemp = [ScratchPath, mov_temp];
+        daxtemp = [scratchPath, mov_temp];
         ftemp = fopen(daxtemp,'w+');
         fwrite(ftemp,SF{handles.gui_number}.impars.Im(:),'*uint16',0,'b');
         fclose(ftemp);
@@ -159,7 +159,7 @@ global  SF InsightExe DaoSTORMexe ScratchPath
         InfoFile_temp = SF{handles.gui_number}.impars.infofile;
         InfoFile_temp.number_of_frames = 1;
         InfoFile_temp.localName = 'mov_temp.inf';
-        InfoFile_temp.localPath = ScratchPath;
+        InfoFile_temp.localPath = scratchPath;
         WriteInfoFiles(InfoFile_temp,'verbose',false);
         % call insight 
         ccall = ['!', insight,' "',daxtemp,'" ',...
@@ -167,7 +167,7 @@ global  SF InsightExe DaoSTORMexe ScratchPath
             ' "',SF{handles.gui_number}.inifile,'" '];
         disp(ccall); 
         eval(ccall); 
-        binfile = regexprep([ScratchPath,'mov_temp.dax'],'\.dax','_list.bin');
+        binfile = regexprep([scratchPath,'mov_temp.dax'],'\.dax','_list.bin');
             
         
 	elseif FitMethod == 2    
@@ -175,9 +175,9 @@ global  SF InsightExe DaoSTORMexe ScratchPath
         if isempty(SF{handles.gui_number}.xmlfile)
             ReadParameterFile(FitMethod,handles) % make default file the 'xmlfile'
         end
-        if isempty(DaoSTORMexe)
-            error(['DaoSTORMexe not found.  ',...
-                'Please set the global variable DaoSTORMexe ',...
+        if isempty(daoSTORMexe)
+            error(['daoSTORMexe not found.  ',...
+                'Please set the global variable daoSTORMexe ',...
                 'to specify the location of mufit_analysis.py in the ',...
                 'DaoSTORM folder on your computer and its dll paths.',...
                 'See startup_example in \Templates folder']);
@@ -195,7 +195,7 @@ global  SF InsightExe DaoSTORMexe ScratchPath
                 parameters,new_values,'<');             
         % need to delete any existing bin menufile before we overwrite, or
         % DaoSTORM tries to pick up analysis where it left off.  
-         binfile = regexprep([ScratchPath,'mov_temp.dax'],'\.dax','_mlist.bin'); 
+         binfile = regexprep([scratchPath,'mov_temp.dax'],'\.dax','_mlist.bin'); 
          if exist(binfile,'file')
             delete(binfile);
          end    
@@ -203,7 +203,7 @@ global  SF InsightExe DaoSTORMexe ScratchPath
         disp('locating dots by DaoSTORM');
         disp(SF{handles.gui_number}.daxfile)
         disp(xmlfile_temp);
-        system([DaoSTORMexe,' "',...
+        system([daoSTORMexe,' "',...
             SF{handles.gui_number}.daxfile,...
             '" "',binfile,'" "',xmlfile_temp,'"']);
         
@@ -529,10 +529,10 @@ elseif FitMethod == 3
 end
     
 function parfile = scratch_parameters(parfile,temp,parflag)
-global ScratchPath
+global scratchPath
  [currpath,currpar] = extractpath(parfile);
-    if isempty(strfind(currpar,temp)) || isempty(strfind(ScratchPath,currpath))
-        parfile = [ScratchPath,currpar(1:end-4),'_',temp,parflag];
+    if isempty(strfind(currpar,temp)) || isempty(strfind(scratchPath,currpath))
+        parfile = [scratchPath,currpar(1:end-4),'_',temp,parflag];
     else
         % no change needed 
     end
@@ -544,7 +544,7 @@ function FitParameters_Callback(hObject, eventdata, handles)
 % hObject    handle to FitParameters (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SF ScratchPath
+global SF scratchPath
 % disp('loading inifile');
 % disp(inifile);
  FitMethod = get(handles.FitMethod,'Value');
@@ -580,8 +580,8 @@ SF{handles.gui_number}.FitPars.OK = false;
     end
  end
     set(handles.CurrentPars,'String',parfile);
-% save([ScratchPath 'test10.mat']);
-% load([ScratchPath 'test10.mat']);
+% save([scratchPath 'test10.mat']);
+% load([scratchPath 'test10.mat']);
 
 
 % --- Executes on selection change in FitMethod.
