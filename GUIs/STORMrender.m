@@ -586,19 +586,48 @@ LoadBin(hObject,eventdata,handles,'off')
 % -------------------------------------------------------------------
 function imsetup(hObject,eventdata, handles)
     global SR
+    
     % if imaxes is already defined, use it. 
     if isfield(SR{handles.gui_number},'imaxes')
        imaxes = SR{handles.gui_number}.imaxes; 
     end
     
     
+    hasParsFile = ~isempty(infofile.notes);
+    hasROIinfo = true;  
+    if hasParsFile
+        parsfile = infofile.notes;
+        parsflag = infofile.notes(end-4:end);
+        if strcmp(parsflag,'.xml');
+        roiFlags = {'<x_start type="int">',...
+                    '<x_stop type="int">'
+                    '<y_start type="int">'
+                    '<y_stop type="int">'};
+        endmarker = '<';
+        elseif strcmp(parsflag,'.ini');
+        roiFlags = {'ROI_x0=',...
+                    'ROI_x1=',...
+                    'ROI_y0=',...
+                    'ROI_y1='};
+        endmarker = '';
+        else
+           hasROIinfo = false;  
+        end
+        if hasROIinfo
+            roiInfo = read_parameterfile(parsfile,roiFlags,endmarker) ;
+            imaxes.W = str2double(roiInfo{2}) - str2double(roiInfo{1});
+            imaxes.H = str2double(roiInfo{4}) - str2double(roiInfo{3});
+            mlist = SR{handles.gui_number}.mlist;  % short hand;
+            mlist.xc = mlist.xc - roiInfo{1};
+            mlist.x = mlist.x - roiInfo{1};
+            mlist.yc = mlist.yc - roiInfo{3};
+            mlist.y = mlist.y - roiInfo{3};
+        end
+    else 
+        imaxes.H = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
+        imaxes.W = SR{handles.gui_number}.infofile.frame_dimensions(1);
+    end
     
-%     
-%     imaxes.H = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
-%     imaxes.W = SR{handles.gui_number}.infofile.frame_dimensions(1);
-%     
-    imaxes.H = SR{handles.gui_number}.infofile.hend; % actual size of image
-    imaxes.W = SR{handles.gui_number}.infofile.vend;
     imaxes.scale = 2;  % upscale on display
     imaxes.zm = 1;
     imaxes.cx = imaxes.W/2;

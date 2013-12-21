@@ -25,6 +25,12 @@ function RunDotFinder(varargin)
 %               files.  
 % daxfile / string / ''
 %               - full name and path of .dax file to analyze
+% binname / string / ''
+%               - alternate name for the _mlist.bin (only in DaoSTORM).
+%                 myname# will replace # with _0001 (where 0001 increases
+%                 by 1 for each movie found by the batch launcher).  
+%               - mynameDAX will replace DAX with the daxname of the movie.
+%                (e.g. mynameDAX -> myname_movie_0001_mlist.bin)
 % path / string / ''
 %               - directory containing .dax files to be analyzed
 % batchsize / integer / 1
@@ -119,6 +125,7 @@ runinMatlab = false;
 printprogress = false;
 batchwait = false;
 maxCPU = 95;
+binname = ''; 
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Arguments
@@ -151,6 +158,8 @@ if nargin > 1
                 parsfile = CheckParameter(parameterValue, 'string', 'parsfile');
             case 'daxfile'
                 daxfile  = CheckParameter(parameterValue, 'string', 'daxfile');
+            case 'binname'
+                binname  = CheckParameter(parameterValue, 'string', 'binname');
             case 'verbose'
                 verbose = CheckParameter(parameterValue, 'boolean', 'verbose');
             case 'hideterminal'
@@ -198,15 +207,9 @@ switch method
     case 'DaoSTORM'
         datatype = '_mlist.bin';
         parstype = '.xml';
-    case 'GPUmultifit'
-        datatype = '_glist.bin';
-        parstype = '.mat';
-        if batchsize > 1
-            disp('Batch task execution not available for GPU');
-        end
     otherwise
         error(['method ',method,' not recognized.  Available methods:',...
-            ' insight, DaoSTORM, GPUmultifit.']);
+            ' insight, DaoSTORM']);
 end
 
 % ~~~~~~~~~~~~ check for parameter files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -224,9 +227,10 @@ if isempty(parsfile)
         parsfile = [dpath, parsname.name];
         disp('No parameters specified: RunDotFinder found parameters ');
         disp(parsfile);
-        disp('using these parameters ...'); 
+        disp('using these parameters ... '); 
     end
 end     
+
 if isempty(strfind(parsfile,parstype))
     error([parsfile, ' is not a valid ', parstype, ' parameter file for ',method]);
 end
@@ -321,7 +325,15 @@ for s=1:Sections % loop through all dax movies in que
                batchwait = true;
             end
         case 'DaoSTORM'
-            binfile = [dpath,filesep,daxroots{s},datatype];
+            if isempty(binname)
+                binfile = [dpath,filesep,daxroots{s},datatype];
+            else
+                binnumber = ['_',sprintf('%04d',s)];
+                newBinName = binname;
+                newBinName = regexprep(newBinName,'#',binnumber);
+                newBinName = regexprep(newBinName,'DAX',['_',daxroots{s}]);
+                binfile = [dpath,filesep,newBinName,datatype];
+            end
             if runinMatlab % 
                 if printprogress  % Print fitting progress to command line
                     system([daoSTORMexe,' "',daxfile,'" "',binfile,'" "',parsfile,'"']);  
@@ -333,17 +345,18 @@ for s=1:Sections % loop through all dax movies in que
                 prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
                 batchwait = true;
             end          
-        case 'GPUmultifit'
-            load(parsfile);
-            gpuclock = tic;
-            mlist = GPUmultifitDax(daxfile,GPUmultiPars);
-            WriteMoleculeList(mlist,[dpath,filesep,daxroots{s},datatype]);
-            gputime = toc(gpuclock)/60;
-            disp(['GPU found and fit ',num2str(length(mlist.x)),' molecules']);
-            disp(['in ',num2str(gputime),' minutes']); 
-    end    
-
- 
+    end   
+    % Record parameter file used in the infofile notes.  
+    try
+        infofile = regexprep(daxfile,'.dax','.inf');
+        modify_script(infofile,infofile,{'notes = '},{parsfile},'');  
+    catch er
+        disp(er.message);
+        disp([ 'failed to record parameters used in .inf file for ',daxfile]);
+    end
+        
+    
+    
     if batchwait
     Nrunning = inf; 
        while Nrunning >= batchsize
