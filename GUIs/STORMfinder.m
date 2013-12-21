@@ -795,13 +795,17 @@ Dprompt = {
     'all dax files containing string'; %  
     'parameter file or file root'; % 
     'overwrite existing?';
-    'min file size (bytes)'};
+    'min file size (bytes)';
+    'run silently?';
+    'new mlist name (DaoSTORM only)'};
 Dopts = {
     '3',...
     '',...
     parsfile,...
     'false',...
-    '20E6'}; 
+    '60E6',...
+    'false',...
+    ''}; 
 Dopts = inputdlg(Dprompt,dlg_title,num_lines,Dopts);
 
 % If a parameter file with file ending is specified, call RunDotFinder with
@@ -818,7 +822,8 @@ if ~isempty(Dopts)  % dealing with cancel
     fpath = SF{handles.gui_number}.daxfile(1:k(end));
     RunDotFinder('path',fpath,'batchsize',eval(Dopts{1}),'daxroot',Dopts{2},...
          parflag,Dopts{3},'overwrite',eval(Dopts{4}),'method',method,...
-         'minsize',eval(Dopts{5}));
+         'minsize',eval(Dopts{5}),'hideterminal',eval(Dopts{6}),...
+         'binname',Dopts{7});
 end
 
 
