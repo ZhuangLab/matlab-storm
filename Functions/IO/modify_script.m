@@ -112,13 +112,7 @@ T_new = T;
 % find line containing target phrase entry;
 for t=1:length(target_phrases)
     target_phrase = target_phrases{t};
-    new_value = new_values{t}; 
-    if literal
-        % backslashes will be written literally.  Otherwise they indicate
-        % escape characters to fprintf
-        new_value = regexprep(new_value,'\\','\\\'); 
-    end
-    
+    new_value = new_values{t};    
       
     ln = 1; % loop through all lines, don't go past end.
     while isempty(regexp(T(ln,:),regexptranslate('escape',target_phrase),'once')) && ln < max_lines;
@@ -145,11 +139,18 @@ for t=1:length(target_phrases)
 end
     
 % print to file
-disp(['writing file ',fname_out,'...'])
+if verbose
+    disp(['writing file ',fname_out,'...'])
+end
 
 fid = fopen(fname_out,'w+');
 for ln=1:max_lines
-    str = deblank(T_new(ln,:));  fprintf(fid,str,['']); fprintf(fid,'%s\r\n',['']);
+    str = deblank(T_new(ln,:));
+    if literal
+        % backslashes will be written literally.
+        str = regexprep(str,'\\','\\\'); % convert \ to \\.  
+    end
+      fprintf(fid,str,['']); fprintf(fid,'%s\r\n',['']);
 end
 fclose(fid); 
 if verbose

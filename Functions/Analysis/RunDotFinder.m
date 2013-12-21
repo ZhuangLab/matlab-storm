@@ -348,7 +348,7 @@ for s=1:Sections % loop through all dax movies in que
     end   
     % Record parameter file used in the infofile notes.  
     try
-        infofile = regexprep(daxfile,'.dax','.inf');
+        infofile = regexprep(daxfile,'\.dax','\.inf');
         modify_script(infofile,infofile,{'notes = '},{parsfile},'');  
     catch er
         disp(er.message);

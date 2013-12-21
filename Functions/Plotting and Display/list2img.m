@@ -49,6 +49,7 @@ scalebar = 500;
 CorrectDrift = true;
 showScalebar = true;
 fastMode = false;
+verbose = false;
 
 % If imaxes is not passed as a variable
 if nargin == 1 || ischar(varargin{1})
@@ -142,6 +143,8 @@ if ~isempty(varinput)
                 fastMode =  CheckParameter(parameterValue,'boolean','Fast');
             case 'N'
                 N  = CheckParameter(parameterValue,'positive','N');
+            case 'verbose'
+                verbose = CheckParameter(parameterValue,'boolean','verbose'); 
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -165,6 +168,7 @@ end
 %% Main Function
 %--------------------------------------------------------------------------
 
+ltic = tic;
 
 % 
 if scalebar < 1
@@ -251,6 +255,10 @@ for c=chns
      
 end
 
+ltime = toc(ltic);
+if verbose
+disp(['list2img took ',num2str(ltime,4),' s']); 
+end
 % figure(1); clf; Ncolor(In{1}); colormap hot;
 
 

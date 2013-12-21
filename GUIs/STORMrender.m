@@ -325,7 +325,7 @@ end
      SR{handles.gui_number}.bins = [];
      handles=ClearCurrentData(hObject,eventdata,handles);
 
-    function handles=ClearCurrentData(hObject,eventdata,handles)
+function handles=ClearCurrentData(hObject,eventdata,handles)
         % clear existing fields for these variables
         global SR
         SR{handles.gui_number}.mlist = [];
@@ -357,7 +357,7 @@ end
 
 
  %~~~~~~~
-    function handles = AddStormLayer(hObject,handles,Sname,layer_number)
+function handles = AddStormLayer(hObject,handles,Sname,layer_number)
         % Adds a new radio button to the OverlayPanel, which can toggle this
         % channel on and off.  
     global SR scratchPath  %#ok<NUSED>
@@ -396,9 +396,9 @@ end
     guidata(hObject, handles);
 
 
-        function StormButtonToggle(hObject, EventData)
+function StormButtonToggle(hObject, EventData)
             handles = guidata(hObject);
-            update_maindisplay(hObject,handles);
+            UpdateMainDisplay(hObject,handles);
 
  
 %     % --- Executes when StormPanel is resized.
@@ -419,7 +419,7 @@ end
           
 
 
-    function SingleBinLoad(hObject,eventdata,handles)
+function SingleBinLoad(hObject,eventdata,handles)
         % Loads single bin files
         global binfile SR 
         disp('reading binfile...');
@@ -585,23 +585,24 @@ LoadBin(hObject,eventdata,handles,'off')
 % Setup defaults
 % -------------------------------------------------------------------
 function imsetup(hObject,eventdata, handles)
-    global SR
+    global SR scratchPath
     
     % if imaxes is already defined, use it. 
     if isfield(SR{handles.gui_number},'imaxes')
        imaxes = SR{handles.gui_number}.imaxes; 
-    end
-    
-    
+    else
+     
+    % build new imaxes structure using ROI from parameter file if available
+    infofile = SR{handles.gui_number}.infofile;
     hasParsFile = ~isempty(infofile.notes);
     hasROIinfo = true;  
     if hasParsFile
         parsfile = infofile.notes;
-        parsflag = infofile.notes(end-4:end);
+        parsflag = infofile.notes(end-3:end);
         if strcmp(parsflag,'.xml');
         roiFlags = {'<x_start type="int">',...
-                    '<x_stop type="int">'
-                    '<y_start type="int">'
+                    '<x_stop type="int">',...
+                    '<y_start type="int">',...
                     '<y_stop type="int">'};
         endmarker = '<';
         elseif strcmp(parsflag,'.ini');
@@ -614,18 +615,24 @@ function imsetup(hObject,eventdata, handles)
            hasROIinfo = false;  
         end
         if hasROIinfo
-            roiInfo = read_parameterfile(parsfile,roiFlags,endmarker) ;
-            imaxes.W = str2double(roiInfo{2}) - str2double(roiInfo{1});
-            imaxes.H = str2double(roiInfo{4}) - str2double(roiInfo{3});
+            roiInfo = read_parameterfile(parsfile,roiFlags,endmarker);
+            roi = cellfun(@str2double,roiInfo);
+            imaxes.W = roi(2) - roi(1);
+            imaxes.H = roi(4) - roi(3);
             mlist = SR{handles.gui_number}.mlist;  % short hand;
-            mlist.xc = mlist.xc - roiInfo{1};
-            mlist.x = mlist.x - roiInfo{1};
-            mlist.yc = mlist.yc - roiInfo{3};
-            mlist.y = mlist.y - roiInfo{3};
+            for i=1:length(mlist)
+                mlist{i}.xc = mlist{i}.xc - roi(1);
+                mlist{i}.x = mlist{i}.x - roi(1);
+                mlist{i}.yc = mlist{i}.yc - roi(3);
+                mlist{i}.y = mlist{i}.y - roi(3);
+            end
+            SR{handles.gui_number}.mlist = mlist;
         end
     else 
         imaxes.H = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
         imaxes.W = SR{handles.gui_number}.infofile.frame_dimensions(1);
+    end
+    
     end
     
     imaxes.scale = 2;  % upscale on display
@@ -644,7 +651,6 @@ function imsetup(hObject,eventdata, handles)
     SR{handles.gui_number}.imaxes = imaxes;
     guidata(hObject, handles);
     UpdateSliders(hObject,eventdata,handles);
-
 
 %=========================================================================%  
 %       end of load data functions
@@ -755,7 +761,7 @@ end
 
 
 
-function getedges(hObject, eventdata, handles)
+function GetEdges(hObject, eventdata, handles)
 % if cx/cy is near the edge and zoom is small, we should have a different
 % maxx maxy
 global SR     
@@ -800,14 +806,14 @@ SR{handles.gui_number}.imaxes = imaxes;
 function loadim(hObject,eventdata, handles)
 % load variables
 global   SR
-mlist = SR{handles.gui_number}.mlist;  
 
+mlist = SR{handles.gui_number}.mlist;  
 
 % if we're zoomed out fully, recenter everything
 if SR{handles.gui_number}.imaxes.zm == 1
   imsetup(hObject,eventdata, handles); % reset to center
 end
-getedges(hObject, eventdata, handles);
+GetEdges(hObject, eventdata, handles);
 UpdateSliders(hObject,eventdata,handles);
 
 tic
@@ -833,12 +839,11 @@ SR{handles.gui_number}.I = list2img(mlist, SR{handles.gui_number}.imaxes,...
     'N',6,...
     'correct drift',SR{handles.gui_number}.DisplayOps.CorrDrift);
 
-
 if ~isempty(SR{handles.gui_number}.Oz)
     IntegrateOverlay(hObject,handles); % Integrate the Overlay, if it exists
 end
 
-update_maindisplay(hObject,handles); % converts I, applys contrast, to RBG
+UpdateMainDisplay(hObject,handles); % converts I, applys contrast, to RBG
 guidata(hObject, handles);
 plottime = toc;
 disp(['total time to render image: ',num2str(plottime)]);
@@ -931,7 +936,7 @@ function ApplyFilter_Callback(hObject, eventdata, handles)
   
   
   for c=1:channels
-    SR{handles.gui_number}.infilter{c}(vlist{c}.inbox & vlist{c}.infilter') =  newfilter{c};
+    SR{handles.gui_number}.infilter{c}(vlist{c}.inbox & vlist{c}.infilter) =  newfilter{c};
   end
    SR{handles.gui_number}.filts = filts;
   loadim(hObject,eventdata, handles); % calls plotdata function
@@ -947,7 +952,7 @@ disp('this function still under development');
 
  
  
-function update_maindisplay(hObject,handles)
+function UpdateMainDisplay(hObject,handles)
 global  SR scratchPath  %#ok<NUSED>
 
 I = SR{handles.gui_number}.I;
@@ -966,19 +971,19 @@ Noverlays = length(SR{handles.gui_number}.Oz);
 % Find out which channels are toggled for display
 %------------------------------------------------------------        
 channels = zeros(1,Cs); % Storm Channels
-    for c = 1:Cs; % length(handles.stormbutton)
-        channels(c) = get(handles.stormbutton(c),'Value');
-    end
-    active_channels = find(channels);
-    overlays = zeros(1,Noverlays); % Overlay channels
-    for c = 1:Noverlays
-        overlays(c) = get(handles.overlaybutton(c),'Value');
-    end
-    active_overlays = find(overlays);
+for c = 1:Cs; % length(handles.stormbutton)
+    channels(c) = get(handles.stormbutton(c),'Value');
+end
+active_channels = find(channels);
+overlays = zeros(1,Noverlays); % Overlay channels
+for c = 1:Noverlays
+    overlays(c) = get(handles.overlaybutton(c),'Value');
+end
+active_overlays = find(overlays);
     
-
+% save([scratchPath,'test.mat']);
 % save([scratchPath,'test.mat'],'handles','I','active_channels','channels','overlays','active_overlays');
-% load([scratchPath,'test.mat']);
+% global scratchPath; load([scratchPath,'test.mat']);
 
 % Stack all image layers (channels, z-dimensions, and overlays)
 %   into a common matrix for multicolor rendering.  Apply indicated
@@ -1039,7 +1044,6 @@ SR{handles.gui_number}.Io = Io;
 guidata(hObject, handles);
 
 
-
 % --------------------------------------------------------------------
 function ManualContrastTool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to ManualContrastTool (see GCBO)
@@ -1048,7 +1052,7 @@ function ManualContrastTool_ClickedCallback(hObject, eventdata, handles)
 global SR
 SR{handles.gui_number}.cmax = input('enter a vector for max intensity for each channel: ');
 SR{handles.gui_number}.cmin = input('enter a vector for min intensity for each channel: ');
- update_maindisplay(hObject,handles);
+ UpdateMainDisplay(hObject,handles);
  guidata(hObject, handles);
  
 % --------------------------------------------------------------------
@@ -1062,7 +1066,7 @@ global SR
         SR{handles.gui_number}.cmax(c) = .9;
         SR{handles.gui_number}.cmin(c) = 0;
     end
- update_maindisplay(hObject,handles);
+ UpdateMainDisplay(hObject,handles);
  guidata(hObject, handles);
 
 % ------
@@ -1145,7 +1149,7 @@ end
  %      save([scratchPath,'test.mat']);
  %     load([scratchPath,'test.mat']);  figure(3); clf;
   clear raw_ints;        
-  update_maindisplay(hObject,handles);
+  UpdateMainDisplay(hObject,handles);
   guidata(hObject, handles);
 
 
@@ -1273,7 +1277,7 @@ handles = guidata(hObject);
 % user specifies box:
 axes(handles.axes2); 
 set(gca,'XTick',[],'YTick',[]);
-% getedges(hObject, eventdata, handles)
+% GetEdges(hObject, eventdata, handles)
 [x,y] = ginput(2);  % These are relative to the current axis
 xim = imaxes.xmin + x/imaxes.scale/imaxes.zm;
 yim = imaxes.ymin + y/imaxes.scale/imaxes.zm;
@@ -1305,7 +1309,7 @@ guidata(hObject, handles);
 
 
 %----------------------------------------------
-function updateNaviagtor(hObject,handles)
+function UpdateNavigator(hObject,handles)
 global SR
 imaxes = SR{handles.gui_number}.imaxes;
     axes(handles.axes1);
@@ -1352,7 +1356,7 @@ handles = guidata(hObject);
 set(handles.Xslider,'Value',imaxes.cx);
 set(handles.Yslider,'Value',imaxes.H-imaxes.cy);
 SR{handles.gui_number}.imaxes = imaxes;
-updateNaviagtor(hObject,handles);
+UpdateNavigator(hObject,handles);
 guidata(hObject, handles);
 
 % --- Executes on slider movement.
@@ -1947,7 +1951,7 @@ end
     
         function OverlayButtonToggle(hObject, EventData)
             handles = guidata(hObject);
-            update_maindisplay(hObject,handles);   
+            UpdateMainDisplay(hObject,handles);   
                  
     %---------------------------------------------------------------------
     % IntegrateOverlay into field of view
@@ -1965,7 +1969,7 @@ end
             'rotate',eval(Overlay_opts{4}),'xshift',eval(Overlay_opts{5}),...
             'yshift',eval(Overlay_opts{6}),'channels',eval(Overlay_opts{7}) ); 
        % figure(4); clf; imagesc(I{imlayer});
-        update_maindisplay(hObject,handles);
+        UpdateMainDisplay(hObject,handles);
         end
     end
     end
@@ -2198,7 +2202,7 @@ if length(Opts) > 1 % Do nothing if canceled
     SR{handles.gui_number}.mlist{c}.yc = ...
         SR{handles.gui_number}.mlist{c}.y - dyc(SR{handles.gui_number}.mlist{c}.frame);    
 end
-update_maindisplay(hObject,handles);
+UpdateMainDisplay(hObject,handles);
 
 
 % --------------------------------------------------------------------
@@ -2246,32 +2250,50 @@ Dprompt = {
     'channel',... 2
     'scale',...        3
     'nm per pixel',...
-    'showplots'};     %5   
-Opts{1} = num2str(10E3);
+    'showplots',...
+    'use only current ROI'};     %5   
+Opts{1} = num2str(6E3);
 Opts{2} = num2str(1);
 Opts{3} = num2str(4);
 Opts{4} = num2str(SR{handles.gui_number}.DisplayOps.npp);
 Opts{5} = 'true';
+Opts{6} = 'true';
 Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
 
 c = str2double(Opts{2});
+mlist = SR{handles.gui_number}.mlist;
 
-[dxc,dyc] =  XcorrDriftCorrect( ...
-    SR{handles.gui_number}.mlist{ c },...
-    'imagesize',imagesize,...
-    'scale',eval(Opts{3}),...
-    'stepframe',eval(Opts{1}),...
-    'nm per pixel',eval(Opts{4}),...
-    'showplots',eval(Opts{5}) );
-  
-% save([scratchPath,'troubleshoot.mat'],'-v7.3'); 
+if eval(Opts{6})
+          vlist = MolsInView(handles);
+          % imaxes = SR{handles.gui_number}.imaxes;  
+          % H = imaxes.ymax - imaxes.ymin + 1;
+          % W = imaxes.xmax - imaxes.xmin + 1; 
+           H = vlist{c}.imaxes.H;
+           W = vlist{c}.imaxes.W;
+           npp = SR{handles.gui_number}.DisplayOps.npp;
 
-    % apply correction  
-    SR{handles.gui_number}.mlist{c}.xc = ...
-        SR{handles.gui_number}.mlist{c}.x - dxc(SR{handles.gui_number}.mlist{c}.frame)';
-    SR{handles.gui_number}.mlist{c}.yc = ...
-        SR{handles.gui_number}.mlist{c}.y - dyc(SR{handles.gui_number}.mlist{c}.frame)';    
-
- update_maindisplay(hObject,handles);
+          [dxc,dyc] = XcorrDriftCorrect(vlist{c},...
+             'stepframe',eval(Opts{1}),...
+            'scale',eval(Opts{2}),'showplots',eval(Opts{3}),...    
+            'imagesize',[H,W],'nm per pixel',npp);  
+        % local area may not have dots localized up through the last frame
+        % of the movie.  Just assume no drift for these final frames if
+        % doing local region based correction.  (They should only be a
+        % couple to couple dozen of frames = a few seconds of drift at most).
+        dxc = [dxc,zeros(1,max(mlist{c}.frame)-max(vlist{c}.frame))];
+        dyc = [dyc,zeros(1,max(mlist{c}.frame)-max(vlist{c}.frame))];
+else
+    [dxc,dyc] =  XcorrDriftCorrect( ...
+        SR{handles.gui_number}.mlist{ c },...
+        'imagesize',imagesize,...
+        'scale',eval(Opts{3}),...
+        'stepframe',eval(Opts{1}),...
+        'nm per pixel',eval(Opts{4}),...
+        'showplots',eval(Opts{5}) ); 
+end
+mlist{c}.xc = mlist{c}.x - dxc(mlist{c}.frame)';
+mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame)';  
+SR{handles.gui_number}.mlist = mlist;
+UpdateMainDisplay(hObject,handles);
  
  

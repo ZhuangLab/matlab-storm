@@ -911,7 +911,8 @@ if isa(varargin{1},'struct')
     % TRANS = CP2TFORM(CPSTRUCT,'polynomial',ORDER)        
     % TRANS = CP2TFORM(CPSTRUCT,'lwm',N)    
 
-    iptchecknargin(2,3,nargin,mfilename);
+    narginchk(2,3);
+    % iptchecknargin(2,3,nargin,mfilename);
     
     [uv,xy] = cpstruct2pairs(varargin{1});
     method = getMethod(varargin{2});
@@ -926,7 +927,8 @@ else
     % TRANS = CP2TFORM(INPUT_POINTS,BASE_POINTS,'polynomial',ORDER)        
     % TRANS = CP2TFORM(INPUT_POINTS,BASE_POINTS,'lwm',N)    
 
-    iptchecknargin(3,4,nargin,mfilename);
+    narginchk(3,4);
+    % iptchecknargin(3,4,nargin,mfilename);
     
     uv = varargin{1};
     xy = varargin{2};
