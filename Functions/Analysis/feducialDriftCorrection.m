@@ -17,8 +17,10 @@ function [dxc,dyc,fedCoords,drift_error] = feducialDriftCorrection(input1,vararg
 % Optional Inputs
 %
 %  'Option Name' / Class / Default 
+% 'spotframe' / double / =startframe
+%                -- frame to use to ID the feducial bead positions. 
 % 'startframe' / double / 1  
-%               -- first frame to find feducials in
+%               -- first frame to start drift analysis at
 % 'maxdrift' / double / 2.5 
 %               -- max distance a feducial can get from its starting 
 %                  position and still be considered the same molecule
@@ -45,6 +47,7 @@ function [dxc,dyc,fedCoords,drift_error] = feducialDriftCorrection(input1,vararg
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
 
+global scratchPath
 
 %--------------------------------------------------------------------------
 %% Default Parameters
@@ -52,6 +55,7 @@ function [dxc,dyc,fedCoords,drift_error] = feducialDriftCorrection(input1,vararg
 
 daxname = [];
 startframe = 1; % frame to use to find feducials
+spotframe = [];
 maxdrift = 2.5; % max distance a feducial can get from its starting position and still be considered the same molecule
 integrateframes = 200; % number of frames to integrate
 fmin = .5; 
@@ -89,6 +93,8 @@ if nargin > 2
                 binname = CheckParameter(parameterValue,'string','binname');
             case 'mlist'
                 mlist = CheckParameter(parameterValue,'struct','mlist');
+            case 'spotframe'
+                spotframe  = CheckParameter(parameterValue,'positive','startframe');
             case 'startframe'
                 startframe = CheckParameter(parameterValue,'positive','startframe');
             case 'maxdrift'
@@ -125,16 +131,24 @@ end
 if ~isempty(binname) && ~isempty(daxname)
     daxfile = ReadDax(daxname,'startFrame',startframe,'endFrame',startframe+100);
 end
+
+if isempty(spotframe)
+    spotframe = startframe;
+end
+
 %%
 
 % Automatically ID feducials
 %-------------------------------------------------
 
 % Step 1, find all molecules that are "ON" in startframe.
+if spotframe == 1
+    spotframe = min(mlist.frame);
+end
 if startframe == 1
     startframe = min(mlist.frame);
 end
-p1s = mlist.frame==startframe;
+p1s = mlist.frame==spotframe;
 x1s = mlist.x(p1s);
 y1s = mlist.y(p1s);
 
@@ -294,5 +308,4 @@ for n = 1:Nfeducials;
     fedCoords(:,n,1) = Fed_traj(:,n,1)- dxc;
     fedCoords(:,n,2) = Fed_traj(:,n,2)- dyc;
 end
-
 

@@ -22,7 +22,7 @@ function varargout = STORMrender(varargin)
 
 % Edit the above text to modify the response to help STORMrender
 
-% Last Modified by GUIDE v2.5 19-Dec-2013 16:16:16
+% Last Modified by GUIDE v2.5 22-Dec-2013 12:13:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -164,7 +164,7 @@ if isempty(binfile)
 else
     [~,FileName] = extractpath(binfile);
 end
-handles = AddStormLayer(hObject,handles,FileName,[]);
+handles = AddStormLayer(hObject,handles,FileName,1);
 guidata(hObject, handles);
 handles = guidata(hObject);
 SingleBinLoad(hObject,eventdata,handles);
@@ -212,14 +212,19 @@ if FilterIndex ~=0
     set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin); 
     if ~iscell(FileName)
         binfile = [PathName,filesep,FileName];
-        handles = AddStormLayer(hObject,handles,FileName,[]);
+        handles = AddStormLayer(hObject,handles,FileName,1);
         guidata(hObject, handles);
         SingleBinLoad(hObject,eventdata,handles);
     else
-        sortednames = ['FileName(',SR{handles.gui_number}.LoadOps.chnOrder,')'];
-        binnames = eval(sortednames); 
+        
+        prompt = 'In what order were these taken?  ';
+        chnOrder = inputdlg(char({prompt,FileName{:}}),...
+            '',1,{['[',num2str(1:length(FileName)),']'] }) ;  
+        chnOrder = chnOrder{1}; 
+        SR{handles.gui_number}.LoadOps.chnOrder = chnOrder;     
+        binnames = eval(['FileName(',chnOrder,')']);
         for c=1:length(FileName)
-            handles = AddStormLayer(hObject,handles,FileName{c},[]);
+            handles = AddStormLayer(hObject,handles,binnames{c},c);
             guidata(hObject, handles);
         end
         MultiBinLoad(hObject,eventdata,handles,binnames);
@@ -259,62 +264,55 @@ default_opts = ...
 opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
 
 if ~isempty(opts) % don't try anything if dialogue box is canceled
-SR{handles.gui_number}.LoadOps.sourceroot = opts{1};
-SR{handles.gui_number}.LoadOps.bintype = opts{2};
-SR{handles.gui_number}.LoadOps.chnFlag = parseCSL(opts{3}); 
-SR{handles.gui_number}.LoadOps.dataset = str2double(opts{4});
-%  if we don't have a file path, prompt user to find one. 
-if isempty(SR{handles.gui_number}.LoadOps.pathin)
-    SR{handles.gui_number}.LoadOps.pathin = uigetdir(pwd,'select data folder');
-    if ~SR{handles.gui_number}.LoadOps.pathin
-        SR{handles.gui_number}.LoadOps.pathin = '';
-        stoprun = 1;
+    SR{handles.gui_number}.LoadOps.sourceroot = opts{1};
+    SR{handles.gui_number}.LoadOps.bintype = opts{2};
+    SR{handles.gui_number}.LoadOps.chnFlag = parseCSL(opts{3}); 
+    SR{handles.gui_number}.LoadOps.dataset = str2double(opts{4});
+    %  if we don't have a file path, prompt user to find one. 
+    if isempty(SR{handles.gui_number}.LoadOps.pathin)
+        SR{handles.gui_number}.LoadOps.pathin = uigetdir(pwd,'select data folder');
+        if ~SR{handles.gui_number}.LoadOps.pathin
+            SR{handles.gui_number}.LoadOps.pathin = '';
+            stoprun = 1;
+        end
     end
-end
 
-if ~stoprun
-% Automatically group all bin files of same section in different colors
-  %   based on image number, if it has not already been done
-  if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
-    [SR{handles.gui_number}.bins,SR{handles.gui_number}.allfnames] = ...
-        automatch_files( [SR{handles.gui_number}.LoadOps.pathin,filesep],...
-           'sourceroot',SR{handles.gui_number}.LoadOps.sourceroot,...
-           'filetype',SR{handles.gui_number}.LoadOps.bintype,...
-           'chns',SR{handles.gui_number}.LoadOps.chnFlag);
-    disp('files found and grouped:'); 
-    disp(SR{handles.gui_number}.bins(:));
-  end
-  
- % Figure out which channels are really in data set  
- if SR{handles.gui_number}.LoadOps.dataset == 0
-     i=1;
- else
-     i=SR{handles.gui_number}.LoadOps.dataset;
- end
- 
- % save([scratchPath,'test.mat']);
- % load([scratchPath,'test.mat']);
- 
- hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
-    binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
-    if sum((logical(1-hasdata))) ~=0
+    if ~stoprun
+        % Automatically group all bin files of same section in different colors
+        %   based on image number, if it has not already been done
+        if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
+        [SR{handles.gui_number}.bins,SR{handles.gui_number}.allfnames] = ...
+            automatch_files( [SR{handles.gui_number}.LoadOps.pathin,filesep],...
+               'sourceroot',SR{handles.gui_number}.LoadOps.sourceroot,...
+               'filetype',SR{handles.gui_number}.LoadOps.bintype,...
+               'chns',SR{handles.gui_number}.LoadOps.chnFlag);
+        disp('files found and grouped:'); 
+        disp(SR{handles.gui_number}.bins(:));
+        end
+
+        % Figure out which channels are really in data set  
+        if SR{handles.gui_number}.LoadOps.dataset == 0
+         i=1;
+        else
+         i=SR{handles.gui_number}.LoadOps.dataset;
+        end
+
+        hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
+        binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
+        if sum((logical(1-hasdata))) ~=0
         disp('no data found for in channels:');
         disp(SR{handles.gui_number}.LoadOps.chnFlag(logical(1-hasdata)))
-    end
-    %  save([scratchPath,'test.mat']); 
-    % load([scratchPath,'test.mat']); 
-    
-    
-    SR{handles.gui_number}.fnames = SR{handles.gui_number}.allfnames(hasdata,i);
-    disp('will load:');
-    disp(SR{handles.gui_number}.fnames);   
-    for c=1:length(SR{handles.gui_number}.fnames)
+        end
+
+        SR{handles.gui_number}.fnames = SR{handles.gui_number}.allfnames(hasdata,i);
+        disp('will load:');
+        disp(SR{handles.gui_number}.fnames);   
+        for c=1:length(SR{handles.gui_number}.fnames)
         handles = AddStormLayer(hObject,handles,SR{handles.gui_number}.fnames{c},[]);
         guidata(hObject, handles);
-    end
-    
+        end
     MultiBinLoad(hObject,eventdata,handles,binnames);    
-end
+    end
 end
 
 %~~~~~~~~~~~~~~~~~~
@@ -340,14 +338,10 @@ function handles=ClearCurrentData(hObject,eventdata,handles)
     set(handles.LevelsChannel,'Value',1);
     set(handles.LevelsChannel,'String',{'channel1'});
         
-        if isfield(handles,'stormbutton')
-                buttonhandle = handles.stormbutton;
-                if ishandle(buttonhandle)
-                    delete(buttonhandle); 
-                end
-                handles = rmfield(handles, 'stormbutton');
-                guidata(hObject,handles);        
-        end
+    for c=1:6
+        eval(['set(','handles.sLayer',num2str(c),', ','''Visible''',', ','''off''',')']);
+    end
+
          if isfield(handles,'overlaybutton')
                 buttonhandle = handles.overlaybutton;
                 if ishandle(buttonhandle)
@@ -360,157 +354,134 @@ function handles=ClearCurrentData(hObject,eventdata,handles)
 
  %~~~~~~~
 function handles = AddStormLayer(hObject,handles,Sname,layer_number)
-        % Adds a new radio button to the OverlayPanel, which can toggle this
+        % Adds a new radio button to the STORM layer, which can toggle this
         % channel on and off.  
-    global SR scratchPath  %#ok<NUSED>
-    % save([scratchPath,'test2.mat']); 
-    
-    disp('Adding New STORM layer');
-    
-    if ~isfield(handles,'stormbutton')
-        handles.stormbutton = [];
-    end
-    
-    if isempty(layer_number)  % allows overwriting existing buttons upon load.  
-        layer_number = length(handles.stormbutton) + 1;
-    end
+global SR scratchPath  %#ok<NUSED>
 
-    % update levels
-    LevelsNames = get(handles.LevelsChannel,'String');
-    LevelsNames{layer_number} = Sname;
-    set(handles.LevelsChannel,'String',LevelsNames);
-    
-    SR{handles.gui_number}.cmin(layer_number) = 0;
-    SR{handles.gui_number}.cmax(layer_number) = .7; 
-    
-    % create button
-    button_position = [.6, 7.4-1.5*(layer_number-1), 17, 1.85];
-    handles.stormbutton(layer_number) = ...
-                    uicontrol( 'Parent', handles.StormPanel,...
-                               'Style', 'radiobutton', ...
-                               'Callback', @StormButtonToggle, ...
-                               'Units',    'characters', ...
-                               'Position', button_position, ...
-                               'String',   Sname, ...
-                               'Value',    1);
-    guidata(hObject, handles);
-    set( handles.stormbutton(layer_number),'Units','normalized');
-    guidata(hObject, handles);
+disp('called updated version'); 
 
+verbose = SR{handles.gui_number}.DisplayOps.verbose;
+if verbose
+disp(['Adding New STORM layer ',num2str(layer_number)]);
+end
 
-function StormButtonToggle(hObject, EventData)
-            handles = guidata(hObject);
-            UpdateMainDisplay(hObject,handles);
+% Make button visible
+buttonName = ['handles.sLayer',num2str(layer_number)];
+makeVisible = ['set(',buttonName,', ','''Visible''',', ','''on''',')'];
+buttonPress = ['set(',buttonName,', ','''Value''',', ','true',')'];
+updateName =  ['set(',buttonName,', ','''String''',', ','''',Sname,'''',')'];
+eval(makeVisible); 
+eval(buttonPress); 
+eval(updateName); 
+guidata(hObject, handles);
 
- 
-%     % --- Executes when StormPanel is resized.
-%     function StormPanel_ResizeFcn(hObject, eventdata, handles)
-%     % hObject    handle to StormPanel (see GCBO)
-%     % eventdata  reserved - to be defined in a future version of MATLAB
-%     % handles    structure with handles and user data (see GUIDATA)
-% 
-%         % repositions GUI channel toggle inside parent panel when main
-%         % figure is resized.  
-%             % panel_pos = get(handles.StormPanel,'Position');
-% %             for c = 1:length(handles.stormbutton)
-% %                 set(handles.stormbutton(c),'Units','normalized');
-% %             end
-            
-   
+% update levels
+LevelsNames = get(handles.LevelsChannel,'String');
+LevelsNames{layer_number} = Sname;
+set(handles.LevelsChannel,'String',LevelsNames);   
+SR{handles.gui_number}.cmin(layer_number) = 0;
+SR{handles.gui_number}.cmax(layer_number) = .7; 
+
             
           
 
 
 function SingleBinLoad(hObject,eventdata,handles)
-        % Loads single bin files
-        global binfile SR 
-        disp('reading binfile...');
-        SR{handles.gui_number}.mlist{1} = ReadMasterMoleculeList(binfile);
-        SR{handles.gui_number}.fnames{1} = binfile; 
-        disp('file loaded'); 
-        [pathname,filename] = extractpath(binfile); 
-        k = strfind(filename,'_');
-        SR{handles.gui_number}.infofile = ReadInfoFile(...
-            [pathname,filesep,filename(1:k(end)-1),'.inf']);
-        disp('setting up image options...');
-        imsetup(hObject,eventdata, handles);
-        disp('drawing data...');
-        ClearFilters_Callback(hObject, eventdata, handles); 
-        guidata(hObject, handles);
+% Loads single bin files
+global binfile SR 
+[pathname,filename] = extractpath(binfile); 
+disp('reading binfile...');
+SR{handles.gui_number}.mlist{1} = ReadMasterMoleculeList(binfile);
+SR{handles.gui_number}.fnames{1} = filename; 
+disp('file loaded'); 
+
+k = strfind(filename,'_');
+SR{handles.gui_number}.infofile = ReadInfoFile(...
+    [pathname,filesep,filename(1:k(end)-1),'.inf']);
+disp('setting up image options...');
+imsetup(hObject,eventdata, handles);
+disp('drawing data...');
+ClearFilters_Callback(hObject, eventdata, handles); 
+guidata(hObject, handles);
 
 
 
         
  function MultiBinLoad(hObject,eventdata,handles,binnames)
-     global SR scratchPath  %#ok<NUSED>
-     % ----------------------------------------------------
-     % Passed Inputs:
-     % binnames
-     % ----------------------------------------------------
-     % % Global Inputs (from SR structure):
-     % .LoadOps: structure containing filepaths for data, warps etc
-     % .fnames: cell array of names of current data files in display 
-     %          (used for display only).
-     %------------------------------------------------------
-     % Outputs (saved in SR data structure)
-     % .mlist:  cell array of all molecule lists loaded for display
-     % .infofile: InfoFile structure for dataset (contains stage position,
-     %          needed for MosaicView reconstruction).  
-     
-% Extract some useful info for later:
-        guidata(hObject, handles);
-    %  Set up title field in display   
-    SR{handles.gui_number}.fnames = binnames; % display name for the files
-    % Get infofile #1 for position information
-    k = strfind(binnames{1},'_'); 
-    SR{handles.gui_number}.infofile = ReadInfoFile([SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf']);
-    
-% Combine folder with binnames in order to call DriftCorrect / binload
-    Tchns = length(binnames);
-    allbins = cell(Tchns,1); 
-    for c=1:Tchns
-            allbins{c} = strcat(SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{c});
-    end
+ global SR scratchPath  %#ok<NUSED>
+ % ----------------------------------------------------
+ % Passed Inputs:
+ % binnames
+ % ----------------------------------------------------
+ % % Global Inputs (from SR structure):
+ % .LoadOps: structure containing filepaths for data, warps etc
+ % .fnames: cell array of names of current data files in display 
+ %          (used for display only).
+ %------------------------------------------------------
+ % Outputs (saved in SR data structure)
+ % .mlist:  cell array of all molecule lists loaded for display
+ % .infofile: InfoFile structure for dataset (contains stage position,
+ %          needed for MosaicView reconstruction).  
 
-% Apply global drift correction, then return loaded mlist file.
-% Then apply chromewarp.  
-    mlist = MultiChnDriftCorrect(allbins,...
-        'correctDrift',SR{handles.gui_number}.LoadOps.correctDrift);
-    
-  % Need a warp map.  
-    if isempty(SR{handles.gui_number}.LoadOps.warpfile)
-        [FileName,PathName] = uigetfile({'*.mat','Matlab data (*.mat)';...
-    '*.*','All Files (*.*)'},'Select warpfile',SR{handles.gui_number}.LoadOps.pathin);
-    SR{handles.gui_number}.LoadOps.warpfile = [PathName,FileName];
-    end
- % Need to know channel names so we can apply the appropriate warp
-    if isempty([SR{handles.gui_number}.LoadOps.chns{:}])
-        chns = inputdlg({'Channel Names: (name must match warpmap, order match layer order)'},...
-    '',1,{'750,647,561,488'});  % <--  Default channel names
-        SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1});
-    end
- % Automatically dealing with old or new style chromewarp format
-    if ~isempty(SR{handles.gui_number}.LoadOps.warpfile)   
-        [warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
-        if ~isempty(strfind(warpname,'tform'))
-            for c=1:length(mlist)
-                mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
-                    mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
-            end        
-        else  % Run new style
-            mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
-                SR{handles.gui_number}.LoadOps.warpfile,...
-                'warpD',SR{handles.gui_number}.LoadOps.warpD,...
-                'names',SR{handles.gui_number}.fnames);    
-        end
-    else
-        disp('warning, no warp file found to align color channels');
-    end
-    % Cleanup settings from any previous data and render image:
-    SR{handles.gui_number}.mlist = mlist; 
-    imsetup(hObject,eventdata, handles);
-    ClearFilters_Callback(hObject, eventdata, handles); 
+% Extract some useful info for later:
     guidata(hObject, handles);
+%  Set up title field in display   
+SR{handles.gui_number}.fnames = binnames; % display name for the files
+% Get infofile #1 for position information
+k = strfind(binnames{1},'_'); 
+SR{handles.gui_number}.infofile = ...
+    ReadInfoFile([SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf']);
+
+% Load the binfiles 
+Tchns = length(binnames);
+mlist = cell(Tchns,1); 
+for c=1:Tchns
+    fullBinName = strcat(SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{c});
+    mlist{c} = ReadMasterMoleculeList(fullBinName,'verbose',...
+                    SR{handles.gui_number}.DisplayOps.verbose); 
+end
+
+    
+% Apply global drift correction, then return loaded mlist file.
+% Then apply chromewarp.
+mlist = MultiChnDriftCorrect(mlist,...
+        'correctDrift',SR{handles.gui_number}.LoadOps.correctDrift,...
+        'verbose',SR{handles.gui_number}.DisplayOps.verbose);
+
+% Need a warp map.  
+if isempty(SR{handles.gui_number}.LoadOps.warpfile)
+[FileName,PathName] = uigetfile({'*.mat','Matlab data (*.mat)';...
+'*.*','All Files (*.*)'},'Select warpfile',SR{handles.gui_number}.LoadOps.pathin);
+SR{handles.gui_number}.LoadOps.warpfile = [PathName,FileName];
+end
+
+if isempty([SR{handles.gui_number}.LoadOps.chns{:}])
+chns = inputdlg({'Channel Names: (name must match warpmap, order match layer order)'},...
+'',1,{'750,647,561,488'});  % <--  Default channel names
+SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1});
+end
+% Automatically dealing with old or new style chromewarp format
+if ~isempty(SR{handles.gui_number}.LoadOps.warpfile)   
+[warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
+    if ~isempty(strfind(warpname,'tform'))
+        for c=1:length(mlist)
+            mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
+                mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
+        end        
+    else  % Run new style
+        mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
+            SR{handles.gui_number}.LoadOps.warpfile,...
+            'warpD',SR{handles.gui_number}.LoadOps.warpD,...
+            'names',SR{handles.gui_number}.fnames);    
+    end
+else
+    disp('warning, no warp file found to align color channels');
+end
+% Cleanup settings from any previous data and render image:
+SR{handles.gui_number}.mlist = mlist; 
+imsetup(hObject,eventdata, handles);
+ClearFilters_Callback(hObject, eventdata, handles); 
+guidata(hObject, handles);
 
 
     
@@ -904,9 +875,6 @@ Cs = length(SR{handles.gui_number}.mlist);
         SR{handles.gui_number}.infilter{i} = true(size([SR{handles.gui_number}.mlist{i}.xc]));  % 
     end
     
-for c=1:length(handles.stormbutton)
-    set(handles.stormbutton(1),'Value',1);
-end
     
 SR{handles.gui_number}.cmax = .3*ones(Cs,1); % default values
 SR{handles.gui_number}.cmin = 0*ones(Cs,1);  % default values
@@ -977,9 +945,14 @@ Noverlays = length(SR{handles.gui_number}.Oz);
 % Find out which channels are toggled for display
 %------------------------------------------------------------        
 channels = zeros(1,Cs); % Storm Channels
-for c = 1:Cs; % length(handles.stormbutton)
-    channels(c) = get(handles.stormbutton(c),'Value');
+% for c = 1:Cs; % length(handles.stormbutton)
+%     channels(c) = get(handles.stormbutton(c),'Value');
+% end
+
+for c = 1:Cs; 
+    channels(c) = eval(['get(','handles.sLayer',num2str(c),', ','''Value''',')']);
 end
+
 active_channels = find(channels);
 overlays = zeros(1,Noverlays); % Overlay channels
 for c = 1:Noverlays
@@ -1457,9 +1430,10 @@ if SR{handles.gui_number}.DisplayOps.ColorZ && SR{handles.gui_number}.DisplayOps
         Cs = length(I);
 
         channels = zeros(1,Cs); % Storm Channels
-        for c = 1:Cs; % length(handles.stormbutton)
-            channels(c) = get(handles.stormbutton(c),'Value');
+        for c = 1:Cs; 
+            channels(c) = eval(['get(','handles.sLayer',num2str(c),', ','''Value''',')']);
         end
+        
 
         % save([scratchPath,'test.mat']);
         % load([scratchPath,'test.mat']);
@@ -1667,8 +1641,8 @@ function vlist = MolsInView(handles)
      
      Cs = length(mlist); 
     channels = zeros(1,Cs); % Storm Channels
-    for c = 1:Cs; % length(handles.stormbutton)
-        channels(c) = get(handles.stormbutton(c),'Value');
+    for c = 1:Cs; 
+       channels(c) = eval(['get(','handles.sLayer',num2str(c),', ','''Value''',')']);
     end
     active_channels = find(channels);
 
@@ -2139,32 +2113,39 @@ function MenuFeducialDrift_Callback(hObject, eventdata, handles)
 % 'showplots' / boolean / true
 % 'showextraplots' / boolean / false
 % 
-global SR
+global SR scratchPath
 
+mlist = SR{handles.gui_number}.mlist;
+
+for c = 1:length(mlist) 
 dlg_title = 'Feducial Drift Correction Options';
 num_lines = 1;
 Dprompt = {
     'feducial binfile (STORM-chn or binfile string)',... 1
     'correct STORM chn: ',... 2
-    'startframe',...        3
-    'maxdrift',...          4
-    'integrateframes',...   5
-    'fmin',...              6
+    'start frame',...        3
+    'max drift',...          4
+    'integrate frames (smoothing localization noise)',...   5
+    'min fraction of frames ',...              6
     'nm per pixel',...      7 
-    'showplots'...          8
-    'showextraplots'};     %9   
+    'show plots',...          8
+    'show extra plots',...   9
+    'spot frame',...
+    'correct back from previous channels'};       
 Opts{1} = '';
-Opts{2} = num2str(1);
+Opts{2} = ''; % ['[',num2str(1:length(mlist)),']'];
 Opts{3} = num2str(1);
 Opts{4} = num2str(2.5);
 Opts{5} = num2str(500);
-Opts{6} = num2str(0.5);
+Opts{6} = num2str(0.7);
 Opts{7} = num2str(SR{handles.gui_number}.DisplayOps.npp);
 Opts{8} = 'true';
 Opts{9} = 'false';
+Opts{10} = num2str(1);
+Opts{11} = 'true';
 Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
 
-if length(Opts) > 1 % Do nothing if canceled
+if length(Opts) > 1 % Do nothing if cancelled      
     if isempty(Opts{1})
         startfolder = SR{handles.gui_number}.LoadOps.pathin;
         if isempty(startfolder)
@@ -2173,36 +2154,51 @@ if length(Opts) > 1 % Do nothing if canceled
         [filename,pathname,selected] = uigetfile(...
             {'*.bin', 'Molecule List (*.bin)';
             '*.*', 'All Files (*.*)'},...
-            'Choose bin file with feducials',...
+            ['Choose bin file with feducials for chn ',num2str(c)],...
             startfolder); % prompts user to select directory 
         if selected > 0
             sourcename = [pathname,filesep,filename];
-            Opts{1} = sourcename;
         end
     end
-    if length(Opts{1}) < 2;
-        c = str2double(Opts{1});
-        input1 = SR{handles.gui_number}.mlist{c};
-    else
-        input1 = Opts{1};
-    end
-    [dxc,dyc] = feducialDriftCorrection(input1,...        
+    
+    %  save([scratchPath,'test.mat']); 
+    % load([scratchPath,'test.mat']); 
+    
+    [dxc,dyc] = feducialDriftCorrection(sourcename,...        
         'startframe',eval(Opts{3}),...     3
         'maxdrift',eval(Opts{4}),...          4
         'integrateframes',eval(Opts{5}),...
         'fmin',eval(Opts{6}),...
         'nm per pixel',eval(Opts{7}),...
         'showplots',eval(Opts{8}),...
-        'showextraplots',eval(Opts{9}) );
-    
-    % apply correction
-    c = str2double(Opts{2});
-    SR{handles.gui_number}.mlist{c}.xc = ...
-        SR{handles.gui_number}.mlist{c}.x - dxc(SR{handles.gui_number}.mlist{c}.frame);
-    SR{handles.gui_number}.mlist{c}.yc = ...
-        SR{handles.gui_number}.mlist{c}.y - dyc(SR{handles.gui_number}.mlist{c}.frame);    
+        'showextraplots',eval(Opts{9}),...
+        'spotframe',eval(Opts{10}) );
+       
+    % record drift in this channel.  Calc drift from previous channels
+   SR{handles.gui_number}.driftData{c}.xDrift = nonzeros(dxc);
+   SR{handles.gui_number}.driftData{c}.yDrift = nonzeros(dyc);
+   if eval(Opts{11}) && c>1
+    prevXdrift = [0,SR{handles.gui_number}.driftData{1:c-1}.xDrift(end)];
+    prevYdrift = [0,SR{handles.gui_number}.driftData{1:c-1}.yDrift(end)]; 
+   else
+    prevXdrift = 0; 
+    prevYdrift = 0;
+   end
+    mlist{c}.xc = mlist{c}.x - dxc(mlist{c}.frame) - sum(prevXdrift);
+    mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame) - sum(prevYdrift); 
+end  
+   
 end
-UpdateMainDisplay(hObject,handles);
+% Need to reapply chromewarps 
+if length(mlist) > 1
+mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
+        SR{handles.gui_number}.LoadOps.warpfile,...
+        'warpD',SR{handles.gui_number}.LoadOps.warpD,...
+        'names',SR{handles.gui_number}.fnames); 
+end
+SR{handles.gui_number}.mlist = mlist;
+loadim(hObject,eventdata, handles);
+
 
 
 % --------------------------------------------------------------------
@@ -2295,6 +2291,43 @@ if ~isempty(Opts)
     mlist{c}.xc = mlist{c}.x - dxc(mlist{c}.frame)';
     mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame)';  
     SR{handles.gui_number}.mlist = mlist;
-    UpdateMainDisplay(hObject,handles);
+    loadim(hObject,eventdata, handles);
 end
  
+
+
+function oLayer1_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+    
+function oLayer2_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+    
+function oLayer3_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+    
+function oLayer4_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+    
+function oLayer5_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+    
+function oLayer6_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+    
+function sLayer1_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+    
+function sLayer2_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+    
+function sLayer3_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+
+function sLayer4_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+
+function sLayer5_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
+
+function sLayer6_Callback(hObject, eventdata, handles)
+loadim(hObject,eventdata, handles);
