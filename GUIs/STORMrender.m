@@ -333,7 +333,9 @@ function handles=ClearCurrentData(hObject,eventdata,handles)
         SR{handles.gui_number}.infofile = [];
         SR{handles.gui_number}.Oz = {};     
         SR{handles.gui_number}.O = {};
-        
+        if isfield(SR{handles.gui_number},'imaxes');
+        SR{handles.gui_number}=rmfield(SR{handles.gui_number},'imaxes');
+        end
             % Clear levels  
     set(handles.LevelsChannel,'Value',1);
     set(handles.LevelsChannel,'String',{'channel1'});
@@ -585,72 +587,76 @@ LoadBin(hObject,eventdata,handles,'off')
 % Setup defaults
 % -------------------------------------------------------------------
 function imsetup(hObject,eventdata, handles)
-    global SR scratchPath
-    
-    % if imaxes is already defined, use it. 
-    if isfield(SR{handles.gui_number},'imaxes')
-       imaxes = SR{handles.gui_number}.imaxes; 
-    else
-     
+global SR scratchPath
+
+% if imaxes is already defined, use it. 
+if isfield(SR{handles.gui_number},'imaxes')
+   imaxes = SR{handles.gui_number}.imaxes; 
+else
     % build new imaxes structure using ROI from parameter file if available
-    infofile = SR{handles.gui_number}.infofile;
-    hasParsFile = ~isempty(infofile.notes);
-    hasROIinfo = true;  
-    if hasParsFile
-        parsfile = infofile.notes;
-        parsflag = infofile.notes(end-3:end);
-        if strcmp(parsflag,'.xml');
-        roiFlags = {'<x_start type="int">',...
-                    '<x_stop type="int">',...
-                    '<y_start type="int">',...
-                    '<y_stop type="int">'};
-        endmarker = '<';
-        elseif strcmp(parsflag,'.ini');
-        roiFlags = {'ROI_x0=',...
-                    'ROI_x1=',...
-                    'ROI_y0=',...
-                    'ROI_y1='};
-        endmarker = '';
-        else
-           hasROIinfo = false;  
-        end
-        if hasROIinfo
-            roiInfo = read_parameterfile(parsfile,roiFlags,endmarker);
-            roi = cellfun(@str2double,roiInfo);
-            imaxes.W = roi(2) - roi(1);
-            imaxes.H = roi(4) - roi(3);
-            mlist = SR{handles.gui_number}.mlist;  % short hand;
-            for i=1:length(mlist)
+    mlist = SR{handles.gui_number}.mlist;  % short hand;
+    w = zeros(length(mlist),1);
+    h = zeros(length(mlist),1);
+    for i=1:length(mlist)
+        binfile = [SR{handles.gui_number}.LoadOps.pathin,SR{handles.gui_number}.fnames{i}];
+        parsfile = ReadListParsFile(binfile);
+        hasROIinfo = true;  
+        if   ~isempty(parsfile)
+            parsflag = parsfile(end-3:end);
+            if strcmp(parsflag,'.xml');
+            roiFlags = {'<x_start type="int">',...
+                        '<x_stop type="int">',...
+                        '<y_start type="int">',...
+                        '<y_stop type="int">'};
+            endmarker = '<';
+            elseif strcmp(parsflag,'.ini');
+            roiFlags = {'ROI_x0=',...
+                        'ROI_x1=',...
+                        'ROI_y0=',...
+                        'ROI_y1='};
+            endmarker = '';
+            else
+               hasROIinfo = false;  
+            end
+            if hasROIinfo
+                roiInfo = read_parameterfile(parsfile,roiFlags,endmarker);
+                roi = cellfun(@str2double,roiInfo);
+                w(i) = roi(2) - roi(1);
+                h(i) = roi(4) - roi(3); 
                 mlist{i}.xc = mlist{i}.xc - roi(1);
                 mlist{i}.x = mlist{i}.x - roi(1);
                 mlist{i}.yc = mlist{i}.yc - roi(3);
-                mlist{i}.y = mlist{i}.y - roi(3);
+                mlist{i}.y = mlist{i}.y - roi(3);      
             end
-            SR{handles.gui_number}.mlist = mlist;
+        else
+            h(i) = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
+            w(i) = SR{handles.gui_number}.infofile.frame_dimensions(1);
         end
-    else 
-        imaxes.H = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
-        imaxes.W = SR{handles.gui_number}.infofile.frame_dimensions(1);
     end
-    
+    if sum(w==w(1)) ~= length(mlist) || sum(h==h(1)) ~= length(mlist)
+        error('ROIs for the selected molecule lists different sizes'); 
     end
-    
-    imaxes.scale = 2;  % upscale on display
-    imaxes.zm = 1;
-    imaxes.cx = imaxes.W/2;
-    imaxes.cy = imaxes.H/2;
-    imaxes.xmin = 0;
-    imaxes.xmax = imaxes.W;
-    imaxes.ymin = 0; 
-    imaxes.ymax = imaxes.H; 
-    imaxes.updatemini = true; 
-    set(handles.Xslider,'Min',imaxes.xmin);
-    set(handles.Xslider,'Max',imaxes.xmax);
-    set(handles.Yslider,'Min',imaxes.ymin);
-    set(handles.Yslider,'Max',imaxes.ymax);
-    SR{handles.gui_number}.imaxes = imaxes;
-    guidata(hObject, handles);
-    UpdateSliders(hObject,eventdata,handles);
+    imaxes.W = w(1);
+    imaxes.H = h(1);
+    SR{handles.gui_number}.mlist = mlist;
+end
+
+imaxes.scale = 2;  % upscale on display
+imaxes.zm = 1;
+imaxes.cx = imaxes.W/2;
+imaxes.cy = imaxes.H/2;
+imaxes.xmin = 0;
+imaxes.xmax = imaxes.W;
+imaxes.ymin = 0; 
+imaxes.ymax = imaxes.H; 
+imaxes.updatemini = true; 
+set(handles.Xslider,'Min',imaxes.xmin);
+set(handles.Xslider,'Max',imaxes.xmax);
+set(handles.Yslider,'Min',imaxes.ymin);
+set(handles.Yslider,'Max',imaxes.ymax);
+SR{handles.gui_number}.imaxes = imaxes;
+guidata(hObject, handles);
+UpdateSliders(hObject,eventdata,handles);
 
 %=========================================================================%  
 %       end of load data functions
@@ -1548,8 +1554,7 @@ if ~isempty(SR{handles.gui_number}.plt3Dfig)
     end
 end
 SR{handles.gui_number}.plt3Dfig = figure; 
-% save([scratchPath,'testdat.mat']);
-% load([scratchPath,'testdat.mat']);
+
 for c = chns
     if length(vlist{c}.x) > 2000
         msize = 1;
@@ -1563,9 +1568,6 @@ for c = chns
 end
 xlabel('x (nm)'); ylabel('y (nm)'); zlabel('z (nm)'); 
 title(lab); 
-
-% save([scratchPath,'testdat.mat']);
-
 
 
 % --------------------------------------------------------------------
@@ -1590,8 +1592,7 @@ if ~isempty(SR{handles.gui_number}.pltColorByFramefig)
     end
 end
 SR{handles.gui_number}.pltColorByFramefig = figure; 
-% save([scratchPath,'testdat.mat']);
-% load([scratchPath,'testdat.mat']);
+
 for c = chns
     if length(vlist{c}.x) > 2000
         msize = 1;
@@ -1638,8 +1639,7 @@ if ~isempty(SR{handles.gui_number}.plt3Dfig)
     end
 end
 SR{handles.gui_number}.plt3Dfig = figure; 
-% save([scratchPath,'testdat.mat']);
-% load([scratchPath,'testdat.mat']);
+
 for c = chns
     if length(vlist{c}.x) > 2000
         msize = 1;
@@ -2153,7 +2153,7 @@ Dprompt = {
     'nm per pixel',...      7 
     'showplots'...          8
     'showextraplots'};     %9   
-Opts{1} = num2str(1);
+Opts{1} = '';
 Opts{2} = num2str(1);
 Opts{3} = num2str(1);
 Opts{4} = num2str(2.5);
@@ -2260,40 +2260,41 @@ Opts{5} = 'true';
 Opts{6} = 'true';
 Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
 
-c = str2double(Opts{2});
-mlist = SR{handles.gui_number}.mlist;
+if ~isempty(Opts)
+    c = str2double(Opts{2});
+    mlist = SR{handles.gui_number}.mlist;
 
-if eval(Opts{6})
-          vlist = MolsInView(handles);
-          % imaxes = SR{handles.gui_number}.imaxes;  
-          % H = imaxes.ymax - imaxes.ymin + 1;
-          % W = imaxes.xmax - imaxes.xmin + 1; 
-           H = vlist{c}.imaxes.H;
-           W = vlist{c}.imaxes.W;
-           npp = SR{handles.gui_number}.DisplayOps.npp;
+    if eval(Opts{6})
+              vlist = MolsInView(handles);
+              % imaxes = SR{handles.gui_number}.imaxes;  
+              % H = imaxes.ymax - imaxes.ymin + 1;
+              % W = imaxes.xmax - imaxes.xmin + 1; 
+               H = vlist{c}.imaxes.H;
+               W = vlist{c}.imaxes.W;
+               npp = SR{handles.gui_number}.DisplayOps.npp;
 
-          [dxc,dyc] = XcorrDriftCorrect(vlist{c},...
-             'stepframe',eval(Opts{1}),...
-            'scale',eval(Opts{2}),'showplots',eval(Opts{3}),...    
-            'imagesize',[H,W],'nm per pixel',npp);  
-        % local area may not have dots localized up through the last frame
-        % of the movie.  Just assume no drift for these final frames if
-        % doing local region based correction.  (They should only be a
-        % couple to couple dozen of frames = a few seconds of drift at most).
-        dxc = [dxc,zeros(1,max(mlist{c}.frame)-max(vlist{c}.frame))];
-        dyc = [dyc,zeros(1,max(mlist{c}.frame)-max(vlist{c}.frame))];
-else
-    [dxc,dyc] =  XcorrDriftCorrect( ...
-        SR{handles.gui_number}.mlist{ c },...
-        'imagesize',imagesize,...
-        'scale',eval(Opts{3}),...
-        'stepframe',eval(Opts{1}),...
-        'nm per pixel',eval(Opts{4}),...
-        'showplots',eval(Opts{5}) ); 
+              [dxc,dyc] = XcorrDriftCorrect(vlist{c},...
+                 'stepframe',eval(Opts{1}),...
+                'scale',eval(Opts{2}),'showplots',eval(Opts{3}),...    
+                'imagesize',[H,W],'nm per pixel',npp);  
+            % local area may not have dots localized up through the last frame
+            % of the movie.  Just assume no drift for these final frames if
+            % doing local region based correction.  (They should only be a
+            % couple to couple dozen of frames = a few seconds of drift at most).
+            dxc = [dxc,zeros(1,max(mlist{c}.frame)-max(vlist{c}.frame))];
+            dyc = [dyc,zeros(1,max(mlist{c}.frame)-max(vlist{c}.frame))];
+    else
+        [dxc,dyc] =  XcorrDriftCorrect( ...
+            SR{handles.gui_number}.mlist{ c },...
+            'imagesize',imagesize,...
+            'scale',eval(Opts{3}),...
+            'stepframe',eval(Opts{1}),...
+            'nm per pixel',eval(Opts{4}),...
+            'showplots',eval(Opts{5}) ); 
+    end
+    mlist{c}.xc = mlist{c}.x - dxc(mlist{c}.frame)';
+    mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame)';  
+    SR{handles.gui_number}.mlist = mlist;
+    UpdateMainDisplay(hObject,handles);
 end
-mlist{c}.xc = mlist{c}.x - dxc(mlist{c}.frame)';
-mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame)';  
-SR{handles.gui_number}.mlist = mlist;
-UpdateMainDisplay(hObject,handles);
- 
  
