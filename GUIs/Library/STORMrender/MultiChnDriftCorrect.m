@@ -52,7 +52,6 @@ function mlist = MultiChnDriftCorrect(binnames,varargin)
 %--------------------------------------------------------------------------
 % Default Variables: Define variable input variables here
 %--------------------------------------------------------------------------
-saveGlobalDrift = false; 
 correctDrift = true;
 verbose = true;
 %--------------------------------------------------------------------------
@@ -77,8 +76,6 @@ if nargin > 1
         switch parameterName    
             case 'correctDrift'
                 correctDrift = CheckParameter(parameterValue,'boolean','correctDrift'); 
-            case 'saveGobalDrift'
-                saveGlobalDrift = CheckParameter(parameterValue,'boolean','saveGlobalDrift');
             case 'verbose'
                 verbose = CheckParameter(parameterValue,'string','verbose');                
             otherwise
