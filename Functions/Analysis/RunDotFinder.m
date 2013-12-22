@@ -307,8 +307,19 @@ for s=1:Sections % loop through all dax movies in que
         disp(daxfile); 
         disp(parsfile); 
         disp('...');
-    end 
+   end 
     
+   if isempty(binname)
+        binfile = [dpath,filesep,daxroots{s},datatype];
+   else
+        binnumber = ['_',sprintf('%04d',s)];
+        newBinName = binname;
+        newBinName = regexprep(newBinName,'#',binnumber);
+        newBinName = regexprep(newBinName,'DAX',['_',daxroots{s}]);
+        binfile = [dpath,filesep,newBinName,datatype];
+   end
+   
+   
     switch method
         case 'insight'
          % display command split up onto multiple lines  
@@ -325,15 +336,6 @@ for s=1:Sections % loop through all dax movies in que
                batchwait = true;
             end
         case 'DaoSTORM'
-            if isempty(binname)
-                binfile = [dpath,filesep,daxroots{s},datatype];
-            else
-                binnumber = ['_',sprintf('%04d',s)];
-                newBinName = binname;
-                newBinName = regexprep(newBinName,'#',binnumber);
-                newBinName = regexprep(newBinName,'DAX',['_',daxroots{s}]);
-                binfile = [dpath,filesep,newBinName,datatype];
-            end
             if runinMatlab % 
                 if printprogress  % Print fitting progress to command line
                     system([daoSTORMexe,' "',daxfile,'" "',binfile,'" "',parsfile,'"']);  
@@ -347,14 +349,14 @@ for s=1:Sections % loop through all dax movies in que
             end          
     end   
     % Record parameter file used in the infofile notes.  
-    try
-        infofile = regexprep(daxfile,'\.dax','\.inf');
-        modify_script(infofile,infofile,{'notes = '},{parsfile},'');  
-    catch er
-        disp(er.message);
-        disp([ 'failed to record parameters used in .inf file for ',daxfile]);
-    end
-        
+    binparstype = regexprep(datatype,'\.bin','\_pars.txt'); 
+    binparsfile = regexprep(binfile,datatype,binparstype);
+    str = ['parameters used = ',parsfile];         
+    fid = fopen(binparsfile,'w+');
+      str = regexprep(str,'\\','\\\'); % convert \ to \\.  
+      fprintf(fid,str,''); 
+      fprintf(fid,'%s\r\n','');
+    fclose(fid);
     
     
     if batchwait
