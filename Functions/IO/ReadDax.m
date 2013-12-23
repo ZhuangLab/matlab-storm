@@ -1,4 +1,4 @@
-function [movie, infoFile] = ReadDax(varargin)
+function [movie, infoFile, infoFileRoi] = ReadDax(varargin)
 %--------------------------------------------------------------------------
 % [movie, infoFiles] = ReadDax(fileName, varargin)
 % This function loads a STORM movies from the dax file associated with the
@@ -6,6 +6,8 @@ function [movie, infoFile] = ReadDax(varargin)
 %--------------------------------------------------------------------------
 % Outputs:
 % movies/LxMxN array: A 3D array containing the specified movie
+% infoFile: infoFile structure for the specified daxfile
+% infoFileRoi: modified infoFile corresponding to the daxfile
 %--------------------------------------------------------------------------
 % Input:
 % fileName/string or structure: Either a path to the dax or inf file or an
@@ -22,6 +24,9 @@ function [movie, infoFile] = ReadDax(varargin)
 %
 % 'endFrame'/double ([]): last frame of the movie to load.  If empty will
 % be max. 
+%
+% 'subregion'/double (zeros(4,1)):  [xmin, xmax, ymin, ymax] of the region
+% of the dax file to load.  Pixels indexed from upper left, as in images.  
 %
 % 'infoFile'/info file structure ([]): An info file for
 % the files to be loaded.  
@@ -40,13 +45,23 @@ function [movie, infoFile] = ReadDax(varargin)
 %
 % Version 1.1
 %-------------------Updates:
-% Updated 01/19/13 to allow arbitrary start and end frame to be specified
+% 01/19/13: ANB
+% modified to allow arbitrary start and end frame to be specified
 % by the user.  Removed 'image_dimension' flag (this was non-functional)
 % and removed allFrames (this has become redundant);  
-% Alistair Boettiger
-%-------------------
+%-----------------------
 % 2/14/13: JRM
 % Minor fix to dax data type
+%-----------------------
+% ~12/15/13: ANB
+% ReadDax now respects binning options in dax file
+% ReadDax also computes how much memory it will take to load the requested
+% file and throws a warning if this exceeds a certain max value. Default
+% max is 1 Gb.  Warning allows user to continue, reduce frames, or abort.
+%-----------------------
+% 12/22/13: ANB
+% Added 'subregion' feature.  
+% 
 %--------------------------------------------------------------------------
 
 %--------------------------------------------------------------------------
@@ -71,6 +86,7 @@ startFrame = 1;
 endFrame = []; 
 fileName = [];
 infoFile = [];
+subregion = [];
 verbose = true;
 orientation = 'normal';
 maxMemory = 10E9; % 1 Gb
@@ -108,6 +124,8 @@ for parameterIndex = 1:parameterCount,
             startFrame = CheckParameter(parameterValue, 'positive', 'startFrame');
         case 'endFrame'
             endFrame = CheckParameter(parameterValue, 'positive', 'endFrame');
+        case 'subregion'
+            subregion = CheckParameter(parameterValue,'array','subregion'); 
         case 'infoFile'
             infoFile = CheckParameter(parameterValue, 'struct', 'infoFile');
         case 'maxMemory'
@@ -152,6 +170,17 @@ end
 %--------------------------------------------------------------------------
 
 TFrames = infoFile.number_of_frames;
+
+% parse now outdated 'allFrames' for backwards compatability
+if ~isempty(allFrames) 
+    if allFrames
+        endFrame = TFrames;
+    else % first frame only 
+        endFrame = 1;
+        startFrame = 1; 
+    end
+end
+
 if isempty(endFrame)
     endFrame = TFrames;
 end
@@ -181,17 +210,8 @@ if memoryRequired > maxMemory
 end
    
 
-if DoThis
-    % parse now outdated 'allFrames' for backwards compatability
-    if ~isempty(allFrames) 
-        if allFrames
-            endFrame = TFrames;
-        else % first frame only 
-            endFrame = 1;
-            startFrame = 1; 
-        end
-    end
 
+if DoThis
     if isempty(endFrame)
         endFrame = TFrames;
     end
@@ -209,6 +229,8 @@ if DoThis
     end
 
     % Read File
+    if isempty(subregion)
+        
     fid = fopen([infoFile.localPath fileName]);
     if fid < 0
         error('Invalid file');
@@ -235,6 +257,59 @@ if DoThis
         display('Serious error somewhere here...check file for corruption');
         movie = zeros(frameDim);
     end
+    
+    else
+       
+        %-----------------------------------------------------------------
+        % parse short-hand: xmin = 0 will start at extreme left
+        %               ymax = 0 will go from ymin to the bottom
+        xi = uint32(subregion(1));
+        xe = uint32(subregion(2));
+        yi = uint32(subregion(3));
+        ye = uint32(subregion(4));
+        if xi == 0 
+            xi = uint32(1);
+        end
+        if xe == 0
+            xe = uint32(frameDim(1));
+        end
+        if yi == 0
+            yi = uint32(1);
+        end
+        if ye == 0
+            ye = uint32(frameDim(2));
+        end
+        %------------------ arbitrary region ------------------------
+         
+        
+        memoryMap = memmapfile([infoFile.localPath fileName], ...
+                'Format', 'uint16', ...
+                'Writable', false, ...
+                'Offset', (startFrame-1)*frameSize*16/8, ...
+                'Repeat', numFrames*frameSize);  
+ 
+           
+            
+        [ri,ci,zi] = meshgrid(xi:xe,yi:ye,uint32(1):uint32(numFrames));
+        inds = sub2indFast([frameDim(1),frameDim(2),TFrames],...
+                        ri(:),ci(:),zi(:));
+        movie = memoryMap.Data(inds); 
+        movie = swapbytes(movie);
+        xs = xe-xi+uint32(1);
+        ys = ye-yi+uint32(1);
+        movie = reshape(movie,[xs,ys,numFrames]);
+        if strcmp(orientation,'normal')
+         movie = permute(reshape(movie, [xs,ys,numFrames]), [2 1 3]);
+        end
+        infoFileRoi = infoFile; 
+        infoFileRoi.hend = xs;
+        infoFileRoi.vend = ys;
+        infoFileRoi.frame_dimensions = [infoFile.hend,infoFile.vend];
+        infoFileRoi.file = [infoFile.localPath,infoFile.localName(1:end-4),'.dax'];
+        %--------------------------------------------------
+
+    end
+    
 
     if verbose
         display(['Loaded ' infoFile.localPath fileName ]);
@@ -244,3 +319,14 @@ if DoThis
 else
     error('User aborted load dax due to memory considerations '); 
 end
+
+
+
+%-----------------  sub-functions (used by region-loader)
+    function movie = multiparse(memoryMap,orientation,region)
+        
+
+    function  info = UpdateInfo(info,region)
+        xs = region.sr(2)-region.sr(1)+uint32(1);
+        ys = region.sr(4)-region.sr(3)+uint32(1);
+

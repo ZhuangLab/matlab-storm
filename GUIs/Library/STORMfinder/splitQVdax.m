@@ -199,7 +199,7 @@ for d=1:D  % Main loop over daxfiles
                 movie = ReadDax(dax,'startFrame',n,'endFrame',n+step-1,'verbose',false);
   %             figure(1); clf; subplot(1,2,1); imagesc( int16(movie(QVc{c,1},QVc{c,2},1)) );
   %             subplot(1,2,2); imagesc( int16(movie(QVc{c,1},QVc{c,2},2)) );
-                fwrite(fid, ipermute(int16(movie(QVc{c,1},QVc{c,2},:)), [2 1 3]), 'int16', 'b');
+                fwrite(fid, ipermute(movie(QVc{c,1},QVc{c,2},:), [2 1 3]), 'int16', 'b');
                 if verbose
                     progress = min([(n)/Nframes*100,100]);
                     disp(['Movie ',num2str(d),' of ',num2str(D),' ',...
