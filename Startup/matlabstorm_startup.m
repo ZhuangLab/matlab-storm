@@ -18,8 +18,9 @@ global stormAnalysisPath; % path to storm-analysis
 
 %% Define matlab-storm Path
 addpath(matlabStormPath, '-begin');
-disp('Base path set to:')
-disp(['     ',matlabStormPath]);
+addpath(stormAnalysisPath, '-begin');
+disp(['Adding matlab-storm: ' matlabStormPath])
+disp(['Adding storm-analysis: ' stormAnalysisPath])
 display('------------------------------------------------------------------');
 
 functionpaths = genpath([matlabStormPath,'Functions']); 
@@ -46,12 +47,12 @@ setPythonPaths =['set PYTHONPATH=%PYTHONPATH%;',stormAnalysisPath,'; && '];
 daoSTORMcmd = ['python.exe ',newDaoPath,'mufit_analysis.py',' '];
 daoSTORMexe = [setWindowsPaths,setPythonPaths,daoSTORMcmd];
 
-display('    Created New Global Variables:');
+display('Created STORM-Specific Global Variables:');
 display(['    ScratchPath = ' scratchPath]);
 display(['    defaultIniFile = ' defaultIniFile]);
 display(['    defaultIniFile = ' defaultXmlFile]);
 display(['    DaoSTORMexe = ' daoSTORMexe]);
 display('------------------------------------------------------------------');
 
-%% Cleanup Variables 
+%% Remove Non-global Variables 
 clear variables;
