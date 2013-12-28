@@ -309,3 +309,5 @@ for n = 1:Nfeducials;
     fedCoords(:,n,2) = Fed_traj(:,n,2)- dyc;
 end
 
+% save([scratchPath,'test2.mat']);
+% load([scratchPath,'test2.mat']);

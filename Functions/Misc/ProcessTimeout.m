@@ -6,7 +6,7 @@ function ProcessTimeout(processName,varargin)
 %% default parameters
 % processName = 'blastall.exe'
 maxTime = 60*60; % max run time in seconds
-verbose = true;
+verbose = false;
 
 
 %--------------------------------------------------------------------------
