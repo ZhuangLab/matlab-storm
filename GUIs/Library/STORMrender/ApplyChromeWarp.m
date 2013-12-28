@@ -1,5 +1,3 @@
-
-
 function mlist = ApplyChromeWarp(mlist,chns,warpfile,varargin)
 % mlist = ApplyChromeWarp(mlist,chns,warpfile)
 % applies chromatic warp to .xc .yc .zc and overwrites those values with
@@ -62,10 +60,10 @@ fnames = {};
 %--------------------------------------------------------------------------
 % Parse Variable Input Parameters
 %--------------------------------------------------------------------------
-if nargin < 1
-   error([mfilename,' expects input: cell of binnames']);
+if nargin < 3
+   error([mfilename,' expects inputs: cell of binnames, cell of channels, and string to a chromewarps.mat warp file']);
 end
-if nargin > 1
+if nargin > 3
     if (mod(length(varargin), 2) ~= 0 ),
         error(['Extra Parameters passed to the function ''' mfilename ''' must be passed in pairs.']);
     end

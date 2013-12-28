@@ -1,8 +1,16 @@
-
 function parsfile = ReadListParsFile(binfile)
+%-------------------------------------------------------------------------
+% parsfile = ReadListParsFile(binfile) searches for a _pars.txt file
+% associated with the passed binfile, which records the name of the
+% parameter file used to analyze the daxfile which produced this binfile.  
+%
+%-------------------------------------------------------------------------
+% Alistair Boettiger
 
+%% To become optional parameters
 verbose = true;
 
+%% Main Function
 
 binfile = regexprep(binfile,'alist','mlist'); % for DaoSTORM
 listpars = regexprep(binfile,'.bin','_pars.txt');
