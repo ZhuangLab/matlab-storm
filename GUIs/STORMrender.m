@@ -93,10 +93,10 @@ SR{handles.gui_number}.Oz = {};
 handles.output = hObject;
 
 % avoid startup error
-set(handles.Yslider,'Value',0);
-set(handles.Yslider,'Min',-256);
+set(handles.Yslider,'Value',128);
+set(handles.Yslider,'Min',0);
 set(handles.Yslider,'Max',256);
-set(handles.Yslider,'SliderStep',[1,3]);
+set(handles.Yslider,'SliderStep',[0.005,0.05]);
 
 % set up axes for plotting
  axes(handles.axes1); 
@@ -928,7 +928,6 @@ imaxes = SR{handles.gui_number}.imaxes;
 % Ic N layer colored matrix, fed into Ncolor
 % Io 3-color output image. Global only to pass to export/save image calls.
 
-
 guidata(hObject, handles);
 Cs = length(I); 
 [h,w,Zs] = size(I{1});
@@ -1308,7 +1307,11 @@ global SR
 imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
 set(handles.Xslider,'Value',imaxes.cx);
-set(handles.Yslider,'Value',imaxes.H-imaxes.cy);
+set(handles.Yslider,'Value',imaxes.ymax-imaxes.cy+imaxes.ymin);
+set(handles.Xslider,'Min',imaxes.xmin);
+set(handles.Xslider,'Max',imaxes.xmax);
+set(handles.Yslider,'Min',imaxes.ymin);
+set(handles.Yslider,'Max',imaxes.ymax);
 SR{handles.gui_number}.imaxes = imaxes;
 UpdateNavigator(hObject,handles);
 guidata(hObject, handles);
@@ -1319,7 +1322,8 @@ function Yslider_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 global SR
 imaxes = SR{handles.gui_number}.imaxes;
-imaxes.cy = imaxes.H - get(handles.Yslider,'Value');
+imaxes.cy = imaxes.ymax - get(handles.Yslider,'Value')+imaxes.ymin;
+% imaxes.cy = get(handles.Yslider,'Value');
 SR{handles.gui_number}.imaxes = imaxes;
 ImLoad(hObject,eventdata, handles);
 guidata(hObject, handles);

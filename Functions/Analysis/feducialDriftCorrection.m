@@ -252,7 +252,7 @@ end
 [drift_error,guide_dot] = min(sigma); 
 disp(['residual drift error = ', num2str(drift_error),' nm']); 
 if showplots
-    figure(1); hold on;
+    figure(1); hold on; colormap jet;
     plot(xc(:,guide_dot),yc(:,guide_dot),'w.','MarkerSize',1);
 end
 %plot(x1s(guide_dot),y1s(guide_dot),'w*'); 
