@@ -31,7 +31,7 @@ zcal_ini2xml.m 	   | port the zcalibration from an ini file into an xmlfile
 ---------------------------------------------------------------------
 - automatch_files.m 			matches names based on common file root and common number
 - findfile.m  					goes looking for specified file (e.g. warpmap) in nearby folders
-- applyfilter.m   				filter on molecule list properties or custom combos thereor
+- applyfilter.m   				filter on molecule list properties or custom combos
 - MultiChnDriftCorrect.m  		Load binfiles, apply global drift correction
 - MosaicViewer.m    			load N tiles around this position from the Steve Mosaic
 - chromewarp.m 					apply chromatic warp												(Needs update to new chromewarp format)
@@ -43,7 +43,7 @@ zcal_ini2xml.m 	   | port the zcalibration from an ini file into an xmlfile
 - Im3D.m     					3D iso-surface plot
 - Im3Dslices.m   				transparent 3D density map slices
 - msublist.m  					return mlist for just a local image
-- imreadfast.m 					speed things up by assuming tif
+
 
 
 ## General Analysis Beta

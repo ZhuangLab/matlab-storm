@@ -298,7 +298,7 @@ end
             region.sr(3):region.sr(4),region.frame1:region.nframes);
         inds = sub2ind([region.frameDim(1),region.frameDim(2),region.TFrames],...
                         ri(:),ci(:),zi(:));
-        movie = memoryMap.Data(sort(inds)); 
+        movie = memoryMap.Data(inds); 
         movie = swapbytes(movie);
         xs = region.sr(2)-region.sr(1)+uint32(1);
         ys = region.sr(4)-region.sr(3)+uint32(1);

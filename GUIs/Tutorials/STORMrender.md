@@ -39,3 +39,4 @@ If you have some feducials in your movie or in a separate bin file that you woul
 
 ## Adding Overlays
 You may wish to overlay your STORM image on some other images (e.g. conventional images taken in the same and or other channels). Simply select "Options" "Add Overlay", select Okay, and navigate to the image you wish to overlay.  STORMrender assumes this image has the same maximum dimensions as the STORM data, so if your binfile is just a cropped ROI, you will need to crop the overlay image to the same dimensions first.  
+

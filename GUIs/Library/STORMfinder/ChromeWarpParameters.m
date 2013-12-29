@@ -22,7 +22,7 @@ function varargout = ChromeWarpParameters(varargin)
 
 % Edit the above text to modify the response to help ChromeWarpParameters
 
-% Last Modified by GUIDE v2.5 13-Mar-2013 16:23:32
+% Last Modified by GUIDE v2.5 21-Dec-2013 17:25:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -122,6 +122,8 @@ chromeWarpPars.OverwriteBin = logical(get(handles.OverwriteBin,'Value'));
 chromeWarpPars.HideTerminal = logical(get(handles.HideTerminal,'Value'));
 chromeWarpPars.ExcludePoorZ = logical(get(handles.ExcludePoorZ,'Value'));
 chromeWarpPars.VerboseOn = logical(get(handles.VerboseOn,'Value'));
+chromeWarpPars.ExportDataOn = logical(get(handles.ExportDataOn,'Value'));
+chromeWarpPars.is3D = logical(get(handles.is3D,'Value'));
 chromeWarpPars.ListQVorder = get(handles.ListQVorder,'String');
 
 for m=1:chromeWarpPars.NMovieSets
@@ -452,3 +454,26 @@ delete(hObject);
 
 
 
+
+
+% --- Executes on button press in ExportDataOn.
+function ExportDataOn_Callback(hObject, eventdata, handles)
+% hObject    handle to ExportDataOn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of ExportDataOn
+
+
+% --- Executes on button press in is3D.
+function is3D_Callback(hObject, eventdata, handles)
+% hObject    handle to is3D (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+is3D = get(handles.is3D,'Value');
+if is3D
+    set(handles.FramesPerZ,'Style','edit')
+else
+    set(handles.FramesPerZ,'Style','text');
+end
+% Hint: get(hObject,'Value') returns toggle state of is3D
