@@ -1,4 +1,3 @@
-
 function mlist = MultiChnDriftCorrect(mlist,varargin)
 %--------------------------------------------------------------------------
 %  mlist  = MultiChnDriftCorrect(mlist)
@@ -25,10 +24,11 @@ function mlist = MultiChnDriftCorrect(mlist,varargin)
 % boettiger.alistair@gmail.com
 % January 27th, 2013
 %
-% Version 2.0
+% Version 3.0
 %
 %--------------------------------------------------------------------------
 % Version update information
+% version 2.0 January 27th, 2013
 % 
 %--------------------------------------------------------------------------
 % Creative Commons License 3.0 CC BY  
@@ -76,22 +76,23 @@ end
 %--------------------------------------------------------------------------
 
 %% Load all the molecule lists for this section 
-numChns = length(mlist);
-drift_xi = zeros(1,numChns);
-drift_yi = zeros(1,numChns);   
-for c = 1:length(mlist);
-    drift_xi(c) = mlist{c}.xc(end) - mlist{c}.x(end);
-    drift_yi(c) = mlist{c}.yc(end) - mlist{c}.y(end); 
-    drift_xT = sum([0,drift_xi(1:c-1)]);
-    drift_yT = sum([0,drift_yi(1:c-1)]);
-    mlist{c}.xc = mlist{c}.xc - drift_xT;
-    mlist{c}.yc = mlist{c}.yc - drift_yT;
-    if verbose
-         disp(['corrected global drift of ',num2str(drift_xT),' X pixels']); 
-         disp(['corrected global drift of ',num2str(drift_yT),' Y pixels']); 
+if correctDrift
+    numChns = length(mlist);
+    drift_xi = zeros(1,numChns);
+    drift_yi = zeros(1,numChns);   
+    for c = 1:length(mlist);
+        drift_xi(c) = mlist{c}.xc(end) - mlist{c}.x(end);
+        drift_yi(c) = mlist{c}.yc(end) - mlist{c}.y(end); 
+        drift_xT = sum([0,drift_xi(1:c-1)]);
+        drift_yT = sum([0,drift_yi(1:c-1)]);
+        mlist{c}.xc = mlist{c}.xc - drift_xT;
+        mlist{c}.yc = mlist{c}.yc - drift_yT;
+        if verbose
+             disp(['corrected global drift of ',num2str(drift_xT),' X pixels']); 
+             disp(['corrected global drift of ',num2str(drift_yT),' Y pixels']); 
+        end
     end
 end
-
 
 
 
