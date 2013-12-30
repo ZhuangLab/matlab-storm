@@ -88,57 +88,60 @@ end
 %% Maing Function
 %--------------------------------------------------------------------------
 
-% save([ScratchPath,'test2.mat'])
-% load([ScratchPath,'test2.mat'])
 
-if warpD ~= 0 % No Chromewarp
 
+if warpD ~= 0 && ~isempty(warpfile)  % No Chromewarp
+    try
     load(warpfile)
-% If chromewarp file does not have channel names, assume defaults.  
-if ~exist('chn_warp_names','var')
-    chn_warp_names = {'750','647';'561','647';'488','647'};
-end
+    % If chromewarp file does not have channel names, assume defaults.  
+    if ~exist('chn_warp_names','var')
+        chn_warp_names = {'750','647';'561','647';'488','647'};
+    end
 
-% if no filenames are given, use channel match names
-if isempty(fnames)
-    fnames = chns;
-end
+    % if no filenames are given, use channel match names
+    if isempty(fnames)
+        fnames = chns;
+    end
 
 
-if warpD == 2 
-    tform = tform2D;
-end
+    if warpD == 2 
+        tform = tform2D;
+    end
 
-for c=1:length(mlist) % c =2
-    x = double(mlist{c}.xc); % shorthand.  TFORMINV can't handle singles (?!)
-    y = double(mlist{c}.yc);
-    z = double(mlist{c}.zc);
-    k = find(strcmp(chns{c},chn_warp_names(:,1)));
-    if ~isempty(k);  
-        [x,y] = tforminv(tform_1{k},x,y); %#ok<*USENS>
-        if warpD > 2
-        [x,y,z] = tforminv(tform{k},x,y,z);
-        elseif warpD == 2
-        [x,y] = tforminv(tform{k},x,y);
-        end 
-        mlist{c}.xc = single(x);
-        mlist{c}.yc = single(y); 
-        if warpD ~=2.5
-            mlist{c}.zc = single(z);
-        end
+    for c=1:length(mlist) % c =2
+        x = double(mlist{c}.xc); % shorthand.  TFORMINV can't handle singles (?!)
+        y = double(mlist{c}.yc);
+        z = double(mlist{c}.zc);
+        k = find(strcmp(chns{c},chn_warp_names(:,1)));
+        if ~isempty(k);  
+            [x,y] = tforminv(tform_1{k},x,y); %#ok<*USENS>
+            if warpD > 2
+            [x,y,z] = tforminv(tform{k},x,y,z);
+            elseif warpD == 2
+            [x,y] = tforminv(tform{k},x,y);
+            end 
+            mlist{c}.xc = single(x);
+            mlist{c}.yc = single(y); 
+            if warpD ~=2.5
+                mlist{c}.zc = single(z);
+            end
+            if verbose
+                disp([fnames{c},' data mapped in ',num2str(warpD),'D using ',...
+                    chn_warp_names{k,1},' to ',chn_warp_names{k,2},...
+                    ' bead warp map.']);
+                disp(['3D Warp accuracy: ',num2str(cdf_thresh(k),2),' nm']); 
+                disp(['xy Warp accuracy: ',num2str(cdf2D_thresh(k),2),' nm']);
+            end
+        else
+            if verbose
+                disp([fnames{c},' used as reference channel. Not warped.']); 
+            end
+        end       
+    end
+    catch er
         if verbose
-            disp([fnames{c},' data mapped in ',num2str(warpD),'D using ',...
-                chn_warp_names{k,1},' to ',chn_warp_names{k,2},...
-                ' bead warp map.']);
-            disp(['3D Warp accuracy: ',num2str(cdf_thresh(k),2),' nm']); 
-            disp(['xy Warp accuracy: ',num2str(cdf2D_thresh(k),2),' nm']);
+            disp(er.message);
+            disp('failed to apply chromatic warp');
         end
-    else
-        if verbose
-            disp([fnames{c},' used as reference channel. Not warped.']); 
-        end
-    end       
-end
-
-
+    end
 end

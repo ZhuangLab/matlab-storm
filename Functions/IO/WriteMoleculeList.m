@@ -86,7 +86,7 @@ fieldTypes = {'single','single','single','single','single','single','single',...
 %--------------------------------------------------------------------------
 % Global Variables
 %--------------------------------------------------------------------------
-global defaultDataPath;
+global defaultDataPath scratchPath;
 
 %--------------------------------------------------------------------------
 % Default Variables
@@ -170,9 +170,8 @@ if ~compact
     end
 else
     fwrite(fid, length(MList.x), 'int32');
-
-   % save('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
-   % load('C:\Users\Alistair\Documents\Projects\General_STORM\Test_data\test.mat');
+    
+    
     for i=1:length(MList.x)
         for j=1:length(fieldNames)
             fwrite(fid, MList.(fieldNames{j})(i), fieldTypes{j});  %Could be faster

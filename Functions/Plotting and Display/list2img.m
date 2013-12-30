@@ -1,46 +1,69 @@
-
-function In = list2img(mlist,varargin) % ,zm,N,h,w)
-%                           list2img.m
-% Alistair Boettiger                                   Date Begun: 08/11/12
-% Zhuang Lab                                        Last Modified: 08/22/12
-% 
-%   Inputs   molist - 1xn cell where n is the number of channels in the
+function In = list2img(mlist,varargin)
+%--------------------------------------------------------------------------
+% I = list2img(mlist)  take the cell array of molecule lists (mlist) and
+%                    return a STORM image. If there are multiple elements
+%                    in mlist this will be a multicolor STORM image.  
+%                    Different colors channels will be in the different 
+%                    elements of the cell array I.  If 'Zsteps' option is
+%                    >1, the images will be 3D (see Outputs below).  
+%
+%--------------------------------------------------------------------------
+%  Inputs   
+%           mlist - 1xn cell where n is the number of channels in the
 %                     data.  Each cell contains a molecule list structure
 %                     with the categories .xc, .yc, .a etc specifying
 %                     molecule positions.  class specifies molecule class. 
-%            zm     - scale factor for pixel size.  (new pixel size is 
-%                     current pixel size / zm).
-%            N      - Number of different molecule widths to plot
-%            minW   - min width in pixels to blur width of dot
-%            maxW   - max width in pixels for Gaussian blur of dot
-%  Outputs   In     - cell array of zm*h x zm*w 
-
-  
-  
-  
-
+% 
 %--------------------------------------------------------------------------
+% Outputs
+% I / cell array   -- a cell array of size the number of color channels.
+%               Each element contains an image HxWxN, where N is the number
+%               of distinct levels / colors in the z-dimension.  For 2D
+%               images all elements of I are 2D.  
+%
+%--------------------------------------------------------------------------
+% % Optional Inputs
+%  'filter' / cell of logical vectors / all true
+%                 cell of logical arrays the same same length as the
+%                 corresponding molecule list in the mlist array.  Only the
+%                 molecules indicated by the filter will be plotted. 
+%  'dotsize'
+%                 Factor to scale the rendered dots by;
+%  'Zsteps' / scalar / 1
+%                 Number of distinct colors if plotting color as z.  
+%                 set equal to 1 for regular 2D images
+%  'Zrange' / vector / [-500 500]
+%                 if plotting color as z, what range should the color bar 
+%                 extend over.
+%  'nm per pixel' / scalar / 160
+%                  used by scalebar;
+%  'scalebar' / scalar / 500
+%                 size of scalebar in nm. set to 0 to turn off;
+% 'correct drift' / boolean / true
+%                 use xc/yc or x/y elements of moleucle list;
+%  'Fast' / boolean / true
+%                 fastMode =  CheckParameter(parameterValue,'boolean','Fast');
+%  'N' / integer / 6
+%                 Number of distinct molecule widths to plot.  Make this
+%                 smaller to accelerate image rendering
+%  'verbose' / boolean / true
+%                 print text notes to command line? 
+%  'very verbose' / bolean / true
+%                 print out image properties for troubleshooting
+%--------------------------------------------------------------------------  
+% Alistair Boettiger                                  Date Begun: 08/11/12
+% Zhuang Lab                                        Last Modified: 12/30/13 
+  
+
+
 %% Hard coded inputs
 %--------------------------------------------------------------------------
-
 global ScratchPath %#ok<NUSED>
-
-% (mostly shorthand)
-Cs = length(mlist);
-chns = find(true - cellfun(@isempty,mlist))';
-[ch,cw] = size(chns); 
-if ch>cw; chns = chns'; end % must be row vector! 
 N = 6; 
 
 %--------------------------------------------------------------------------
 %% Default inputs
 %--------------------------------------------------------------------------
-infilter = cell(1,Cs);
-
-for c=chns
-    infilter{c} = true(length(mlist{c}.xc),1);
-end
-
 dotsize = 4;
 Zs = 1;
 Zrange = [-500,500]; % range in nm 
@@ -50,6 +73,20 @@ CorrectDrift = true;
 showScalebar = true;
 fastMode = false;
 verbose = false;
+veryverbose = false;
+
+if isstruct(mlist)
+    mlist = {mlist};
+end
+Cs = length(mlist);
+chns = find(true - cellfun(@isempty,mlist))';
+[ch,cw] = size(chns); 
+if ch>cw; chns = chns'; end % must be row vector! 
+infilter = cell(1,Cs);
+
+for c=chns
+    infilter{c} = true(length(mlist{c}.xc),1);
+end
 
 % If imaxes is not passed as a variable
 if nargin == 1 || ischar(varargin{1})
@@ -144,7 +181,9 @@ if ~isempty(varinput)
             case 'N'
                 N  = CheckParameter(parameterValue,'positive','N');
             case 'verbose'
-                verbose = CheckParameter(parameterValue,'boolean','verbose'); 
+                verbose = CheckParameter(parameterValue,'boolean','verbose');
+            case 'very verbose'
+                veryverbose = CheckParameter(parameterValue,'boolean','very verbose'); 
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -162,6 +201,10 @@ H = imaxes.W*imaxes.scale; %  floor(h*zm);
 
 if length(dotsize) < Cs
     dotsize = repmat(dotsize,Cs,1);
+end
+
+if veryverbose
+    disp(imaxes);
 end
 
 

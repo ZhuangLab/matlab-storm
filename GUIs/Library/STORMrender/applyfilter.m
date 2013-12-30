@@ -1,7 +1,4 @@
-
-
 function [infilter,filts] = applyfilter(mlist, infilter, filts, channels, par, myfilt,imaxes)
-
 % Routine from the STORMrender GUI
 %
 %--------------------------------------------------------------------------
@@ -45,10 +42,16 @@ for c = channels
         m = mlist{c}; % allow for shorthand entry (see above)
         eval([myfilt,';']); 
      
-        
+        try
         infilter{c} = infilter{c} & logical(f);
+        catch
+            disp(c)
+           size(infilter{c})
+           size(logical(f))
+           error('sizes dont match');
+        end
         filts.custom = myfilt;
-          disp([num2str(sum(logical(f))/length([logical(f)])*100),'% of localizations kept']);
+          disp([num2str(sum(logical(f))/length([logical(f)])*100),'% of localizations kept in channel ',num2str(c)]);
    
     %--------------------------------------------------------------------
     % only render localization which are inside a user defined box

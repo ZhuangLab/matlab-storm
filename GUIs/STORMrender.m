@@ -89,6 +89,10 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.LoadOps.chnFlag = {'750','647','561','488'};  
     SR{handles.gui_number}.LoadOps.dataset = 0;
 
+% Default Contrast values
+    SR{handles.gui_number}.omin = 0;
+    SR{handles.gui_number}.omax = 1;
+    
 % Choose default command line output for STORMrender
 handles.output = hObject;
 
@@ -788,7 +792,7 @@ end
 GetEdges(hObject, eventdata, handles);
 UpdateSliders(hObject,eventdata,handles);
 
-tic
+% tic
 if SR{handles.gui_number}.DisplayOps.ColorZ
     Zsteps = SR{handles.gui_number}.DisplayOps.Zsteps;
     % In general, not worth excluding these dots from 2d images.
@@ -817,8 +821,8 @@ end
 
 UpdateMainDisplay(hObject,handles); % converts I, applys contrast, to RBG
 guidata(hObject, handles);
-plottime = toc;
-disp(['total time to render image: ',num2str(plottime)]);
+% plottime = toc;
+% disp(['total time to render image: ',num2str(plottime)]);
 
 
 
@@ -879,8 +883,8 @@ function ApplyFilter_Callback(hObject, eventdata, handles)
 % chose filter
   global  SR scratchPath  %#ok<NUSED>
   filts = SR{handles.gui_number}.filts;
-    contents = cellstr(get(handles.choosefilt,'String')); % returns choosefilt contents as cell array
-    par = contents{get(handles.choosefilt,'Value')}; % returns selected item from choosefilt 
+  contents = cellstr(get(handles.choosefilt,'String')); % returns choosefilt contents as cell array
+  par = contents{get(handles.choosefilt,'Value')}; % returns selected item from choosefilt 
 
     % see which channels are selected to apply
     channels(1) = get(handles.fchn1,'Value');
@@ -925,7 +929,6 @@ I = SR{handles.gui_number}.I;
 imaxes = SR{handles.gui_number}.imaxes;
 % I cell containing current STORM image
 % Oz cell containing appropriately rescaled overlay image
-% Ic N layer colored matrix, fed into Ncolor
 % Io 3-color output image. Global only to pass to export/save image calls.
 
 guidata(hObject, handles);
@@ -936,52 +939,25 @@ Noverlays = length(SR{handles.gui_number}.Oz);
 % Find out which channels are toggled for display
 %------------------------------------------------------------        
 channels = zeros(1,Cs); % Storm Channels
-% for c = 1:Cs; % length(handles.stormbutton)
-%     channels(c) = get(handles.stormbutton(c),'Value');
-% end
-
 for c = 1:Cs; 
     channels(c) = eval(['get(','handles.sLayer',num2str(c),', ','''Value''',')']);
 end
-
 active_channels = find(channels);
+
 overlays = zeros(1,Noverlays); % Overlay channels
 for c = 1:Noverlays
     overlays(c) = eval(['get(','handles.oLayer',num2str(c),', ','''Value''',')']);
 end
 active_overlays = find(overlays);
     
-% save([scratchPath,'test.mat']);
-% save([scratchPath,'test.mat'],'handles','I','active_channels','channels','overlays','active_overlays');
-% global scratchPath; load([scratchPath,'test.mat']);
-
+%-----------------------------------------------------------
 % Stack all image layers (channels, z-dimensions, and overlays)
 %   into a common matrix for multicolor rendering.  Apply indicated
 %   contrast for all data.  
-%-----------------------------------------------------------
-Ic = zeros(h,w,Zs*length(active_channels)+Noverlays,'uint16'); 
-if SR{handles.gui_number}.DisplayOps.ColorZ  
-    n=0;  
-    % In 3D mode, only render the active channels 
-    active_channels(active_channels>Cs) = [];  % should no longer be nessary in our variable # channel buttons approach
-    for c=active_channels
-       Zs = size(I{c},3);
-       for k=1:Zs
-           n=n+1;
-           Ic(:,:,n) =  imadjust(I{c}(:,:,k),[SR{handles.gui_number}.cmin(c),SR{handles.gui_number}.cmax(c)],[0,1]);
-       end
-   end
-else
-    for n=active_channels
-          Ic(:,:,n) = imadjust(I{n},[SR{handles.gui_number}.cmin(n),SR{handles.gui_number}.cmax(n)],[0,1]);
-    end
-end
-if ~isempty(active_overlays)
-    for n=active_overlays  % add overlays, if they exist
-        Ic(:,:,Cs+n) = imadjust(SR{handles.gui_number}.Oz{n},[SR{handles.gui_number}.omin(n),SR{handles.gui_number}.omax(n)]);
-    end
-end
-Io = Ncolor(Ic,[]); % Actually builds the RGB picture
+Io = STORMcell2img(I,'overlays',SR{handles.gui_number}.Oz,...
+'active channels',active_channels,'active overlays',active_overlays,...
+'cmin',SR{handles.gui_number}.cmin,'cmax',SR{handles.gui_number}.cmax,...
+'omin',SR{handles.gui_number}.omin,'omax',SR{handles.gui_number}.omax);
 
 % Add ScaleBar (if indicated)
 Cs_out = size(Io,3); 
@@ -990,6 +966,7 @@ if SR{handles.gui_number}.DisplayOps.scalebar > 0
     h1 = round(imaxes.H*.9*imaxes.scale);
     Io(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Cs_out,'uint16'); % Add scale bar and labels
 end
+%-----------------------------------------------------------
 
 % Update the display
 %--------------------------------------------------
@@ -1009,7 +986,6 @@ if imaxes.updatemini
     set(gca,'XTick',[],'YTick',[]);
     SR{handles.gui_number}.imaxes = imaxes;
 end
-SR{handles.gui_number}.Ic = Ic;
 SR{handles.gui_number}.Io = Io; 
 guidata(hObject, handles);
 
@@ -1553,9 +1529,11 @@ for c = chns
             %  Indicate color as time. 
         dxc = vlist{c}.xc;
         dyc = vlist{c}.yc;
-        Nframes = length(vlist{c}.frame);
-        % let n be the number of points you have
-        cmp = jet(Nframes); % create the color maps changed as in jet color map
+        numDots = length(vlist{c}.frame);
+        normFrames = vlist{c}.frame - min(vlist{c}.frame);
+        normFrames = normFrames*numDots/(max(normFrames))+1;
+        cmp = jet(numDots+1); % create the color maps changed as in jet color map
+        cmp = cmp(normFrames,:);
         scatter(dxc*npp, dyc*npp, msize, cmp, 'filled');
         set(gcf,'color','w'); 
         xlabel('nm'); 
@@ -1565,7 +1543,7 @@ xlabel('x (nm)'); ylabel('y (nm)');
 title(lab); 
 
 
-
+% load([scratchPath,'test.mat']);
 
 
 

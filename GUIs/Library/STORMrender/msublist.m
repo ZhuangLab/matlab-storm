@@ -1,6 +1,3 @@
-
-
-
 function vlist = msublist(mlist,imaxes,varargin)
 % vlist = msublist(mlist,imaxes)
 % vlist = msublist(mlist,imaxes,'filter',filter)
