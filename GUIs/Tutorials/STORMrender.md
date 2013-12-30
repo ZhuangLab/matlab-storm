@@ -9,6 +9,9 @@ Alternatively, you may launch STORMrender and select "File" > "Open bin file".
 ### Loading multiple binfiles from a multi-color data set
 STORMrender facilitates viewing mutlicolor STORM data, specializing in multi-reporter data.  To load multiple bin files, select "File" > "Open multiple bin files".  Hold down the `ctrl` key to select multiple files.  
 STORMrender will then ask you in what order the images were taken.  This is important so that the drift correction can be successfully extrapolated through the movies.  
+
+![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_OrderTaken.PNG)
+
 STORMrender will also ask you for a `chromewarps.mat` file, which tells it the polynomial transform needed to correct for chromatic aberrations.  This transform is not required, but it is highly recommend.  See the STORMfinder tutorial on "Computing chromatic warp maps" for more information on how to generate a `chromewarps.mat` file.   
 
 > Note on multi-color data: STORMrender does not currently treat the molecule class  field (e.g. `molist.c`) field as a separate channel.  
@@ -26,6 +29,8 @@ For this to work your file names will have to adhere to the following structure:
 ## Explore your image
 ### Toolbar
 Hover your mouse of the icons to get a tool tip.
+
+![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_ToolBar.PNG)
 
 **Open File** - select a new bin file to load.
 
@@ -62,7 +67,8 @@ Hover your mouse of the icons to get a tool tip.
 
 ### Zoom tool
 Just above the upper right edge of the image you will find a small zoom box.  Here you can easily zoom in or out, or jump to a fixed magnification.  The current magnification (relative to the field of view size) is shown in the box.  If you edit this number and press enter STORMrender will jump to the indicated zoom.  
-[Image zoom-tool]
+
+![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_ZoomBox.PNG)
 
 ### Navigator Panel
 At the upper left of the main viewing panel, STORMrender displays a small version of the image at 1x zoom / full field (see image below).  If you zoom in, a small white box on the Navigator image shows where you are so you can keep your bearing.  
@@ -98,20 +104,51 @@ Selecting "Feducial Drift Correction" brings up the options box.
 
 ![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_FeducialDriftOptions.PNG)
 
-If successful you should see a plot that shows the drift trajectory
+**feducial binfile** - file containing localization of feducial marks.  If you leave this blank, STORMrender will prompt you to find browse to the binfile containing the feducial data (see below).  (may be removed later).
+
+**corrected STORM chn** - which channel the correction should be applied to.
+
+**start frame** - frame to start tracking from.  Enter 1 to start at the first frame containing localizations.
+
+**max drift** - max distance the feducial may move and still be considered the same molecule.
+
+**integrate frames** 
+
+**min fraction of frames**
+
+**nm per pixel**
+
+**show plots**
+
+**show extra plots**
+
+**frame to ID feducials**
+
+**correct back from previous channels**
+
+![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_chooseFeducials.PNG)
+
+
+If successful, you should see a plot that shows the drift trajectory
 
 ![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_FeducialDriftTraj.PNG)
+
 
 The command window defaults to print out the details of the bin file and daxfile loaded for feducial drift correction.  If there are multiple beads that fit your feducial criteria, it will also compute a residual error (standard deviation between beads). If there is only one bead this number will be zero.  
 
 ![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_FeducialDriftMultiColor.PNG)
 
-Alignment:
+The drift correction is immediately applied, and any chromatic warp previously loaded is immediately applied as well.  Consequently the intertwined structures in our sample image now align as expected.  
+
 ![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_FeducialDriftFixed1.PNG)
+
+By zooming in we can see the integration more clearly. 
 
 ![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_FeducialDriftFixed2.PNG)
 
 ## Adding Overlays
 You may wish to overlay your STORM image on some other images (e.g. conventional images taken in the same and or other channels). Simply select "Options" "Add Overlay", select Okay, and navigate to the image you wish to overlay.  STORMrender assumes this image has the same maximum dimensions as the STORM data, so if your binfile is just a cropped ROI, you will need to crop the overlay image to the same dimensions first.  
+
+![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_OverlayOps.PNG)
 
 ![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_OverlayDemo.PNG)

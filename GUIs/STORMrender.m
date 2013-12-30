@@ -2116,14 +2116,14 @@ num_lines = 1;
 Dprompt = {
     'feducial binfile (STORM-chn or binfile string)',... 1
     'correct STORM chn: ',... 2
-    'start frame',...        3
-    'max drift',...          4
+    'start frame (1 = first appearance)',...        3
+    'max drift (pixels)',...          4
     'integrate frames (smoothing localization noise)',...   5
     'min fraction of frames ',...              6
     'nm per pixel',...      7 
     'show plots',...          8
     'show extra plots',...   9
-    'spot frame',...
+    'frame to ID feducials (1 = first appearance)',...
     'correct back from previous channels'};       
 Opts{1} = '';
 Opts{2} = ''; % ['[',num2str(1:length(mlist)),']'];
