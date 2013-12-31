@@ -5,14 +5,17 @@ function Io = STORMcell2img(I,varargin)
 % Default Parameters
 %--------------------------------------------------------------------------
 overlays = {}; 
-active_channels = [];
-cmin = [];
-cmax = [];
-active_overlays = []; 
-omin = [];
-omax = [];
+numChns = length(I); 
 
-
+[h,w,Zs] = size(I{1});
+active_channels = 1:numChns;
+cmin = zeros(1,numChns);
+cmax = ones(1,numChns); 
+omin = 0;
+omax = 0;
+active_overlays = 0; 
+numClrs = [];
+clrmap = 'hsv';
 
 %--------------------------------------------------------------------------
 % Parse variable input
@@ -29,9 +32,9 @@ if nargin > 1
             case 'overlays'
                 overlays = CheckParameter(parameterValue,'cell','overlays');
             case 'active channels'
-                active_channels = CheckParameter(parameterValue,'positive','active channels');
+                active_channels = CheckParameter(parameterValue,'nonnegative','active channels');
             case 'active overlays'
-                active_overlays = CheckParameter(parameterValue,'positive','active overlays');
+                active_overlays = CheckParameter(parameterValue,'nonnegative','active overlays');
             case 'cmin'
                 cmin = CheckParameter(parameterValue,'nonnegative','cmin');
             case 'cmax'
@@ -40,6 +43,10 @@ if nargin > 1
                 omin = CheckParameter(parameterValue,'nonnegative','omin');
             case 'omax'
                 omax = CheckParameter(parameterValue,'nonnegative','omax');
+            case 'numClrs'
+                 numClrs = CheckParameter(parameterValue,'nonnegative','numClrs');
+            case 'colormap'
+                clrmap = CheckParameter(parameterValue,'string','colormap');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -50,24 +57,22 @@ end
 %--------------------------------------------------------------------------
 % Automatically complete missing inputs:
 %--------------------------------------------------------------------------
-numChns = length(I); 
-numOverlays = length(active_overlays);
-[h,w,Zs] = size(I{1});
-
-if isempty(active_channels)
-    active_channels = 1:numChns;
-end
-if isempty(active_overlays)
+numOverlays = length(overlays);
+if active_overlays == 0
     active_overlays = 1:numOverlays;
 end
-
-if isempty(cmin)
-    cmin = zeros(1,numChns);
+if omin == 0
+    omin = zeros(1,numOverlays);
 end
-if isempty(cmax)
-   cmax = ones(1,numChns); 
+if omax == 0
+    omax = ones(1,numOverlays); 
 end
-
+if isempty(numClrs)
+    cMap = [];
+else
+    cMap = eval([clrmap,'(',num2str(numClrs),')']);
+end
+numOverlays = length(active_overlays);
 
 %--------------------------------------------------------------------------
 %% Main Function
@@ -104,7 +109,7 @@ if ~isempty(active_overlays)
 end
 
 if nargout ~= 0
-    Io = Ncolor(Ic,[]); % Actually builds the RGB picture
+    Io = Ncolor(Ic,cMap); % Actually builds the RGB picture
 else
      Ncolor(Ic,[]); % Actually builds the RGB picture
 end

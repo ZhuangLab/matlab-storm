@@ -76,6 +76,7 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.DisplayOps.verbose = true;
     SR{handles.gui_number}.DisplayOps.zrange = [-500,500];
     SR{handles.gui_number}.DisplayOps.CorrDrift = true;
+    SR{handles.gui_number}.DislpayOps.clrmap = 'lines';
 
 % Default MultiBinFile Load Options
     SR{handles.gui_number}.LoadOps.warpD = 3; % set to 0 for no chromatic warp
@@ -932,24 +933,24 @@ imaxes = SR{handles.gui_number}.imaxes;
 % Io 3-color output image. Global only to pass to export/save image calls.
 
 guidata(hObject, handles);
-Cs = length(I); 
+numChannels = length(I); 
 [h,w,Zs] = size(I{1});
-Noverlays = length(SR{handles.gui_number}.Oz);
+numOverlays = length(SR{handles.gui_number}.Oz);
 
 % Find out which channels are toggled for display
 %------------------------------------------------------------        
-channels = zeros(1,Cs); % Storm Channels
-for c = 1:Cs; 
+channels = zeros(1,numChannels); % Storm Channels
+for c = 1:numChannels; 
     channels(c) = eval(['get(','handles.sLayer',num2str(c),', ','''Value''',')']);
 end
 active_channels = find(channels);
 
-overlays = zeros(1,Noverlays); % Overlay channels
-for c = 1:Noverlays
+overlays = zeros(1,numOverlays); % Overlay channels
+for c = 1:numOverlays
     overlays(c) = eval(['get(','handles.oLayer',num2str(c),', ','''Value''',')']);
 end
 active_overlays = find(overlays);
-    
+numClrs = numChannels + numOverlays;  
 %-----------------------------------------------------------
 % Stack all image layers (channels, z-dimensions, and overlays)
 %   into a common matrix for multicolor rendering.  Apply indicated
@@ -957,7 +958,8 @@ active_overlays = find(overlays);
 Io = STORMcell2img(I,'overlays',SR{handles.gui_number}.Oz,...
 'active channels',active_channels,'active overlays',active_overlays,...
 'cmin',SR{handles.gui_number}.cmin,'cmax',SR{handles.gui_number}.cmax,...
-'omin',SR{handles.gui_number}.omin,'omax',SR{handles.gui_number}.omax);
+'omin',SR{handles.gui_number}.omin,'omax',SR{handles.gui_number}.omax,...
+'numClrs',numClrs,'colormap',SR{handles.gui_number}.DisplayOps.clrmap);
 
 % Add ScaleBar (if indicated)
 Cs_out = size(Io,3); 
@@ -1939,7 +1941,8 @@ Dprompt = {
     'scalebar (0 for off)',...
     'nm per pixel',...
     'verbose'...
-    'Correct image drift'};
+    'Correct image drift',...
+    'Color map'};
 default_Dopts{1} = num2str(SR{handles.gui_number}.DisplayOps.ColorZ);
 default_Dopts{2} = num2str(SR{handles.gui_number}.DisplayOps.Zsteps);
 default_Dopts{3} = strcat('[',num2str(SR{handles.gui_number}.DisplayOps.zrange),']');
@@ -1949,6 +1952,7 @@ default_Dopts{6} = num2str(SR{handles.gui_number}.DisplayOps.scalebar);
 default_Dopts{7} = num2str(SR{handles.gui_number}.DisplayOps.npp);
 default_Dopts{8} = num2str(SR{handles.gui_number}.DisplayOps.verbose); 
 default_Dopts{9} = num2str(SR{handles.gui_number}.DisplayOps.CorrDrift);
+default_Dopts{10} = num2str(SR{handles.gui_number}.DisplayOps.clrmap);
 % if the menu is screwed up, reset 
 try
 default_Dopts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
@@ -1963,7 +1967,8 @@ catch er
     '500',...
     '160',...
     'true',...
-    'true'};
+    'true',...
+    'hsv'};
 end
 if length(default_Dopts) > 1 % Do nothing if canceled
     SR{handles.gui_number}.DisplayOps.ColorZ = eval(default_Dopts{1}); 
@@ -1975,6 +1980,7 @@ if length(default_Dopts) > 1 % Do nothing if canceled
     SR{handles.gui_number}.DisplayOps.npp = eval(default_Dopts{7});
     SR{handles.gui_number}.DisplayOps.verbose = eval(default_Dopts{8});
     SR{handles.gui_number}.DisplayOps.CorrDrift= eval(default_Dopts{9});
+    SR{handles.gui_number}.DisplayOps.clrmap = default_Dopts{10};
     ImLoad(hObject,eventdata, handles);
     guidata(hObject, handles);
 end
