@@ -1509,11 +1509,10 @@ if ~isfield(SR{handles.gui_number},'pltColorByFramefig')
 SR{handles.gui_number}.pltColorByFramefig =[];
 end
 
-npp = 160; % should be a global in imageops or something
+npp = SR{handles.gui_number}.DisplayOps.npp;
 vlist = MolsInView(handles);
 chns = find(cellfun(@(x) ~isempty(x),vlist))';
 Cs = length(chns); 
-lab = cell(Cs,1);
 if ~isempty(SR{handles.gui_number}.pltColorByFramefig)
     if ishandle(SR{handles.gui_number}.pltColorByFramefig)
         close(SR{handles.gui_number}.pltColorByFramefig);
@@ -1528,21 +1527,12 @@ for c = chns
         msize = 5; 
     end
     subplot(length(chns),1,c);
-            %  Indicate color as time. 
-        dxc = vlist{c}.xc;
-        dyc = vlist{c}.yc;
-        numDots = length(vlist{c}.frame);
-        normFrames = vlist{c}.frame - min(vlist{c}.frame);
-        normFrames = normFrames*numDots/(max(normFrames))+1;
-        cmp = jet(numDots+1); % create the color maps changed as in jet color map
-        cmp = cmp(normFrames,:);
-        scatter(dxc*npp, dyc*npp, msize, cmp, 'filled');
-        set(gcf,'color','w'); 
-        xlabel('nm'); 
-        ylabel('nm'); 
+    ColorByFrame(vlist{c},'SizeData',msize,'npp',npp);
+    lab = ['channel ',num2str(c)', ' # loc:',num2str(length(vlist{c}.x))];
+    title(lab);
 end
 xlabel('x (nm)'); ylabel('y (nm)');
-title(lab); 
+ 
 
 
 % load([scratchPath,'test.mat']);
@@ -2017,16 +2007,6 @@ catch er
 end
     
 %%
-
-% --------------------------------------------------------------------
-function MenuColors_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuColors (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-set(handles.axes2,'BusyAction','cancel');
-axes(handles.axes2); cla;
-
 
 % % 
 
