@@ -125,6 +125,7 @@ hideterminal = true;
 Noclass9 = true;
 verbose = true;
 veryverbose = true;
+exportData = true;
 
 % Defaults for beadmovie:
     beadmovie(1).chns = {'750','647'};
@@ -180,12 +181,16 @@ if nargin > 1
                 remove_crosstalk = CheckParameter(parameterValue,'boolean','remove crosstalk');
             case 'beadset'
                 beadmovie = CheckParameter(parameterValue,'struct','beadset');
+            case 'fit3D'
+                fit3D = CheckParameter(parameterValue,'boolean','fit3D');
             case 'Noclass9'
                 Noclass9 = CheckParameter(parameterValue,'boolean','Noclass9');
             case 'QVorder'
                 QVorder = CheckParameter(parameterValue,'array','QVorder'); 
             case 'hideterminal'
                 hideterminal = CheckParameter(parameterValue,'boolean','hideterminal');
+            case 'exportData'
+                exportData =  CheckParameter(parameterValue,'boolean','exportData');
             case 'verbose'
                 verbose =  CheckParameter(parameterValue,'boolean','verbose');
             otherwise
@@ -624,7 +629,7 @@ for s=1:Nsamples
     tform_inv{s} = cp2tform3D(sample,refchn,'polynomial',poly_order); % compute warp
     [dat2(s).sample.tx,dat2(s).sample.ty,dat2(s).sample.tz] = ...
         tforminv(tform{s}, dat2(s).sample.x, dat2(s).sample.y, dat2(s).sample.z); % apply warp
-    % 2D transform (for troubleshooting)
+    % 2D transform 
     tform2D{s} = cp2tform( [dat2(s).refchn.x dat2(s).refchn.y],...
         [dat2(s).sample.x dat2(s).sample.y],'polynomial',poly_order2); % compute warp
     tform2D_inv{s} = cp2tform([dat2(s).sample.x dat2(s).sample.y],...
@@ -644,20 +649,10 @@ end
 
 %% level the data and plot z-distribution
 
-
-
 % level unwarped zdata based on flatness of field in frame1
 % syntax 
  % zlevel = z_apply - level_data([x_fit,y_fit,z_fit],[x_apply,y_apply])  (x,y,z to compute tilt)
 for s=1:Nsamples
-%    % Level just using tilt from frame 0.  
-%      zc_ref  = level_data([data2(s).refchn(1).x, data2(s).refchn(1).y, data2(s).refchn(1).z],[dat2(s).refchn.x, dat2(s).refchn.y]); % unwarped ref data
-%      dat2(s).refchn.zo  = dat2(s).refchn.z - zc_ref;
-%      zc_sample  = level_data([data2(s).sample(1).x, data2(s).sample(1).y, data2(s).sample(1).z],[dat2(s).sample.x, dat2(s).sample.y]); % unwarped sample data
-%     dat2(s).sample.zo = dat2(s).sample.z- zc_sample;
-%  
-% Level using best global filt of a plane to all data
-   % zlevel = z_apply - level_data([x_fit,y_fit,z_fit],[x_apply,y_apply])  (x,y,z to compute tilt)
      zc_ref  = level_data([dat2(s).refchn.x, dat2(s).refchn.y, dat2(s).refchn.z],[dat2(s).refchn.x, dat2(s).refchn.y]); % unwarped ref data
      dat2(s).refchn.zo  = dat2(s).refchn.z - zc_ref;
      zc_sample  = level_data([dat2(s).sample.x, dat2(s).sample.y, dat2(s).sample.z],[dat2(s).sample.x, dat2(s).sample.y]); % unwarped sample data
@@ -670,6 +665,8 @@ end
 % color.  The bar color indicates the actual cluster. 
 zmin = -650; zmax = 650; % for plotting only
 
+if fit3D
+dataIs3D = true;
 try
     passes = Nfields/fpZ ;
     col = hsv(passes+1);
@@ -715,8 +712,13 @@ catch er
     disp(['error in computing histogram of z-positions.  ',...
         'Perhaps the wrong number of frames per z positions is entered']);
     disp(['should the frames per z be: ',num2str(fpZ)]);
+    dataIs3D = false; 
+end
+else
+    dataIs3D = false; 
 end
 %%  XZ error
+if dataIs3D
   fig_xzerr =  figure; clf;
   subplot(1,2,1);
   for s=1:Nsamples
@@ -731,7 +733,7 @@ end
   plot(dat2(s).sample.tx,dat2(s).sample.tz,'+','color',cmap(s,:)); hold on;
   end
  title('warped xz scatter');     ylim([zmin,zmax]); % xlim([100,110]);    
-
+end
  
 
 %% XY average warp error
@@ -891,22 +893,26 @@ save([pathin,filesep,'chromewarps.mat'],'tform_1','tform','tform2D',...
 disp(['wrote ',pathin,filesep,'chromewarps.mat']);  
 
 saveas(fig_warperr,[pathin,filesep,saveroot,'fig_warperr.png']);
-saveas(fig_xyerr,[pathin,filesep,saveroot,'fig_xyerr.png']);  
-saveas(fig_zdist,[pathin,filesep,saveroot,'fig_zdist.png']);
-saveas(fig_xzerr,[pathin,filesep,saveroot,'fig_xyzerr.png']);
+saveas(fig_xyerr,[pathin,filesep,saveroot,'fig_xyerr.png']);
 saveas(fig_xyerr_all,[pathin,filesep,saveroot,'fig_xyerr_all.png']);
 saveas(fig_warperr_2d,[pathin,filesep,saveroot,'fig_warperr_2d.png']);
-
-
-
-  
+if dataIs3D
+    saveas(fig_zdist,[pathin,filesep,saveroot,'fig_zdist.png']);
+    saveas(fig_xzerr,[pathin,filesep,saveroot,'fig_xyzerr.png']);
+end
 
 disp('3D bead fitting complete');
 
 % Cleanup
-close(fig_xyerr, fig_zdist, fig_xzerr, fig_xyerr_all);
- close(fig_warperr,fig_warperr_2d)
+close(fig_xyerr,fig_xyerr_all);
+close(fig_warperr,fig_warperr_2d)
+if dataIs3D
+ close(fig_zdist, fig_xzerr)
+end
 
+if exportData
+    save([pathin,'AllChromewarpVars.mat']);
+end
  
  
  

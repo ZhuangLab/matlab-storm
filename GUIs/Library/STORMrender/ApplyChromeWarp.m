@@ -1,14 +1,11 @@
-
-
 function mlist = ApplyChromeWarp(mlist,chns,warpfile,varargin)
 % mlist = ApplyChromeWarp(mlist,chns,warpfile)
-% mlist = ApplyChromeWarp(mlistCell,{'647','750'},'C:/mywarpfile.mat')
 % applies chromatic warp to .xc .yc .zc and overwrites those values with
 %   the new values. Should consider overwiting .x .y .z instead, chromatic
 %   warp differences are usually bigger than drift. 
 %--------------------------------------------------------------------------
 % Outputs
-% mlist /cell        -- modified mlist containing warped variables.
+% mlist         -- modified mlist containing warped variables.
 %
 %--------------------------------------------------------------------------
 % Inputs
@@ -63,10 +60,10 @@ fnames = {};
 %--------------------------------------------------------------------------
 % Parse Variable Input Parameters
 %--------------------------------------------------------------------------
-if nargin < 1
-   error([mfilename,' expects input: cell of binnames']);
+if nargin < 3
+   error([mfilename,' expects inputs: cell of binnames, cell of channels, and string to a chromewarps.mat warp file']);
 end
-if nargin > 1
+if nargin > 3
     if (mod(length(varargin), 2) ~= 0 ),
         error(['Extra Parameters passed to the function ''' mfilename ''' must be passed in pairs.']);
     end
@@ -119,11 +116,11 @@ for c=1:length(mlist) % c =2
     k = find(strcmp(chns{c},chn_warp_names(:,1)));
     if ~isempty(k);  
         [x,y] = tforminv(tform_1{k},x,y); %#ok<*USENS>
-        if warpD == 2
-            [x,y] = tforminv(tform{k},x,y);
-        elseif warpD == 3 || warpD == 2.5
-            [x,y,z] = tforminv(tform{k},x,y,z);
-        end
+        if warpD > 2
+        [x,y,z] = tforminv(tform{k},x,y,z);
+        elseif warpD == 2
+        [x,y] = tforminv(tform{k},x,y);
+        end 
         mlist{c}.xc = single(x);
         mlist{c}.yc = single(y); 
         if warpD ~=2.5

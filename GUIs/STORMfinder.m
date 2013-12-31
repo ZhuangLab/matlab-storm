@@ -28,7 +28,7 @@ function varargout = STORMfinder(varargin)
 
 % Edit the above text to modify the response to help STORMfinder
 
-% Last Modified by GUIDE v2.5 19-Dec-2013 13:31:19
+% Last Modified by GUIDE v2.5 29-Dec-2013 17:25:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -76,7 +76,17 @@ SF{gui_number}.mlist = [];
 SF{gui_number}.FitPars = []; 
 SF{gui_number}.impars = []; 
 SF{gui_number}.fullmlist = []; 
-%
+
+% Default Analysis options
+SF{gui_number}.defaultAopts{1} = 'true';
+SF{gui_number}.defaultAopts{2} = 'true';
+SF{gui_number}.defaultAopts{3} = '2';
+SF{gui_number}.defaultAopts{4} = '60E3';
+SF{gui_number}.defaultAopts{5} = '95';
+SF{gui_number}.defaultAopts{6}= 'true';
+
+
+% Display the instance ID
 set(handles.SFinstance,'String',['inst id',num2str(gui_number)]);
 
 % Choose default command line output for STORMfinder
@@ -750,17 +760,24 @@ function MenuAnalyzeCurrent_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global SF 
  FitMethod = get(handles.FitMethod,'Value');
+ runinMatlab = eval(SF{handles.gui_number}.defaultAopts{1});
+ printprogress = eval(SF{handles.gui_number}.defaultAopts{1});
+ hideterminal = eval(SF{handles.gui_number}.defaultAopts{2});
+ overwrite = eval(SF{handles.gui_number}.defaultAopts{3});
+ minsize = eval(SF{handles.gui_number}.defaultAopts{4});
+ maxCPU  = eval(SF{handles.gui_number}.defaultAopts{5});
+ verbose = eval(SF{handles.gui_number}.defaultAopts{6});
+ 
 if FitMethod == 1
- RunDotFinder('daxfile',SF{handles.gui_number}.daxfile,'parsfile',...
-     SF{handles.gui_number}.inifile,'method','insight');
+    method = 'insight';
 elseif FitMethod == 2
- RunDotFinder('daxfile',SF{handles.gui_number}.daxfile,'parsfile',...
-     SF{handles.gui_number}.xmlfile,'method','DaoSTORM'); 
-elseif FitMethod == 3
- RunDotFinder('daxfile',SF{handles.gui_number}.daxfile,'parsfile',...
-     SF{handles.gui_number}.gpufile,'method','GPUmultifit'); 
+    method= 'DaoSTORM'; 
 end
-
+ RunDotFinder('daxfile',SF{handles.gui_number}.daxfile,'parsfile',...
+     SF{handles.gui_number}.inifile,'method',method,...
+     'runinMatlab',runinMatlab,'printprogress',printprogress,...
+     'hideterminal',hideterminal,'overwrite',overwrite,'minsize',minsize,...
+     'maxCPU',maxCPU,'verbose',verbose);
 
 % --------------------------------------------------------------------
 function MenuAnalyzeAll_Callback(hObject, eventdata, handles)
@@ -768,6 +785,10 @@ function MenuAnalyzeAll_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global SF
+
+ 
+ maxCPU  = eval(SF{handles.gui_number}.defaultAopts{5});
+ verbose = eval(SF{handles.gui_number}.defaultAopts{6});
 FitMethod = get(handles.FitMethod,'Value');
 if FitMethod == 1
     parsfile = SF{handles.gui_number}.inifile;
@@ -795,13 +816,17 @@ Dprompt = {
     'all dax files containing string'; %  
     'parameter file or file root'; % 
     'overwrite existing?';
-    'min file size (bytes)'};
+    'min file size (bytes)';
+    'run silently?';
+    'new mlist name (DaoSTORM only)'};
 Dopts = {
     '3',...
     '',...
     parsfile,...
     'false',...
-    '20E6'}; 
+    '60E6',...
+    'false',...
+    ''}; 
 Dopts = inputdlg(Dprompt,dlg_title,num_lines,Dopts);
 
 % If a parameter file with file ending is specified, call RunDotFinder with
@@ -818,7 +843,8 @@ if ~isempty(Dopts)  % dealing with cancel
     fpath = SF{handles.gui_number}.daxfile(1:k(end));
     RunDotFinder('path',fpath,'batchsize',eval(Dopts{1}),'daxroot',Dopts{2},...
          parflag,Dopts{3},'overwrite',eval(Dopts{4}),'method',method,...
-         'minsize',eval(Dopts{5}));
+         'minsize',eval(Dopts{5}),'hideterminal',eval(Dopts{6}),...
+         'binname',Dopts{7},'maxCPU',maxCPU,'verbose',verbose);
 end
 
 
@@ -1023,7 +1049,8 @@ if SF{handles.gui_number}.chromeWarpPars.OK
         'save root',chromeWarpPars.SaveNameRoot,'affine match radius',chromeWarpPars.AffineRadius,...
         'polyfit match radius',chromeWarpPars.PolyRadius,'verbose',chromeWarpPars.VerboseOn,...
         'hideterminal',chromeWarpPars.HideTerminal,'Noclass9',chromeWarpPars.ExcludePoorZ,...
-        'frames per Z',chromeWarpPars.FramesPerZ); 
+        'frames per Z',chromeWarpPars.FramesPerZ,'exportData',chromeWarpPars.ExportDataOn,...
+        'fit3D',chromeWarpPars.is3D); 
 end
 
 
@@ -1076,3 +1103,34 @@ end
 
 
 
+
+
+% --------------------------------------------------------------------
+function MenuOptions_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuOptions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuAnalysisOptions_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuAnalysisOptions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global SF
+
+dlg_title = 'Analysis options';
+num_lines = 1;
+    Aprompt = {
+    'run externally (set false for troubeshooting)',...
+    'run in background (or in new cmd prompt)',...
+    'overwrite? (1=y,0=n,2=ask me)',...
+    'min daxfile size',...
+    'max CPU % (reserve system resources)'...
+    'verbose',...
+    };
+defaultAopts = SF{handles.gui_number}.defaultAopts;
+defaultAopts = inputdlg(Aprompt,dlg_title,num_lines,defaultAopts);
+if ~isempty(defaultAopts)
+    SF{handles.gui_number}.defaultAopts = defaultAopts;
+end

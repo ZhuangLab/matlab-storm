@@ -14,26 +14,48 @@ function modify_script(fname_in,fname_out,target_phrases,new_values,varargin)
 %
 %--------------------------------------------------------------------------
 % Inputs
-%  fname_in / string / 'C:/STORM/pars/647_pars.ini'
-%  fname_out / string/ 
+%  fname_in / string / e.g. 'C:/STORM/pars/647_pars.ini'
+%  fname_out / string / e.g. 'C:/STORM/pars/647_pars.ini'
 %  target_phrases / cell array of strings
 %  new_values / cell array of strings 
-%
+%  end_flag / string / OPTIONAL
+%           - this 
+% 
+%--------------------------------------------------------------------------
+% Optional Inputs
+% 'name' / type / default
+% literal / boolean / true
+%         - backslashes will be written literally.  Otherwise they indicate
+%           escape characters to fprintf
+% verbose / boolean / true   
+%         - print more info to screen (useful for troubleshooting)
+% 
 %--------------------------------------------------------------------------
 % Outputs
 %  the file specified by fname_out will be created.  If fname_out =
 %  fname_in, the input file will be modified with the original values
 %  replaced with the new values.
 %
-% -------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% Updates
+% Dec 20, 2013 -- added variable input controls for literal and verbose
 % 
+%--------------------------------------------------------------------------
 % Alistair Boettiger
 % Zhuang Lab
 % September 18th, 2012
 % Copyright Creative Commons CC BY
 % 
+% 
 %% -------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
+% Default Parameters
+%--------------------------------------------------------------------------
+verbose = false; 
+literal = true; 
+
+%--------------------------------------------------------------------------
 % Parse inputs
 %--------------------------------------------------------------------------
 % if no separate save name is given, overwrite input file.  
@@ -47,9 +69,33 @@ else
     endmarker = ''; 
 end
 
-verbose = false; % fixed for the moment.  Usful for troubleshooting
+%--------------------------------------------------------------------------
+% Parse Variable Input
+%--------------------------------------------------------------------------
+if nargin > 5
+    varinput = varargin(2:end); 
+    if (mod(length(varinput), 2) ~= 0 ),
+    error(['Extra Parameters passed to the function ''' mfilename ''' must be passed in pairs.']);
+    end
+    parameterCount = length(varinput)/2;
 
-% Main script
+    for parameterIndex = 1:parameterCount,
+        parameterName = varinput{parameterIndex*2 - 1};
+        parameterValue = varinput{parameterIndex*2};
+        switch parameterName
+            case 'literal'
+                literal = CheckParameter(parameterValue, 'boolean', 'literal'); 
+            case 'verbose'
+                verbose = CheckParameter(parameterValue, 'boolean', 'verbose');
+            otherwise
+                error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
+        end
+    end   
+end
+
+
+
+%% Main script
 %--------------------------------------------------------------------------
 
 
@@ -66,7 +112,8 @@ T_new = T;
 % find line containing target phrase entry;
 for t=1:length(target_phrases)
     target_phrase = target_phrases{t};
-    new_value = new_values{t};   
+    new_value = new_values{t};    
+      
     ln = 1; % loop through all lines, don't go past end.
     while isempty(regexp(T(ln,:),regexptranslate('escape',target_phrase),'once')) && ln < max_lines;
           ln=ln+1;
@@ -92,11 +139,18 @@ for t=1:length(target_phrases)
 end
     
 % print to file
-disp(['writing file ',fname_out,'...'])
+if verbose
+    disp(['writing file ',fname_out,'...'])
+end
 
 fid = fopen(fname_out,'w+');
 for ln=1:max_lines
-    str = deblank(T_new(ln,:));  fprintf(fid,str,['']); fprintf(fid,'%s\r\n',['']);
+    str = deblank(T_new(ln,:));
+    if literal
+        % backslashes will be written literally.
+        str = regexprep(str,'\\','\\\'); % convert \ to \\.  
+    end
+      fprintf(fid,str,['']); fprintf(fid,'%s\r\n',['']);
 end
 fclose(fid); 
 if verbose

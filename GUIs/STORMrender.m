@@ -22,7 +22,7 @@ function varargout = STORMrender(varargin)
 
 % Edit the above text to modify the response to help STORMrender
 
-% Last Modified by GUIDE v2.5 19-Dec-2013 16:16:16
+% Last Modified by GUIDE v2.5 28-Dec-2013 15:46:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -93,10 +93,10 @@ SR{handles.gui_number}.Oz = {};
 handles.output = hObject;
 
 % avoid startup error
-set(handles.Yslider,'Value',0);
-set(handles.Yslider,'Min',-256);
+set(handles.Yslider,'Value',128);
+set(handles.Yslider,'Min',0);
 set(handles.Yslider,'Max',256);
-set(handles.Yslider,'SliderStep',[1,3]);
+set(handles.Yslider,'SliderStep',[0.005,0.05]);
 
 % set up axes for plotting
  axes(handles.axes1); 
@@ -164,7 +164,7 @@ if isempty(binfile)
 else
     [~,FileName] = extractpath(binfile);
 end
-handles = AddStormLayer(hObject,handles,FileName,[]);
+handles = AddStormLayer(hObject,handles,FileName,1);
 guidata(hObject, handles);
 handles = guidata(hObject);
 SingleBinLoad(hObject,eventdata,handles);
@@ -212,14 +212,19 @@ if FilterIndex ~=0
     set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin); 
     if ~iscell(FileName)
         binfile = [PathName,filesep,FileName];
-        handles = AddStormLayer(hObject,handles,FileName,[]);
+        handles = AddStormLayer(hObject,handles,FileName,1);
         guidata(hObject, handles);
         SingleBinLoad(hObject,eventdata,handles);
     else
-        sortednames = ['FileName(',SR{handles.gui_number}.LoadOps.chnOrder,')'];
-        binnames = eval(sortednames); 
+        
+        prompt = 'In what order were these taken?  ';
+        chnOrder = inputdlg(char({prompt,FileName{:}}),...
+            '',1,{['[',num2str(1:length(FileName)),']'] }) ;  
+        chnOrder = chnOrder{1}; 
+        SR{handles.gui_number}.LoadOps.chnOrder = chnOrder;     
+        binnames = eval(['FileName(',chnOrder,')']);
         for c=1:length(FileName)
-            handles = AddStormLayer(hObject,handles,FileName{c},[]);
+            handles = AddStormLayer(hObject,handles,binnames{c},c);
             guidata(hObject, handles);
         end
         MultiBinLoad(hObject,eventdata,handles,binnames);
@@ -259,63 +264,58 @@ default_opts = ...
 opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
 
 if ~isempty(opts) % don't try anything if dialogue box is canceled
-SR{handles.gui_number}.LoadOps.sourceroot = opts{1};
-SR{handles.gui_number}.LoadOps.bintype = opts{2};
-SR{handles.gui_number}.LoadOps.chnFlag = parseCSL(opts{3}); 
-SR{handles.gui_number}.LoadOps.dataset = str2double(opts{4});
-%  if we don't have a file path, prompt user to find one. 
-if isempty(SR{handles.gui_number}.LoadOps.pathin)
-    SR{handles.gui_number}.LoadOps.pathin = uigetdir(pwd,'select data folder');
-    if ~SR{handles.gui_number}.LoadOps.pathin
-        SR{handles.gui_number}.LoadOps.pathin = '';
-        stoprun = 1;
+    SR{handles.gui_number}.LoadOps.sourceroot = opts{1};
+    SR{handles.gui_number}.LoadOps.bintype = opts{2};
+    SR{handles.gui_number}.LoadOps.chnFlag = parseCSL(opts{3}); 
+    SR{handles.gui_number}.LoadOps.dataset = str2double(opts{4});
+    %  if we don't have a file path, prompt user to find one. 
+    if isempty(SR{handles.gui_number}.LoadOps.pathin)
+        SR{handles.gui_number}.LoadOps.pathin = uigetdir(pwd,'select data folder');
+        if ~SR{handles.gui_number}.LoadOps.pathin
+            SR{handles.gui_number}.LoadOps.pathin = '';
+            stoprun = 1;
+        end
+    end
+
+    if ~stoprun
+        % Automatically group all bin files of same section in different colors
+        %   based on image number, if it has not already been done
+        if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
+        [SR{handles.gui_number}.bins,SR{handles.gui_number}.allfnames] = ...
+            automatch_files( [SR{handles.gui_number}.LoadOps.pathin,filesep],...
+               'sourceroot',SR{handles.gui_number}.LoadOps.sourceroot,...
+               'filetype',SR{handles.gui_number}.LoadOps.bintype,...
+               'chns',SR{handles.gui_number}.LoadOps.chnFlag);
+        disp('files found and grouped:'); 
+        disp(SR{handles.gui_number}.bins(:));
+        end
+
+        % Figure out which channels are really in data set  
+        if SR{handles.gui_number}.LoadOps.dataset == 0
+         i=1;
+        else
+         i=SR{handles.gui_number}.LoadOps.dataset;
+        end
+
+        hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
+        binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
+        if sum((logical(1-hasdata))) ~=0
+        disp('no data found for in channels:');
+        disp(SR{handles.gui_number}.LoadOps.chnFlag(logical(1-hasdata)))
+        end
+
+        SR{handles.gui_number}.fnames = SR{handles.gui_number}.allfnames(hasdata,i);
+        disp('will load:');
+        disp(SR{handles.gui_number}.fnames);   
+        for c=1:length(SR{handles.gui_number}.fnames)
+        handles = AddStormLayer(hObject,handles,SR{handles.gui_number}.fnames{c},[]);
+        guidata(hObject, handles);
+        end
+    MultiBinLoad(hObject,eventdata,handles,binnames);    
     end
 end
 
-if ~stoprun
-% Automatically group all bin files of same section in different colors
-  %   based on image number, if it has not already been done
-  if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
-    [SR{handles.gui_number}.bins,SR{handles.gui_number}.allfnames] = ...
-        automatch_files( [SR{handles.gui_number}.LoadOps.pathin,filesep],...
-           'sourceroot',SR{handles.gui_number}.LoadOps.sourceroot,...
-           'filetype',SR{handles.gui_number}.LoadOps.bintype,...
-           'chns',SR{handles.gui_number}.LoadOps.chnFlag);
-    disp('files found and grouped:'); 
-    disp(SR{handles.gui_number}.bins(:));
-  end
-  
- % Figure out which channels are really in data set  
- if SR{handles.gui_number}.LoadOps.dataset == 0
-     i=1;
- else
-     i=SR{handles.gui_number}.LoadOps.dataset;
- end
- 
- % save([scratchPath,'test.mat']);
- % load([scratchPath,'test.mat']);
- 
- hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
-    binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
-    if sum((logical(1-hasdata))) ~=0
-        disp('no data found for in channels:');
-        disp(SR{handles.gui_number}.LoadOps.chnFlag(logical(1-hasdata)))
-    end
-    %  save([scratchPath,'test.mat']); 
-    % load([scratchPath,'test.mat']); 
-    
-    
-    SR{handles.gui_number}.fnames = SR{handles.gui_number}.allfnames(hasdata,i);
-    disp('will load:');
-    disp(SR{handles.gui_number}.fnames);   
-    for c=1:length(SR{handles.gui_number}.fnames)
-        handles = AddStormLayer(hObject,handles,SR{handles.gui_number}.fnames{c},[]);
-        guidata(hObject, handles);
-    end
-    
-    MultiBinLoad(hObject,eventdata,handles,binnames);    
-end
-end
+
 
 %~~~~~~~~~~~~~~~~~~
  function handles=ClearAllData(hObject,eventdata,handles)
@@ -325,7 +325,7 @@ end
      SR{handles.gui_number}.bins = [];
      handles=ClearCurrentData(hObject,eventdata,handles);
 
-    function handles=ClearCurrentData(hObject,eventdata,handles)
+function handles=ClearCurrentData(hObject,eventdata,handles)
         % clear existing fields for these variables
         global SR
         SR{handles.gui_number}.mlist = [];
@@ -333,182 +333,150 @@ end
         SR{handles.gui_number}.infofile = [];
         SR{handles.gui_number}.Oz = {};     
         SR{handles.gui_number}.O = {};
+        if isfield(SR{handles.gui_number},'imaxes');
+        SR{handles.gui_number}=rmfield(SR{handles.gui_number},'imaxes');
+        end
         
-            % Clear levels  
+    % Clear levels (contrasting)
     set(handles.LevelsChannel,'Value',1);
     set(handles.LevelsChannel,'String',{'channel1'});
-        
-        if isfield(handles,'stormbutton')
-                buttonhandle = handles.stormbutton;
-                if ishandle(buttonhandle)
-                    delete(buttonhandle); 
-                end
-                handles = rmfield(handles, 'stormbutton');
-                guidata(hObject,handles);        
-        end
-         if isfield(handles,'overlaybutton')
-                buttonhandle = handles.overlaybutton;
-                if ishandle(buttonhandle)
-                    delete(buttonhandle);
-                end
-                handles = rmfield(handles, 'overlaybutton');
-                guidata(hObject,handles);    
-        end
+      
+    % Make STORM and Overlay layers invisible again
+    for c=1:6
+        eval(['set(','handles.sLayer',num2str(c),', ','''Visible''',', ','''off''',')']);
+        eval(['set(','handles.oLayer',num2str(c),', ','''Visible''',', ','''off''',')']);
+    end
 
 
  %~~~~~~~
-    function handles = AddStormLayer(hObject,handles,Sname,layer_number)
-        % Adds a new radio button to the OverlayPanel, which can toggle this
+function handles = AddStormLayer(hObject,handles,Sname,layer_number)
+        % Adds a new radio button to the STORM layer, which can toggle this
         % channel on and off.  
-    global SR scratchPath  %#ok<NUSED>
-    % save([scratchPath,'test2.mat']); 
-    
-    disp('Adding New STORM layer');
-    
-    if ~isfield(handles,'stormbutton')
-        handles.stormbutton = [];
-    end
-    
-    if isempty(layer_number)  % allows overwriting existing buttons upon load.  
-        layer_number = length(handles.stormbutton) + 1;
-    end
+global SR scratchPath  %#ok<NUSED>
 
-    % update levels
-    LevelsNames = get(handles.LevelsChannel,'String');
-    LevelsNames{layer_number} = Sname;
-    set(handles.LevelsChannel,'String',LevelsNames);
-    
-    SR{handles.gui_number}.cmin(layer_number) = 0;
-    SR{handles.gui_number}.cmax(layer_number) = .7; 
-    
-    % create button
-    button_position = [.6, 7.4-1.5*(layer_number-1), 17, 1.85];
-    handles.stormbutton(layer_number) = ...
-                    uicontrol( 'Parent', handles.StormPanel,...
-                               'Style', 'radiobutton', ...
-                               'Callback', @StormButtonToggle, ...
-                               'Units',    'characters', ...
-                               'Position', button_position, ...
-                               'String',   Sname, ...
-                               'Value',    1);
-    guidata(hObject, handles);
-    set( handles.stormbutton(layer_number),'Units','normalized');
-    guidata(hObject, handles);
+verbose = SR{handles.gui_number}.DisplayOps.verbose;
+if verbose
+disp(['Adding New STORM layer ',num2str(layer_number)]);
+end
 
+% Make button visible
+buttonName = ['handles.sLayer',num2str(layer_number)];
+makeVisible = ['set(',buttonName,', ','''Visible''',', ','''on''',')'];
+buttonPress = ['set(',buttonName,', ','''Value''',', ','true',')'];
+updateName =  ['set(',buttonName,', ','''String''',', ','''',Sname,'''',')'];
+eval(makeVisible); 
+eval(buttonPress); 
+eval(updateName); 
+guidata(hObject, handles);
 
-        function StormButtonToggle(hObject, EventData)
-            handles = guidata(hObject);
-            update_maindisplay(hObject,handles);
+% update levels
+LevelsNames = get(handles.LevelsChannel,'String');
+LevelsNames{layer_number} = Sname;
+set(handles.LevelsChannel,'String',LevelsNames);   
+SR{handles.gui_number}.cmin(layer_number) = 0;
+SR{handles.gui_number}.cmax(layer_number) = .7; 
 
- 
-%     % --- Executes when StormPanel is resized.
-%     function StormPanel_ResizeFcn(hObject, eventdata, handles)
-%     % hObject    handle to StormPanel (see GCBO)
-%     % eventdata  reserved - to be defined in a future version of MATLAB
-%     % handles    structure with handles and user data (see GUIDATA)
-% 
-%         % repositions GUI channel toggle inside parent panel when main
-%         % figure is resized.  
-%             % panel_pos = get(handles.StormPanel,'Position');
-% %             for c = 1:length(handles.stormbutton)
-% %                 set(handles.stormbutton(c),'Units','normalized');
-% %             end
-            
-   
             
           
 
 
-    function SingleBinLoad(hObject,eventdata,handles)
-        % Loads single bin files
-        global binfile SR 
-        disp('reading binfile...');
-        SR{handles.gui_number}.mlist{1} = ReadMasterMoleculeList(binfile);
-        SR{handles.gui_number}.fnames{1} = binfile; 
-        disp('file loaded'); 
-        [pathname,filename] = extractpath(binfile); 
-        k = strfind(filename,'_');
-        SR{handles.gui_number}.infofile = ReadInfoFile(...
-            [pathname,filesep,filename(1:k(end)-1),'.inf']);
-        disp('setting up image options...');
-        imsetup(hObject,eventdata, handles);
-        disp('drawing data...');
-        ClearFilters_Callback(hObject, eventdata, handles); 
-        guidata(hObject, handles);
+function SingleBinLoad(hObject,eventdata,handles)
+% Loads single bin files
+global binfile SR 
+[pathname,filename] = extractpath(binfile); 
+disp('reading binfile...');
+SR{handles.gui_number}.mlist{1} = ReadMasterMoleculeList(binfile);
+SR{handles.gui_number}.LoadOps.pathin = pathname;
+SR{handles.gui_number}.fnames{1} = filename; 
+disp('file loaded'); 
+
+k = strfind(filename,'_');
+SR{handles.gui_number}.infofile = ReadInfoFile(...
+    [pathname,filesep,filename(1:k(end)-1),'.inf']);
+disp('setting up image options...');
+ImSetup(hObject,eventdata, handles);
+disp('drawing data...');
+ClearFilters_Callback(hObject, eventdata, handles); 
+guidata(hObject, handles);
 
 
 
         
  function MultiBinLoad(hObject,eventdata,handles,binnames)
-     global SR scratchPath  %#ok<NUSED>
-     % ----------------------------------------------------
-     % Passed Inputs:
-     % binnames
-     % ----------------------------------------------------
-     % % Global Inputs (from SR structure):
-     % .LoadOps: structure containing filepaths for data, warps etc
-     % .fnames: cell array of names of current data files in display 
-     %          (used for display only).
-     %------------------------------------------------------
-     % Outputs (saved in SR data structure)
-     % .mlist:  cell array of all molecule lists loaded for display
-     % .infofile: InfoFile structure for dataset (contains stage position,
-     %          needed for MosaicView reconstruction).  
-     
-% Extract some useful info for later:
-        guidata(hObject, handles);
-    %  Set up title field in display   
-    SR{handles.gui_number}.fnames = binnames; % display name for the files
-    % Get infofile #1 for position information
-    k = strfind(binnames{1},'_'); 
-    SR{handles.gui_number}.infofile = ReadInfoFile([SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf']);
-    
-% Combine folder with binnames in order to call DriftCorrect / binload
-    Tchns = length(binnames);
-    allbins = cell(Tchns,1); 
-    for c=1:Tchns
-            allbins{c} = strcat(SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{c});
-    end
+ global SR scratchPath  %#ok<NUSED>
+ % ----------------------------------------------------
+ % Passed Inputs:
+ % binnames
+ % ----------------------------------------------------
+ % % Global Inputs (from SR structure):
+ % .LoadOps: structure containing filepaths for data, warps etc
+ % .fnames: cell array of names of current data files in display 
+ %          (used for display only).
+ %------------------------------------------------------
+ % Outputs (saved in SR data structure)
+ % .mlist:  cell array of all molecule lists loaded for display
+ % .infofile: InfoFile structure for dataset (contains stage position,
+ %          needed for MosaicView reconstruction).  
 
-% Apply global drift correction, then return loaded mlist file.
-% Then apply chromewarp.  
-    mlist = MultiChnDriftCorrect(allbins,...
-        'correctDrift',SR{handles.gui_number}.LoadOps.correctDrift);
-    
-  % Need a warp map.  
-    if isempty(SR{handles.gui_number}.LoadOps.warpfile)
-        [FileName,PathName] = uigetfile({'*.mat','Matlab data (*.mat)';...
-    '*.*','All Files (*.*)'},'Select warpfile',SR{handles.gui_number}.LoadOps.pathin);
-    SR{handles.gui_number}.LoadOps.warpfile = [PathName,FileName];
-    end
- % Need to know channel names so we can apply the appropriate warp
-    if isempty([SR{handles.gui_number}.LoadOps.chns{:}])
-        chns = inputdlg({'Channel Names: (name must match warpmap, order match layer order)'},...
-    '',1,{'750,647,561,488'});  % <--  Default channel names
-        SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1});
-    end
- % Automatically dealing with old or new style chromewarp format
-    if ~isempty(SR{handles.gui_number}.LoadOps.warpfile)   
-        [warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
-        if ~isempty(strfind(warpname,'tform'))
-            for c=1:length(mlist)
-                mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
-                    mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
-            end        
-        else  % Run new style
-            mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
-                SR{handles.gui_number}.LoadOps.warpfile,...
-                'warpD',SR{handles.gui_number}.LoadOps.warpD,...
-                'names',SR{handles.gui_number}.fnames);    
-        end
-    else
-        disp('warning, no warp file found to align color channels');
-    end
-    % Cleanup settings from any previous data and render image:
-    SR{handles.gui_number}.mlist = mlist; 
-    imsetup(hObject,eventdata, handles);
-    ClearFilters_Callback(hObject, eventdata, handles); 
+% Extract some useful info for later:
     guidata(hObject, handles);
+%  Set up title field in display   
+SR{handles.gui_number}.fnames = binnames; % display name for the files
+% Get infofile #1 for position information
+k = strfind(binnames{1},'_'); 
+SR{handles.gui_number}.infofile = ...
+    ReadInfoFile([SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf']);
+
+% Load the binfiles 
+Tchns = length(binnames);
+mlist = cell(Tchns,1); 
+for c=1:Tchns
+    fullBinName = strcat(SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{c});
+    mlist{c} = ReadMasterMoleculeList(fullBinName,'verbose',...
+                    SR{handles.gui_number}.DisplayOps.verbose); 
+end
+
+    
+% Apply global drift correction, then return loaded mlist file.
+% Then apply chromewarp.
+mlist = MultiChnDriftCorrect(mlist,...
+        'correctDrift',SR{handles.gui_number}.LoadOps.correctDrift,...
+        'verbose',SR{handles.gui_number}.DisplayOps.verbose);
+
+% Need a warp map.  
+if isempty(SR{handles.gui_number}.LoadOps.warpfile)
+[FileName,PathName] = uigetfile({'*.mat','Matlab data (*.mat)';...
+'*.*','All Files (*.*)'},'Select warpfile',SR{handles.gui_number}.LoadOps.pathin);
+SR{handles.gui_number}.LoadOps.warpfile = [PathName,FileName];
+end
+
+if isempty([SR{handles.gui_number}.LoadOps.chns{:}])
+chns = inputdlg({'Channel Names: (name must match warpmap, order match layer order)'},...
+'',1,{'750,647,561,488'});  % <--  Default channel names
+SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1});
+end
+% Automatically dealing with old or new style chromewarp format
+if ~isempty(SR{handles.gui_number}.LoadOps.warpfile)   
+[warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
+    if ~isempty(strfind(warpname,'tform'))
+        for c=1:length(mlist)
+            mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
+                mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
+        end        
+    else  % Run new style
+        mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
+            SR{handles.gui_number}.LoadOps.warpfile,...
+            'warpD',SR{handles.gui_number}.LoadOps.warpD,...
+            'names',SR{handles.gui_number}.fnames);    
+    end
+else
+    disp('warning, no warp file found to align color channels');
+end
+% Cleanup settings from any previous data and render image:
+SR{handles.gui_number}.mlist = mlist; 
+ImSetup(hObject,eventdata, handles);
+ClearFilters_Callback(hObject, eventdata, handles); 
+guidata(hObject, handles);
 
 
     
@@ -584,38 +552,77 @@ LoadBin(hObject,eventdata,handles,'off')
 
 % Setup defaults
 % -------------------------------------------------------------------
-function imsetup(hObject,eventdata, handles)
-    global SR
-    % if imaxes is already defined, use it. 
-    if isfield(SR{handles.gui_number},'imaxes')
-       imaxes = SR{handles.gui_number}.imaxes; 
-    end
-    
-    
-    
-%     
-%     imaxes.H = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
-%     imaxes.W = SR{handles.gui_number}.infofile.frame_dimensions(1);
-%     
-    imaxes.H = SR{handles.gui_number}.infofile.hend; % actual size of image
-    imaxes.W = SR{handles.gui_number}.infofile.vend;
-    imaxes.scale = 2;  % upscale on display
-    imaxes.zm = 1;
-    imaxes.cx = imaxes.W/2;
-    imaxes.cy = imaxes.H/2;
-    imaxes.xmin = 0;
-    imaxes.xmax = imaxes.W;
-    imaxes.ymin = 0; 
-    imaxes.ymax = imaxes.H; 
-    imaxes.updatemini = true; 
-    set(handles.Xslider,'Min',imaxes.xmin);
-    set(handles.Xslider,'Max',imaxes.xmax);
-    set(handles.Yslider,'Min',imaxes.ymin);
-    set(handles.Yslider,'Max',imaxes.ymax);
-    SR{handles.gui_number}.imaxes = imaxes;
-    guidata(hObject, handles);
-    UpdateSliders(hObject,eventdata,handles);
+function ImSetup(hObject,eventdata, handles)
+global SR scratchPath
 
+% if imaxes is already defined, use it. 
+if isfield(SR{handles.gui_number},'imaxes')
+   imaxes = SR{handles.gui_number}.imaxes; 
+else
+    % build new imaxes structure using ROI from parameter file if available
+    mlist = SR{handles.gui_number}.mlist;  % short hand;
+    w = zeros(length(mlist),1);
+    h = zeros(length(mlist),1);
+    for i=1:length(mlist)
+        binfile = [SR{handles.gui_number}.LoadOps.pathin,SR{handles.gui_number}.fnames{i}];
+        parsfile = ReadListParsFile(binfile);
+        hasROIinfo = true;  
+        if   ~isempty(parsfile)
+            parsflag = parsfile(end-3:end);
+            if strcmp(parsflag,'.xml');
+            roiFlags = {'<x_start type="int">',...
+                        '<x_stop type="int">',...
+                        '<y_start type="int">',...
+                        '<y_stop type="int">'};
+            endmarker = '<';
+            elseif strcmp(parsflag,'.ini');
+            roiFlags = {'ROI_x0=',...
+                        'ROI_x1=',...
+                        'ROI_y0=',...
+                        'ROI_y1='};
+            endmarker = '';
+            else
+               hasROIinfo = false;  
+            end
+            if hasROIinfo
+                roiInfo = read_parameterfile(parsfile,roiFlags,endmarker);
+                roi = cellfun(@str2double,roiInfo);
+                w(i) = roi(2) - roi(1);
+                h(i) = roi(4) - roi(3); 
+                mlist{i}.xc = mlist{i}.xc - roi(1);
+                mlist{i}.x = mlist{i}.x - roi(1);
+                mlist{i}.yc = mlist{i}.yc - roi(3);
+                mlist{i}.y = mlist{i}.y - roi(3);      
+            end
+        else
+            h(i) = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
+            w(i) = SR{handles.gui_number}.infofile.frame_dimensions(1);
+        end
+    end
+    if sum(w==w(1)) ~= length(mlist) || sum(h==h(1)) ~= length(mlist)
+        error('ROIs for the selected molecule lists different sizes'); 
+    end
+    imaxes.W = w(1);
+    imaxes.H = h(1);
+    SR{handles.gui_number}.mlist = mlist;
+end
+
+imaxes.scale = 2;  % upscale on display
+imaxes.zm = 1;
+imaxes.cx = imaxes.W/2;
+imaxes.cy = imaxes.H/2;
+imaxes.xmin = 0;
+imaxes.xmax = imaxes.W;
+imaxes.ymin = 0; 
+imaxes.ymax = imaxes.H; 
+imaxes.updatemini = true; 
+set(handles.Xslider,'Min',imaxes.xmin);
+set(handles.Xslider,'Max',imaxes.xmax);
+set(handles.Yslider,'Min',imaxes.ymin);
+set(handles.Yslider,'Max',imaxes.ymax);
+SR{handles.gui_number}.imaxes = imaxes;
+guidata(hObject, handles);
+UpdateSliders(hObject,eventdata,handles);
 
 %=========================================================================%  
 %       end of load data functions
@@ -726,7 +733,7 @@ end
 
 
 
-function getedges(hObject, eventdata, handles)
+function GetEdges(hObject, eventdata, handles)
 % if cx/cy is near the edge and zoom is small, we should have a different
 % maxx maxy
 global SR     
@@ -768,17 +775,17 @@ SR{handles.gui_number}.imaxes = imaxes;
 %==========================================================================
 %% Main plotting function
 %==========================================================================
-function loadim(hObject,eventdata, handles)
+function ImLoad(hObject,eventdata, handles)
 % load variables
 global   SR
-mlist = SR{handles.gui_number}.mlist;  
 
+mlist = SR{handles.gui_number}.mlist;  
 
 % if we're zoomed out fully, recenter everything
 if SR{handles.gui_number}.imaxes.zm == 1
-  imsetup(hObject,eventdata, handles); % reset to center
+  ImSetup(hObject,eventdata, handles); % reset to center
 end
-getedges(hObject, eventdata, handles);
+GetEdges(hObject, eventdata, handles);
 UpdateSliders(hObject,eventdata,handles);
 
 tic
@@ -804,12 +811,11 @@ SR{handles.gui_number}.I = list2img(mlist, SR{handles.gui_number}.imaxes,...
     'N',6,...
     'correct drift',SR{handles.gui_number}.DisplayOps.CorrDrift);
 
-
 if ~isempty(SR{handles.gui_number}.Oz)
     IntegrateOverlay(hObject,handles); % Integrate the Overlay, if it exists
 end
 
-update_maindisplay(hObject,handles); % converts I, applys contrast, to RBG
+UpdateMainDisplay(hObject,handles); % converts I, applys contrast, to RBG
 guidata(hObject, handles);
 plottime = toc;
 disp(['total time to render image: ',num2str(plottime)]);
@@ -855,7 +861,6 @@ function choosefilt_Callback(hObject, eventdata, handles)
 % --- Executes on button press in ClearFilters.
 function ClearFilters_Callback(hObject, eventdata, handles)
 global  SR
-
 SR{handles.gui_number}.filts = struct('custom',[]); % empty structure to store filters
 Cs = length(SR{handles.gui_number}.mlist);
     SR{handles.gui_number}.infilter = cell(Cs,1);
@@ -863,14 +868,9 @@ Cs = length(SR{handles.gui_number}.mlist);
     for i=channels
         SR{handles.gui_number}.infilter{i} = true(size([SR{handles.gui_number}.mlist{i}.xc]));  % 
     end
-    
-for c=1:length(handles.stormbutton)
-    set(handles.stormbutton(1),'Value',1);
-end
-    
 SR{handles.gui_number}.cmax = .3*ones(Cs,1); % default values
 SR{handles.gui_number}.cmin = 0*ones(Cs,1);  % default values
-loadim(hObject,eventdata, handles); % calls plotdata function
+ImLoad(hObject,eventdata, handles); % calls plotdata function
  
  
 
@@ -902,10 +902,10 @@ function ApplyFilter_Callback(hObject, eventdata, handles)
   
   
   for c=1:channels
-    SR{handles.gui_number}.infilter{c}(vlist{c}.inbox & vlist{c}.infilter') =  newfilter{c};
+    SR{handles.gui_number}.infilter{c}(vlist{c}.inbox & vlist{c}.infilter) =  newfilter{c};
   end
    SR{handles.gui_number}.filts = filts;
-  loadim(hObject,eventdata, handles); % calls plotdata function
+  ImLoad(hObject,eventdata, handles); % calls plotdata function
 
 % --- Executes on button press in ShowFilters.
 function ShowFilters_Callback(hObject, eventdata, handles)
@@ -918,7 +918,7 @@ disp('this function still under development');
 
  
  
-function update_maindisplay(hObject,handles)
+function UpdateMainDisplay(hObject,handles)
 global  SR scratchPath  %#ok<NUSED>
 
 I = SR{handles.gui_number}.I;
@@ -928,7 +928,6 @@ imaxes = SR{handles.gui_number}.imaxes;
 % Ic N layer colored matrix, fed into Ncolor
 % Io 3-color output image. Global only to pass to export/save image calls.
 
-
 guidata(hObject, handles);
 Cs = length(I); 
 [h,w,Zs] = size(I{1});
@@ -937,19 +936,24 @@ Noverlays = length(SR{handles.gui_number}.Oz);
 % Find out which channels are toggled for display
 %------------------------------------------------------------        
 channels = zeros(1,Cs); % Storm Channels
-    for c = 1:Cs; % length(handles.stormbutton)
-        channels(c) = get(handles.stormbutton(c),'Value');
-    end
-    active_channels = find(channels);
-    overlays = zeros(1,Noverlays); % Overlay channels
-    for c = 1:Noverlays
-        overlays(c) = get(handles.overlaybutton(c),'Value');
-    end
-    active_overlays = find(overlays);
-    
+% for c = 1:Cs; % length(handles.stormbutton)
+%     channels(c) = get(handles.stormbutton(c),'Value');
+% end
 
+for c = 1:Cs; 
+    channels(c) = eval(['get(','handles.sLayer',num2str(c),', ','''Value''',')']);
+end
+
+active_channels = find(channels);
+overlays = zeros(1,Noverlays); % Overlay channels
+for c = 1:Noverlays
+    overlays(c) = eval(['get(','handles.oLayer',num2str(c),', ','''Value''',')']);
+end
+active_overlays = find(overlays);
+    
+% save([scratchPath,'test.mat']);
 % save([scratchPath,'test.mat'],'handles','I','active_channels','channels','overlays','active_overlays');
-% load([scratchPath,'test.mat']);
+% global scratchPath; load([scratchPath,'test.mat']);
 
 % Stack all image layers (channels, z-dimensions, and overlays)
 %   into a common matrix for multicolor rendering.  Apply indicated
@@ -1010,7 +1014,6 @@ SR{handles.gui_number}.Io = Io;
 guidata(hObject, handles);
 
 
-
 % --------------------------------------------------------------------
 function ManualContrastTool_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to ManualContrastTool (see GCBO)
@@ -1019,7 +1022,7 @@ function ManualContrastTool_ClickedCallback(hObject, eventdata, handles)
 global SR
 SR{handles.gui_number}.cmax = input('enter a vector for max intensity for each channel: ');
 SR{handles.gui_number}.cmin = input('enter a vector for min intensity for each channel: ');
- update_maindisplay(hObject,handles);
+ UpdateMainDisplay(hObject,handles);
  guidata(hObject, handles);
  
 % --------------------------------------------------------------------
@@ -1028,43 +1031,28 @@ function AutoContrastTool_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global SR
-    Cs = length(SR{handles.gui_number.mlist});
+    Cs = length(SR{handles.gui_number}.mlist);
     for c=1:Cs
         SR{handles.gui_number}.cmax(c) = .9;
         SR{handles.gui_number}.cmin(c) = 0;
     end
- update_maindisplay(hObject,handles);
+ UpdateMainDisplay(hObject,handles);
  guidata(hObject, handles);
 
 % ------
  function scalecolor(hObject,handles)
  global SR scratchPath %#ok<NUSED>
- 
- 
- % hObject    handle to LevelsChannel (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns LevelsChannel contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from LevelsChannel
-
 
 % x scale for histogram (log or normal)
 logscalecolor = logical(get(handles.logscalecolor,'Value'));
 N_stormchannels = length(SR{handles.gui_number}.cmax);
 selected_channel = get(handles.LevelsChannel,'Value');
 
-
 % Read in current slider postions, set numeric displays accordingly
 maxin = get(handles.MaxIntSlider,'Value');
 minin = get(handles.MinIntSlider,'Value'); 
 set(handles.MaxIntBox,'String',num2str(maxin));
 set(handles.MinIntBox,'String',num2str(minin));
-   
-
-
-% save([scratchPath,'test.mat']);
-% load([scratchPath,'test.mat']);
 
 % If it's STORM data, record data range from I and store max min as
 % cmax / cmin
@@ -1113,10 +1101,8 @@ end
    set(gca,'XTick',[],'YTick',[]);
    alpha .5;
 
- %      save([scratchPath,'test.mat']);
- %     load([scratchPath,'test.mat']);  figure(3); clf;
   clear raw_ints;        
-  update_maindisplay(hObject,handles);
+  UpdateMainDisplay(hObject,handles);
   guidata(hObject, handles);
 
 
@@ -1187,7 +1173,7 @@ if imaxes.zm > 128
 end
 SR{handles.gui_number}.imaxes = imaxes;
 set(handles.displayzm,'String',num2str(imaxes.zm,2));
-loadim(hObject,eventdata, handles);
+ImLoad(hObject,eventdata, handles);
 guidata(hObject, handles);
 
 
@@ -1208,7 +1194,7 @@ set(handles.displayzm,'String',num2str(imaxes.zm,2));
 SR{handles.gui_number}.imaxes = imaxes;
 guidata(hObject, handles);
 UpdateSliders(hObject,eventdata,handles);
-loadim(hObject,eventdata, handles);
+ImLoad(hObject,eventdata, handles);
 guidata(hObject, handles);
 
 
@@ -1226,7 +1212,7 @@ set(handles.displayzm,'String',num2str(imaxes.zm,2));
 SR{handles.gui_number}.imaxes = imaxes;
 guidata(hObject, handles);
 UpdateSliders(hObject,eventdata,handles);
-loadim(hObject,eventdata, handles);
+ImLoad(hObject,eventdata, handles);
 guidata(hObject, handles);
 
 % --------------------------------------------------------------------
@@ -1244,7 +1230,7 @@ handles = guidata(hObject);
 % user specifies box:
 axes(handles.axes2); 
 set(gca,'XTick',[],'YTick',[]);
-% getedges(hObject, eventdata, handles)
+% GetEdges(hObject, eventdata, handles)
 [x,y] = ginput(2);  % These are relative to the current axis
 xim = imaxes.xmin + x/imaxes.scale/imaxes.zm;
 yim = imaxes.ymin + y/imaxes.scale/imaxes.zm;
@@ -1270,13 +1256,13 @@ set(gca,'Xtick',[],'Ytick',[]);
 rectangle('Position',[min(x),min(y),abs(x(2)-x(1)),abs(y(2)-y(1))],'EdgeColor','w'); hold off;
 guidata(hObject, handles);
 pause(.1); 
-loadim(hObject,eventdata, handles);
+ImLoad(hObject,eventdata, handles);
 guidata(hObject, handles);
 
 
 
 %----------------------------------------------
-function updateNaviagtor(hObject,handles)
+function UpdateNavigator(hObject,handles)
 global SR
 imaxes = SR{handles.gui_number}.imaxes;
     axes(handles.axes1);
@@ -1313,7 +1299,7 @@ imaxes.cx = xim;  % these are relative to the whole image
 imaxes.cy = yim;
 SR{handles.gui_number}.imaxes = imaxes;
 guidata(hObject, handles);
-loadim(hObject,eventdata, handles);
+ImLoad(hObject,eventdata, handles);
 guidata(hObject, handles);
 
 function UpdateSliders(hObject,eventdata,handles)
@@ -1321,9 +1307,13 @@ global SR
 imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
 set(handles.Xslider,'Value',imaxes.cx);
-set(handles.Yslider,'Value',imaxes.H-imaxes.cy);
+set(handles.Yslider,'Value',imaxes.ymax-imaxes.cy+imaxes.ymin);
+set(handles.Xslider,'Min',imaxes.xmin);
+set(handles.Xslider,'Max',imaxes.xmax);
+set(handles.Yslider,'Min',imaxes.ymin);
+set(handles.Yslider,'Max',imaxes.ymax);
 SR{handles.gui_number}.imaxes = imaxes;
-updateNaviagtor(hObject,handles);
+UpdateNavigator(hObject,handles);
 guidata(hObject, handles);
 
 % --- Executes on slider movement.
@@ -1332,9 +1322,10 @@ function Yslider_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 global SR
 imaxes = SR{handles.gui_number}.imaxes;
-imaxes.cy = imaxes.H - get(handles.Yslider,'Value');
+imaxes.cy = imaxes.ymax - get(handles.Yslider,'Value')+imaxes.ymin;
+% imaxes.cy = get(handles.Yslider,'Value');
 SR{handles.gui_number}.imaxes = imaxes;
-loadim(hObject,eventdata, handles);
+ImLoad(hObject,eventdata, handles);
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -1350,7 +1341,7 @@ function Xslider_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 global SR
 SR{handles.gui_number}.imaxes.cx = get(handles.Xslider,'Value');
-loadim(hObject,eventdata, handles);
+ImLoad(hObject,eventdata, handles);
 guidata(hObject, handles);
 
 
@@ -1418,12 +1409,10 @@ if SR{handles.gui_number}.DisplayOps.ColorZ && SR{handles.gui_number}.DisplayOps
         Cs = length(I);
 
         channels = zeros(1,Cs); % Storm Channels
-        for c = 1:Cs; % length(handles.stormbutton)
-            channels(c) = get(handles.stormbutton(c),'Value');
+        for c = 1:Cs; 
+            channels(c) = eval(['get(','handles.sLayer',num2str(c),', ','''Value''',')']);
         end
-
-        % save([scratchPath,'test.mat']);
-        % load([scratchPath,'test.mat']);
+        
         active_channels = find(channels);
         figure; clf; 
         Im3D(I(active_channels),'resolution',res,'zStepSize',zstp,'xyStepSize',xyp,...
@@ -1515,8 +1504,7 @@ if ~isempty(SR{handles.gui_number}.plt3Dfig)
     end
 end
 SR{handles.gui_number}.plt3Dfig = figure; 
-% save([scratchPath,'testdat.mat']);
-% load([scratchPath,'testdat.mat']);
+
 for c = chns
     if length(vlist{c}.x) > 2000
         msize = 1;
@@ -1530,9 +1518,6 @@ for c = chns
 end
 xlabel('x (nm)'); ylabel('y (nm)'); zlabel('z (nm)'); 
 title(lab); 
-
-% save([scratchPath,'testdat.mat']);
-
 
 
 % --------------------------------------------------------------------
@@ -1557,8 +1542,7 @@ if ~isempty(SR{handles.gui_number}.pltColorByFramefig)
     end
 end
 SR{handles.gui_number}.pltColorByFramefig = figure; 
-% save([scratchPath,'testdat.mat']);
-% load([scratchPath,'testdat.mat']);
+
 for c = chns
     if length(vlist{c}.x) > 2000
         msize = 1;
@@ -1605,8 +1589,7 @@ if ~isempty(SR{handles.gui_number}.plt3Dfig)
     end
 end
 SR{handles.gui_number}.plt3Dfig = figure; 
-% save([scratchPath,'testdat.mat']);
-% load([scratchPath,'testdat.mat']);
+
 for c = chns
     if length(vlist{c}.x) > 2000
         msize = 1;
@@ -1634,8 +1617,8 @@ function vlist = MolsInView(handles)
      
      Cs = length(mlist); 
     channels = zeros(1,Cs); % Storm Channels
-    for c = 1:Cs; % length(handles.stormbutton)
-        channels(c) = get(handles.stormbutton(c),'Value');
+    for c = 1:Cs; 
+       channels(c) = eval(['get(','handles.sLayer',num2str(c),', ','''Value''',')']);
     end
     active_channels = find(channels);
 
@@ -1803,7 +1786,8 @@ num_lines = 1;
     'channels'...
     'Max frames (for Daxfiles)',...
     'Overlay Layer (leave blank to add new layer)',...
-    'Contrast'};
+    'Contrast',...
+    'Channel for chromatic warp (blank for no warp)'};
 
 try
 Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
@@ -1820,7 +1804,8 @@ catch er
     '[]',...
     '4',...
     '',...
-    '[0,.3]'};
+    '[0,.3]',...
+    ''};
     Overlay_opts = inputdlg(Overlay_prompt,dlg_title,num_lines,Overlay_opts);
 end
 
@@ -1855,18 +1840,36 @@ if ~isempty(Overlay_opts) % Load Overlay Not canceled
     if selected~=0;
         k = strfind(Overlay_opts{1},'.dax');
         if isempty(k)
-            Otemp = imread(Overlay_opts{1}); % load image file;
+            tempO = imread(Overlay_opts{1}); % load image file;
         else  % For DAX files
-            Otemp = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
-            Otemp = uint16(mean(Otemp,3));  %average all frames loaded.   might cause problems
+            tempO = ReadDax(Overlay_opts{1},'endFrame',Overlay_opts{8});
+            tempO = uint16(mean(tempO,3));  %average all frames loaded.   might cause problems
         end
+        
+        if ~isempty(Overlay_opts{11})
+           if isempty(SR{handles.gui_number}.LoadOps.warpfile)
+                if ~isempty(SR{handles.gui_number}.LoadOps.pathin)
+                    startfolder = SR{handles.gui_number}.LoadOps.pathin;
+                elseif ~isempty(binfile)
+                    startfolder = extractpath(binfile);
+                else
+                    startfolder = pwd;
+                end
+              [filename,pathname,selected] = uigetfile({'*.mat'},'Select Warpfile',startfolder);
+              SR{handles.gui_number}.LoadOps.warpfile = [pathname,filesep,filename];
+           end
+            if selected
+                tempO = WarpImage(tempO,Overlay_opts{11},SR{handles.gui_number}.LoadOps.warpfile);
+            end
+        end
+        
         Noverlays = length(SR{handles.gui_number}.O);
         if isempty(Overlay_opts{9})
-            SR{handles.gui_number}.O{Noverlays+1} = Otemp; 
+            SR{handles.gui_number}.O{Noverlays+1} = tempO; 
             overlay_number = length(SR{handles.gui_number}.O);%  ;
         else
             overlay_number =  eval(Overlay_opts{9});
-            SR{handles.gui_number}.O{overlay_number} = Otemp;
+            SR{handles.gui_number}.O{overlay_number} = tempO;
         end
 
         % Still need to address contrast for overlays
@@ -1891,34 +1894,31 @@ end
         % channel on and off.  
     global SR
     
-    if ~isfield(handles,'overlaybutton');
-        handles.overlaybutton = [];
-    end
     
-       % update levels
-    N_stormlayers = length(SR{handles.gui_number}.cmax);
-    LevelsNames = get(handles.LevelsChannel,'String');
-    LevelsNames{N_stormlayers+overlay_number} = oname;
-    set(handles.LevelsChannel,'String',LevelsNames);
+verbose = SR{handles.gui_number}.DisplayOps.verbose;
+if verbose
+disp(['Adding New Overlay ',num2str(overlay_number)]);
+end
+
+% Make button visible
+buttonName = ['handles.oLayer',num2str(overlay_number)];
+makeVisible = ['set(',buttonName,', ','''Visible''',', ','''on''',')'];
+buttonPress = ['set(',buttonName,', ','''Value''',', ','true',')'];
+updateName =  ['set(',buttonName,', ','''String''',', ','''',oname,'''',')'];
+eval(makeVisible); 
+eval(buttonPress); 
+eval(updateName); 
+guidata(hObject, handles);
+
+SR{handles.gui_number}.OverlayNames{overlay_number} = oname;  
+
+% update levels
+N_stormlayers = length(SR{handles.gui_number}.cmax);
+LevelsNames = get(handles.LevelsChannel,'String');
+LevelsNames{N_stormlayers+overlay_number} = oname;
+set(handles.LevelsChannel,'String',LevelsNames);
+
     
-    SR{handles.gui_number}.OverlayNames{overlay_number} = oname;  
-    button_position = [.6, 7.4-1.5*(overlay_number-1), 17, 1.85];
-    handles.overlaybutton(overlay_number) = ...
-                    uicontrol( 'Parent', handles.OverlayPanel,...
-                               'Style', 'radiobutton', ...
-                               'Callback', @OverlayButtonToggle, ...
-                               'Units',    'characters', ...
-                               'Position', button_position, ...
-                               'String',   oname, ...
-                               'Value',    1);
-    guidata(hObject, handles);
-    % Now that it's placed, allow resizing.  
-        set(handles.overlaybutton(overlay_number),'Units','normalized');
-    guidata(hObject, handles);
-    
-        function OverlayButtonToggle(hObject, EventData)
-            handles = guidata(hObject);
-            update_maindisplay(hObject,handles);   
                  
     %---------------------------------------------------------------------
     % IntegrateOverlay into field of view
@@ -1936,7 +1936,7 @@ end
             'rotate',eval(Overlay_opts{4}),'xshift',eval(Overlay_opts{5}),...
             'yshift',eval(Overlay_opts{6}),'channels',eval(Overlay_opts{7}) ); 
        % figure(4); clf; imagesc(I{imlayer});
-        update_maindisplay(hObject,handles);
+        UpdateMainDisplay(hObject,handles);
         end
     end
     end
@@ -1997,7 +1997,7 @@ if length(default_Dopts) > 1 % Do nothing if canceled
     SR{handles.gui_number}.DisplayOps.npp = eval(default_Dopts{7});
     SR{handles.gui_number}.DisplayOps.verbose = eval(default_Dopts{8});
     SR{handles.gui_number}.DisplayOps.CorrDrift= eval(default_Dopts{9});
-    loadim(hObject,eventdata, handles);
+    ImLoad(hObject,eventdata, handles);
     guidata(hObject, handles);
 end
 
@@ -2106,32 +2106,39 @@ function MenuFeducialDrift_Callback(hObject, eventdata, handles)
 % 'showplots' / boolean / true
 % 'showextraplots' / boolean / false
 % 
-global SR
+global SR scratchPath
 
+mlist = SR{handles.gui_number}.mlist;
+
+for c = 1:length(mlist) 
 dlg_title = 'Feducial Drift Correction Options';
 num_lines = 1;
 Dprompt = {
     'feducial binfile (STORM-chn or binfile string)',... 1
     'correct STORM chn: ',... 2
-    'startframe',...        3
-    'maxdrift',...          4
-    'integrateframes',...   5
-    'fmin',...              6
+    'start frame (1 = first appearance)',...        3
+    'max drift (pixels)',...          4
+    'integrate frames (smoothing localization noise)',...   5
+    'min fraction of frames ',...              6
     'nm per pixel',...      7 
-    'showplots'...          8
-    'showextraplots'};     %9   
-Opts{1} = num2str(1);
-Opts{2} = num2str(1);
+    'show plots',...          8
+    'show extra plots',...   9
+    'frame to ID feducials (1 = first appearance)',...
+    'correct back from previous channels'};       
+Opts{1} = '';
+Opts{2} = ''; % ['[',num2str(1:length(mlist)),']'];
 Opts{3} = num2str(1);
 Opts{4} = num2str(2.5);
 Opts{5} = num2str(500);
-Opts{6} = num2str(0.5);
+Opts{6} = num2str(0.7);
 Opts{7} = num2str(SR{handles.gui_number}.DisplayOps.npp);
 Opts{8} = 'true';
 Opts{9} = 'false';
+Opts{10} = num2str(1);
+Opts{11} = 'true';
 Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
 
-if length(Opts) > 1 % Do nothing if canceled
+if length(Opts) > 1 % Do nothing if cancelled      
     if isempty(Opts{1})
         startfolder = SR{handles.gui_number}.LoadOps.pathin;
         if isempty(startfolder)
@@ -2140,36 +2147,51 @@ if length(Opts) > 1 % Do nothing if canceled
         [filename,pathname,selected] = uigetfile(...
             {'*.bin', 'Molecule List (*.bin)';
             '*.*', 'All Files (*.*)'},...
-            'Choose bin file with feducials',...
+            ['Choose bin file with feducials for chn ',num2str(c)],...
             startfolder); % prompts user to select directory 
         if selected > 0
             sourcename = [pathname,filesep,filename];
-            Opts{1} = sourcename;
         end
     end
-    if length(Opts{1}) < 2;
-        c = str2double(Opts{1});
-        input1 = SR{handles.gui_number}.mlist{c};
-    else
-        input1 = Opts{1};
-    end
-    [dxc,dyc] = feducialDriftCorrection(input1,...        
+    
+    %  save([scratchPath,'test.mat']); 
+    % load([scratchPath,'test.mat']); 
+    
+    [dxc,dyc] = feducialDriftCorrection(sourcename,...        
         'startframe',eval(Opts{3}),...     3
         'maxdrift',eval(Opts{4}),...          4
         'integrateframes',eval(Opts{5}),...
         'fmin',eval(Opts{6}),...
         'nm per pixel',eval(Opts{7}),...
         'showplots',eval(Opts{8}),...
-        'showextraplots',eval(Opts{9}) );
-    
-    % apply correction
-    c = str2double(Opts{2});
-    SR{handles.gui_number}.mlist{c}.xc = ...
-        SR{handles.gui_number}.mlist{c}.x - dxc(SR{handles.gui_number}.mlist{c}.frame);
-    SR{handles.gui_number}.mlist{c}.yc = ...
-        SR{handles.gui_number}.mlist{c}.y - dyc(SR{handles.gui_number}.mlist{c}.frame);    
+        'showextraplots',eval(Opts{9}),...
+        'spotframe',eval(Opts{10}) );
+       
+    % record drift in this channel.  Calc drift from previous channels
+   SR{handles.gui_number}.driftData{c}.xDrift = nonzeros(dxc);
+   SR{handles.gui_number}.driftData{c}.yDrift = nonzeros(dyc);
+   if eval(Opts{11}) && c>1
+    prevXdrift = [0,SR{handles.gui_number}.driftData{1:c-1}.xDrift(end)];
+    prevYdrift = [0,SR{handles.gui_number}.driftData{1:c-1}.yDrift(end)]; 
+   else
+    prevXdrift = 0; 
+    prevYdrift = 0;
+   end
+    mlist{c}.xc = mlist{c}.x - dxc(mlist{c}.frame) - sum(prevXdrift);
+    mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame) - sum(prevYdrift); 
+end  
+   
 end
-update_maindisplay(hObject,handles);
+% Need to reapply chromewarps 
+if length(mlist) > 1
+mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
+        SR{handles.gui_number}.LoadOps.warpfile,...
+        'warpD',SR{handles.gui_number}.LoadOps.warpD,...
+        'names',SR{handles.gui_number}.fnames); 
+end
+SR{handles.gui_number}.mlist = mlist;
+ImLoad(hObject,eventdata, handles);
+
 
 
 % --------------------------------------------------------------------
@@ -2217,32 +2239,88 @@ Dprompt = {
     'channel',... 2
     'scale',...        3
     'nm per pixel',...
-    'showplots'};     %5   
-Opts{1} = num2str(10E3);
+    'showplots',...
+    'use only current ROI'};     %5   
+Opts{1} = num2str(6E3);
 Opts{2} = num2str(1);
 Opts{3} = num2str(4);
 Opts{4} = num2str(SR{handles.gui_number}.DisplayOps.npp);
 Opts{5} = 'true';
+Opts{6} = 'true';
 Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
 
-c = str2double(Opts{2});
+if ~isempty(Opts)
+    c = str2double(Opts{2});
+    mlist = SR{handles.gui_number}.mlist;
 
-[dxc,dyc] =  XcorrDriftCorrect( ...
-    SR{handles.gui_number}.mlist{ c },...
-    'imagesize',imagesize,...
-    'scale',eval(Opts{3}),...
-    'stepframe',eval(Opts{1}),...
-    'nm per pixel',eval(Opts{4}),...
-    'showplots',eval(Opts{5}) );
-  
-% save([scratchPath,'troubleshoot.mat'],'-v7.3'); 
+    if eval(Opts{6})
+              vlist = MolsInView(handles);
+              % imaxes = SR{handles.gui_number}.imaxes;  
+              % H = imaxes.ymax - imaxes.ymin + 1;
+              % W = imaxes.xmax - imaxes.xmin + 1; 
+               H = vlist{c}.imaxes.H;
+               W = vlist{c}.imaxes.W;
+               npp = SR{handles.gui_number}.DisplayOps.npp;
 
-    % apply correction  
-    SR{handles.gui_number}.mlist{c}.xc = ...
-        SR{handles.gui_number}.mlist{c}.x - dxc(SR{handles.gui_number}.mlist{c}.frame)';
-    SR{handles.gui_number}.mlist{c}.yc = ...
-        SR{handles.gui_number}.mlist{c}.y - dyc(SR{handles.gui_number}.mlist{c}.frame)';    
-
- update_maindisplay(hObject,handles);
+              [dxc,dyc] = XcorrDriftCorrect(vlist{c},...
+                 'stepframe',eval(Opts{1}),...
+                'scale',eval(Opts{2}),'showplots',eval(Opts{3}),...    
+                'imagesize',[H,W],'nm per pixel',npp);  
+            % local area may not have dots localized up through the last frame
+            % of the movie.  Just assume no drift for these final frames if
+            % doing local region based correction.  (They should only be a
+            % couple to couple dozen of frames = a few seconds of drift at most).
+            dxc = [dxc,zeros(1,max(mlist{c}.frame)-max(vlist{c}.frame))];
+            dyc = [dyc,zeros(1,max(mlist{c}.frame)-max(vlist{c}.frame))];
+    else
+        [dxc,dyc] =  XcorrDriftCorrect( ...
+            SR{handles.gui_number}.mlist{ c },...
+            'imagesize',imagesize,...
+            'scale',eval(Opts{3}),...
+            'stepframe',eval(Opts{1}),...
+            'nm per pixel',eval(Opts{4}),...
+            'showplots',eval(Opts{5}) ); 
+    end
+    mlist{c}.xc = mlist{c}.x - dxc(mlist{c}.frame)';
+    mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame)';  
+    SR{handles.gui_number}.mlist = mlist;
+    ImLoad(hObject,eventdata, handles);
+end
  
- 
+
+
+function oLayer1_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+    
+function oLayer2_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+    
+function oLayer3_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+    
+function oLayer4_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+    
+function oLayer5_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+    
+function oLayer6_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+    
+function sLayer1_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+    
+function sLayer2_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+    
+function sLayer3_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+
+function sLayer4_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+
+function sLayer5_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
+
+function sLayer6_Callback(hObject, eventdata, handles)
+ImLoad(hObject,eventdata, handles);
