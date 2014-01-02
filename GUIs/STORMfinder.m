@@ -79,7 +79,7 @@ SF{gui_number}.fullmlist = [];
 
 % Default Analysis options
 SF{gui_number}.defaultAopts{1} = 'true';
-SF{gui_number}.defaultAopts{2} = 'true';
+SF{gui_number}.defaultAopts{2} = 'false';
 SF{gui_number}.defaultAopts{3} = '2';
 SF{gui_number}.defaultAopts{4} = '60E3';
 SF{gui_number}.defaultAopts{5} = '95';
@@ -760,8 +760,8 @@ function MenuAnalyzeCurrent_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global SF 
  FitMethod = get(handles.FitMethod,'Value');
- runinMatlab = eval(SF{handles.gui_number}.defaultAopts{1});
- printprogress = eval(SF{handles.gui_number}.defaultAopts{1});
+ runinMatlab = ~eval(SF{handles.gui_number}.defaultAopts{1});
+ printprogress = ~eval(SF{handles.gui_number}.defaultAopts{1});
  hideterminal = eval(SF{handles.gui_number}.defaultAopts{2});
  overwrite = eval(SF{handles.gui_number}.defaultAopts{3});
  minsize = eval(SF{handles.gui_number}.defaultAopts{4});

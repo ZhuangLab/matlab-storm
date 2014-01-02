@@ -1,4 +1,4 @@
-function [dxc,dyc,fedCoords,drift_error] = feducialDriftCorrection(input1,varargin)
+function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = feducialDriftCorrection(input1,varargin)
 %--------------------------------------------------------------------------
 % [dxc,dyc] = feducialDriftCorrection(binname)
 % [dxc,dyc] =  feducialDriftCorrection(mlist)
@@ -31,6 +31,7 @@ function [dxc,dyc,fedCoords,drift_error] = feducialDriftCorrection(input1,vararg
 %               -- nm per pixel in camera
 % 'showplots' / boolean / true
 % 'showextraplots' / boolean / false
+% 'clearfigs'
 % 
 %--------------------------------------------------------------------------
 % Outputs
@@ -58,7 +59,7 @@ startframe = 1; % frame to use to find feducials
 spotframe = [];
 maxdrift = 2.5; % max distance a feducial can get from its starting position and still be considered the same molecule
 integrateframes = 200; % number of frames to integrate
-fmin = .5; 
+fmin = .8; 
 npp = 158;
 showplots = true;
 showextraplots = false; 
@@ -207,11 +208,11 @@ end
 % Record position of feducial in every frame
 Nfeducials = length(x1s);
 Nframes = double(max(mlist.frame));
-Fed_traj = NaN*ones(Nframes,Nfeducials,2);
+rawTrajectory = NaN*ones(Nframes,Nfeducials,2);
 for i=1:Nfeducials
     incirc = mlist.x > fb(i,1) & mlist.x <= fb(i,2) & mlist.y > fb(i,3) & mlist.y <= fb(i,4);
-    Fed_traj(mlist.frame(incirc),i,1) = double(mlist.x(incirc));
-    Fed_traj(mlist.frame(incirc),i,2) = double(mlist.y(incirc));
+    rawTrajectory(mlist.frame(incirc),i,1) = double(mlist.x(incirc));
+    rawTrajectory(mlist.frame(incirc),i,2) = double(mlist.y(incirc));
     if showplots
         figure(1); hold on; 
         rectangle('Position',feducial_boxes(i,:),'Curvature',[1,1]);
@@ -223,8 +224,8 @@ end
 % Determine best-fit feducial using median feducial for first pass
 %----------------------------------------------------
 % subtract starting position from each trajectory
-dx = Fed_traj(:,:,1)-repmat(Fed_traj(startframe,:,1),Nframes,1);
-dy = Fed_traj(:,:,2)-repmat(Fed_traj(startframe,:,2),Nframes,1);
+dx = rawTrajectory(:,:,1)-repmat(rawTrajectory(startframe,:,1),Nframes,1);
+dy = rawTrajectory(:,:,2)-repmat(rawTrajectory(startframe,:,2),Nframes,1);
 
 % compute median drift 
 dxmed = nanmedian(dx,2); % xdrift per frame
@@ -232,8 +233,8 @@ dymed = nanmedian(dy,2); % ydrift per frame
 
 goodframes = startframe:Nframes; 
 % correct drift in feducials;
-xc = Fed_traj(goodframes,:,1)-repmat(dxmed(goodframes),1,Nfeducials);
-yc = Fed_traj(goodframes,:,2)-repmat(dymed(goodframes),1,Nfeducials);
+xc = rawTrajectory(goodframes,:,1)-repmat(dxmed(goodframes),1,Nfeducials);
+yc = rawTrajectory(goodframes,:,2)-repmat(dymed(goodframes),1,Nfeducials);
 
 % compute residual error (FWHM) after drift correction
 fwhm = zeros(Nfeducials,1);
@@ -299,14 +300,15 @@ if showextraplots
         subplot(Nfeducials,2,i*2-1); plot(dx(startframe:end,i),'.','MarkerSize',1);
         subplot(Nfeducials,2,i*2); plot(dy(startframe:end,i),'.','MarkerSize',1);
     end
-    figure(4); clf; plot(dx(startframe:end,:),'MarkerSize',1);
+    figure(4); clf; subplot(1,2,1); plot(dx(startframe:end,:),'MarkerSize',1);
+    subplot(1,2,2); plot(dy(startframe:end,:),'MarkerSize',1);
 end
 
 % export feducial coordinates if desired
-fedCoords = zeros(length(dxc),Nfeducials,2);
+correctedTrajectory = zeros(length(dxc),Nfeducials,2);
 for n = 1:Nfeducials;
-    fedCoords(:,n,1) = Fed_traj(:,n,1)- dxc;
-    fedCoords(:,n,2) = Fed_traj(:,n,2)- dyc;
+    correctedTrajectory(:,n,1) = rawTrajectory(:,n,1)- dxc;
+    correctedTrajectory(:,n,2) = rawTrajectory(:,n,2)- dyc;
 end
 
 % save([scratchPath,'test2.mat']);

@@ -1,5 +1,10 @@
 function splitQVdax(pathin,varargin)
 %--------------------------------------------------------------------------
+% splitQVdax(filepath) splits all the movies in the designated folder into
+% quadrants corresponding to the layout of the quadview.  The default is
+% set for our Zhuang Lab system.  
+%
+%--------------------------------------------------------------------------
 %% Required Inputs
 % pathin / string 
 %          folder containing dax files 
@@ -26,8 +31,8 @@ function splitQVdax(pathin,varargin)
 %           skip files larger than this (in Mb)
 % verbose / boolean / true
 %           Print messages to screen
-%--------------------------------------------------------------------------
 %
+%--------------------------------------------------------------------------
 %% Examples
 % folders ={'N:\2013-10-31_G9'};
 % 
@@ -41,6 +46,8 @@ function splitQVdax(pathin,varargin)
 % end
 
 % pathin = 'O:\2013-11-26_E11\'
+
+
 %% default parameters
 alldax = [];
 QVorder = {'647', '561', '750', '488'};
@@ -194,7 +201,7 @@ for d=1:D  % Main loop over daxfiles
         
 
         for n=1:step:Nframes  % n = 3;
-            % write movie 2 frames at a time;
+            % write movie 'step' frames at a time;
             try
                 movie = ReadDax(dax,'startFrame',n,'endFrame',n+step-1,'verbose',false);
   %             figure(1); clf; subplot(1,2,1); imagesc( int16(movie(QVc{c,1},QVc{c,2},1)) );

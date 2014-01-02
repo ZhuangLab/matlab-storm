@@ -313,7 +313,7 @@ if ~isempty(opts) % don't try anything if dialogue box is canceled
         disp('will load:');
         disp(SR{handles.gui_number}.fnames);   
         for c=1:length(SR{handles.gui_number}.fnames)
-        handles = AddStormLayer(hObject,handles,SR{handles.gui_number}.fnames{c},[]);
+        handles = AddStormLayer(hObject,handles,SR{handles.gui_number}.fnames{c},c);
         guidata(hObject, handles);
         end
     MultiBinLoad(hObject,eventdata,handles,binnames);    
