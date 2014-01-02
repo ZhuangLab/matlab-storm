@@ -89,7 +89,7 @@ infoFile = [];
 subregion = [];
 verbose = true;
 orientation = 'normal';
-maxMemory = 10E9; % 1 Gb
+maxMemory = 1E9; % 1 Gb
 
 %--------------------------------------------------------------------------
 % Parse Required Input
@@ -208,8 +208,7 @@ if memoryRequired > maxMemory
         DoThis = true;
     end
 end
-   
-
+  
 
 if DoThis
     if isempty(endFrame)
@@ -298,7 +297,7 @@ if DoThis
         xs = xe-xi+uint32(1);
         ys = ye-yi+uint32(1);
         movie = reshape(movie,[xs,ys,numFrames]);
-        if strcmp(orientation,'normal')
+        if ~strcmp(orientation,'normal')
          movie = permute(reshape(movie, [xs,ys,numFrames]), [2 1 3]);
         end
         infoFileRoi = infoFile; 

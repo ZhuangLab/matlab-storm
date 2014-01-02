@@ -770,14 +770,16 @@ global SF
  
 if FitMethod == 1
     method = 'insight';
+    parsfile = SF{handles.gui_number}.inifile;
 elseif FitMethod == 2
     method= 'DaoSTORM'; 
+    parsfile = SF{handles.gui_number}.xmlfile;
 end
+method
  RunDotFinder('daxfile',SF{handles.gui_number}.daxfile,'parsfile',...
-     SF{handles.gui_number}.inifile,'method',method,...
+      parsfile,'method',method,'maxCPU',maxCPU,'verbose',verbose,...
      'runinMatlab',runinMatlab,'printprogress',printprogress,...
-     'hideterminal',hideterminal,'overwrite',overwrite,'minsize',minsize,...
-     'maxCPU',maxCPU,'verbose',verbose);
+     'hideterminal',hideterminal,'overwrite',overwrite,'minsize',minsize);
 
 % --------------------------------------------------------------------
 function MenuAnalyzeAll_Callback(hObject, eventdata, handles)
