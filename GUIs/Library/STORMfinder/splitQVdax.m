@@ -217,11 +217,11 @@ for d=1:D  % Main loop over daxfiles
                 if verbose
                     disp('end of movie reached'); 
                 end
-                fclose(fid);
                 break
             end
         end 
         
+        fclose(fid);
         if verbose
             disp(['finished writing ',newDaxName]);
         end
