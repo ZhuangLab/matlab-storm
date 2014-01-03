@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 02-Dec-2013 14:46:18
+% Last Modified by GUIDE v2.5 03-Jan-2014 17:15:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -127,7 +127,6 @@ function StepParameters_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global CC
 step = CC{handles.gui_number}.step;
-notCancel = true; 
 
 % parameters get updated in the CC structure array
 if step == 1
@@ -243,8 +242,10 @@ if isempty(CC{handles.gui_number}.binfiles)
 end
 binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);    
 set(handles.ImageBox,'String',binfile.name);
+
 StepParameters_Callback(hObject, eventdata, handles)
 RunStep_Callback(hObject, eventdata, handles)
+
 % Clear current data
 cleardata = input('New folder selected.  Clear current data? y/n? ','s');
 if strcmp(cleardata,'y');
@@ -425,3 +426,21 @@ global CC
 CC{handles.gui_number}.source = uigetdir;
 set(handles.SourceFolder,'String',CC{handles.gui_number}.source);
 SourceFolder_Callback(hObject, eventdata, handles);
+
+
+% --- Executes on button press in radiobutton1.
+function radiobutton1_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton1
+
+
+% --- Executes on button press in radiobutton2.
+function radiobutton2_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton2
