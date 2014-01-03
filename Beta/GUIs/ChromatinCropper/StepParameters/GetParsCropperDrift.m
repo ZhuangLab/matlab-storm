@@ -1,0 +1,31 @@
+function GetParsCropperDrift(handles)
+
+global CC
+notCancel = true; 
+
+dlg_title = 'Step 4 Pars: Drift Correction';  num_lines = 1;
+    Dprompt = {
+    'max drift (pixels)',... 1
+    'min fraction of frames',... 2
+    'start frame (1 = auto detect)',...        3
+    'show drift correction plots?',...  4
+    'show extra drift correction plots?',...  5 
+    };   % 
+
+    Opts{1} = num2str(CC{handles.gui_number}.pars4.maxDrift);
+    Opts{2} = num2str(CC{handles.gui_number}.pars4.fmin);
+    Opts{3} = num2str(CC{handles.gui_number}.pars4.startFrame);
+    Opts{4} = num2str(CC{handles.gui_number}.pars4.showPlots);
+    Opts{5} = num2str(CC{handles.gui_number}.pars4.showExtraPlots);
+    
+    Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
+    if isempty(Opts);
+        notCancel = false;
+    end
+    if notCancel
+        CC{handles.gui_number}.pars4.maxDrift = str2double(Opts{1});
+        CC{handles.gui_number}.pars4.fmin = str2double(Opts{2});
+        CC{handles.gui_number}.pars4.startFrame= str2double(Opts{3});
+        CC{handles.gui_number}.pars4.showPlots = str2double(Opts{4}); 
+        CC{handles.gui_number}.pars4.showExtraPlots = str2double(Opts{5});
+    end
