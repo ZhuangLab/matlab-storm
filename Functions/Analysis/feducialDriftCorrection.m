@@ -264,15 +264,17 @@ end
 % Moving average filter
 x = dx(:,guide_dot); % xdrift per frame
 y = dy(:,guide_dot); % ydrift per frame
-x(isnan(x))=0;
-y(isnan(y))=0;
+x(isnan(x))=[];
+y(isnan(y))=[];
 dxc = fastsmooth(x,integrateframes,1,0);
 dyc = fastsmooth(y,integrateframes,1,0);
+dxp = dxc(integrateframes+1:end-integrateframes);
+dyp = dyc(integrateframes+1:end-integrateframes);
 if showplots
-    z = zeros(size(dxc')); z= [z(1:end-800),NaN*ones(1,800)];
-    col = [double(1:Nframes-1),NaN];  % This is the color, vary with x in this case.
+    z = zeros(size(dxp')); 
+    col = [double(1:Nframes-1-2*integrateframes),NaN];  % This is the color, vary with x in this case.
     figure(1); clf;
-    surface([dxc';dxc']*npp,[dyc';dyc']*npp,[z;z],[col;col],...
+    surface([dxp';dxp'+.001]*npp,[dyp';dyp'+.001]*npp,[z;z],[col;col],...
             'facecol','no',...
             'edgecol','interp',...
             'linew',1);    
