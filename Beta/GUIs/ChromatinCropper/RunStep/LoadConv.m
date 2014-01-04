@@ -26,10 +26,11 @@ if isempty(CC{handles.gui_number}.binfiles)
 end   
 
 % Parse bin name and dax name for current image
-binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);
 folder = CC{handles.gui_number}.source;
-daxname = [binfile.name(1:end-10),'.dax'];    
-set(handles.ImageBox,'String',binfile.name);
+imnum = CC{handles.gui_number}.imnum;
+binfile = CC{handles.gui_number}.binfiles(imnum).name;
+daxname = [binfile(1:end-10),'.dax'];    
+set(handles.ImageBox,'String',binfile);
 CC{handles.gui_number}.daxname = daxname;
 
 % Guess that the Bead-data is in the subfolder 'Beads' inside the
@@ -42,22 +43,25 @@ if isempty(CC{handles.gui_number}.pars1.BeadFolder)
         [folder,filesep,'Beads',filesep];
 end  
 
-    
-% MaxProjection of Conventional Image    
- convname = regexprep([folder,filesep,daxname],'storm','conv*');
- convname = dir(convname);
- convZs = length(convname);
- dax = zeros(H,W,1,'uint16');
- for z=1:convZs
-     try
-         daxtemp = mean(ReadDax([folder,filesep,convname(z).name],'verbose',false),3);
-         dax = max(cat(3,dax,daxtemp),[],3);
-     catch er
-         disp(er.message);
-     end
- end   
- figure(11); clf; imagesc(dax); colorbar; colormap hot;
- title('conventional image projected');
+
+% % No longer matches filenames.  Would be better as a multichannel option.
+%  
+% % MaxProjection of Conventional Image    
+%  convname = regexprep([folder,filesep,daxname],'storm','conv*');
+%  convname = dir(convname);
+%  convZs = length(convname);
+%  dax = zeros(H,W,1,'uint16');
+%  for z=1:convZs
+%      try
+%          daxtemp = mean(ReadDax([folder,filesep,convname(z).name],'verbose',false),3);
+%          dax = max(cat(3,dax,daxtemp),[],3);
+%      catch er
+%          disp(er.message);
+%      end
+%  end   
+%  figure(11); clf; imagesc(dax); colorbar; colormap hot;
+%  title('conventional image projected');
+
 
 %-------------------------------------------------------------------------
 % Load Conventional images 
@@ -194,3 +198,5 @@ CC{handles.gui_number}.conv = conv0;
 CC{handles.gui_number}.conv1 = warpedConv1;  
 CC{handles.gui_number}.maskBeads = warpedBeads;
 CC{handles.gui_number}.convI = convI;
+CC{handles.gui_number}.pars0.H = H;
+CC{handles.gui_number}.pars0.W = W;

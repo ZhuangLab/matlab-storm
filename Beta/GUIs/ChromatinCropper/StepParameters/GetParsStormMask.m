@@ -24,10 +24,10 @@ dlg_title = 'Step 3 Pars: Filter Clusters';  num_lines = 1;
         notCancel = false; 
     end
     if notCancel
-    CC{handles.gui_number}.pars3.boxSize = Str2vec(Opts{1}); % for 160npp, 16 -> 10nm boxes
-    CC{handles.gui_number}.pars3.maxsize = Str2vec(Opts{2}); % 1E4 at 10nm cluster_scale, 1.2 um x 1.2 um 
-    CC{handles.gui_number}.pars3.minsize = Str2vec(Opts{3}); % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
-    CC{handles.gui_number}.pars3.mindots = Str2vec(Opts{4}); % min number of localizations per STORM dot
-    CC{handles.gui_number}.pars3.startFrame = Str2vec(Opts{5});   
-    CC{handles.gui_number}.pars3.mindensity = Str2vec(Opts{6});   
+        CC{handles.gui_number}.pars3.boxSize = Str2vec(Opts{1}); % for 160npp, 16 -> 10nm boxes
+        CC{handles.gui_number}.pars3.maxsize = Str2vec(Opts{2}); % 1E4 at 10nm cluster_scale, 1.2 um x 1.2 um 
+        CC{handles.gui_number}.pars3.minsize = Str2vec(Opts{3}); % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
+        CC{handles.gui_number}.pars3.mindots = Str2vec(Opts{4}); % min number of localizations per STORM dot
+        CC{handles.gui_number}.pars3.startFrame = Str2vec(Opts{5});   
+        CC{handles.gui_number}.pars3.mindensity = Str2vec(Opts{6});   
     end

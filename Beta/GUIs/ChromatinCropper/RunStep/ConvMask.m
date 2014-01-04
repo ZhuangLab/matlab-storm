@@ -1,7 +1,7 @@
 function handles = ConvMask(handles)
 
 global CC
- % load variables from previous step
+ 
  
 if ~isempty(CC{handles.gui_number}.conv1)
 numChns = 2;
@@ -12,16 +12,16 @@ end
 for n=1:numChns; 
      disp(['creating mask for channel ',num2str(n)]);
 
+     % load variables from previous step
      if n == 1; 
          conv0 = CC{handles.gui_number}.conv;
      else
          conv0 = CC{handles.gui_number}.conv1; 
      end
-
-    convI = CC{handles.gui_number}.convI;
-    maskBeads = CC{handles.gui_number}.maskBeads;
-    [H,W] = size(conv0);
-    daxMask1 = false(H,W); 
+     convI = CC{handles.gui_number}.convI;
+     maskBeads = CC{handles.gui_number}.maskBeads;
+     [H,W] = size(conv0);
+     daxMask1 = false(H,W); 
 
     % load parameters
      saturate =  CC{handles.gui_number}.pars2.saturate(n); % 0.001;
@@ -55,8 +55,10 @@ for n=1:numChns;
  
 
  figure(1); clf; 
- subplot(1,2,1); imagesc(daxMask0); 
- subplot(1,2,2); imagesc(daxMask1);
+ subplot(2,2,1); imagesc(daxMask0); 
+ subplot(2,2,2); imagesc(daxMask1);
+ subplot(2,2,3); imagesc(convI(:,:,1)); colormap hot;
+ subplot(2,2,4); imagesc(convI(:,:,4));
  
  % plot mask
  axes(handles.axes1); cla;
