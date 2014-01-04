@@ -2,6 +2,8 @@ function handles = SaveChromatinClusters(handles)
 
 global CC
 
+daxname = CC{handles.gui_number}.daxname;
+
  % Load variables
     Icell = CC{handles.gui_number}.Icell;
     R = CC{handles.gui_number}.R;
@@ -137,5 +139,5 @@ global CC
     CCguiData = CC{handles.gui_number};  %#ok<NASGU>
     save([savefolder,filesep,saveroot,'data.mat'],'data','CCguiData');
     
-    save([ScratchPath,'test.mat']);
+   % save([ScratchPath,'test.mat']);
     % load([ScratchPath,'test.mat']);

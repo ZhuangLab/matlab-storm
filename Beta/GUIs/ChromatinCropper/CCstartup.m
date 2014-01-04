@@ -48,18 +48,20 @@ set(handles.CCinstance,'String',['inst id',num2str(handles.gui_number)]);
     CC{handles.gui_number}.pars0.cmax = 1;
     % step1 parameters
     CC{handles.gui_number}.pars1.BeadFolder = '';
+    CC{handles.gui_number}.pars1.overlays = {};  
     % step 2 parameters
-     CC{handles.gui_number}.pars2.saturate = 0.001;
-     CC{handles.gui_number}.pars2.makeblack = 0.998; 
+     CC{handles.gui_number}.pars2.saturate = [0.001 0.001];
+     CC{handles.gui_number}.pars2.makeblack = [0.998 0.998]; 
      CC{handles.gui_number}.pars2.beadDilate = 2;
      CC{handles.gui_number}.pars2.beadThresh = .3;
+     CC{handles.gui_number}.pars2.channel = '647';
     % step 3 parameters
-     CC{handles.gui_number}.pars3.boxSize = 32; % linear dimension in nm of box
-     CC{handles.gui_number}.pars3.maxsize = 1.2E5; % 1E4 at 10nm boxsize, 1.2 um x 1.2 um 
-     CC{handles.gui_number}.pars3.minsize= 20; % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
-     CC{handles.gui_number}.pars3.mindots = 500; % min number of localizations per STORM dot
-     CC{handles.gui_number}.pars3.mindensity = 0; % min number of localizations per STORM dot
-     CC{handles.gui_number}.pars3.startFrame = 1; 
+     CC{handles.gui_number}.pars3.boxSize = [32 32]; % linear dimension in nm of box
+     CC{handles.gui_number}.pars3.maxsize = [1.2E5 1.2E5]; % 1E4 at 10nm boxsize, 1.2 um x 1.2 um 
+     CC{handles.gui_number}.pars3.minsize= [20 20]; % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
+     CC{handles.gui_number}.pars3.mindots = [500 500]; % min number of localizations per STORM dot
+     CC{handles.gui_number}.pars3.mindensity = [0 0]; % min number of localizations per STORM dot
+     CC{handles.gui_number}.pars3.startFrame = [1 1]; 
      % step 4 parameters
     CC{handles.gui_number}.pars4.maxDrift = 3;
     CC{handles.gui_number}.pars4.fmin = .5;

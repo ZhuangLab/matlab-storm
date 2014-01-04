@@ -3,6 +3,8 @@ function handles = StormMask(handles)
 global CC
 
   % load variables from previous steps
+     cluster_scale = CC{handles.gui_number}.pars0.npp/CC{handles.gui_number}.pars3.boxSize; 
+  
      daxMask = CC{handles.gui_number}.daxMask;
      convI = CC{handles.gui_number}.convI;
      maxsize = CC{handles.gui_number}.pars3.maxsize;
