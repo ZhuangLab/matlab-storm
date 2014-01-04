@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 03-Jan-2014 17:15:03
+% Last Modified by GUIDE v2.5 03-Jan-2014 19:43:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -197,6 +197,9 @@ end
 if CC{handles.gui_number}.imnum > Nbins
     CC{handles.gui_number}.imnum = Nbins;
 end
+
+% Remove manually selected overlays 
+CC{handles.gui_number}.pars1.overlays = {};
 
 binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);    
 set(handles.ImageBox,'String',binfile.name);
@@ -428,19 +431,67 @@ set(handles.SourceFolder,'String',CC{handles.gui_number}.source);
 SourceFolder_Callback(hObject, eventdata, handles);
 
 
-% --- Executes on button press in radiobutton1.
-function radiobutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to radiobutton1 (see GCBO)
+% --- Executes on button press in sLayer1.
+function sLayer1_Callback(hObject, eventdata, handles)
+% hObject    handle to sLayer1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of radiobutton1
+% Hint: get(hObject,'Value') returns toggle state of sLayer1
 
 
-% --- Executes on button press in radiobutton2.
-function radiobutton2_Callback(hObject, eventdata, handles)
-% hObject    handle to radiobutton2 (see GCBO)
+% --- Executes on button press in sLayer2.
+function sLayer2_Callback(hObject, eventdata, handles)
+% hObject    handle to sLayer2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of radiobutton2
+% Hint: get(hObject,'Value') returns toggle state of sLayer2
+
+
+% --------------------------------------------------------------------
+function MenuSpecifyOverlays_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuSpecifyOverlays (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+SpecifyOverlays(handles); 
+
+
+
+
+%% Set these to update display 
+% need a new update display function that checks the step number
+
+
+% --- Executes on button press in oLayer1.
+function oLayer1_Callback(hObject, eventdata, handles)
+% hObject    handle to oLayer1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of oLayer1
+
+% --- Executes on button press in oLayer2.
+function oLayer2_Callback(hObject, eventdata, handles)
+% hObject    handle to oLayer2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of oLayer2
+
+% --- Executes on button press in oLayer3.
+function oLayer3_Callback(hObject, eventdata, handles)
+% hObject    handle to oLayer3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of oLayer3
+
+
+% --- Executes on button press in oLayer4.
+function oLayer4_Callback(hObject, eventdata, handles)
+% hObject    handle to oLayer4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of oLayer4
