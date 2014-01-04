@@ -76,7 +76,7 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.DisplayOps.verbose = true;
     SR{handles.gui_number}.DisplayOps.zrange = [-500,500];
     SR{handles.gui_number}.DisplayOps.CorrDrift = true;
-    SR{handles.gui_number}.DislpayOps.clrmap = 'lines';
+    SR{handles.gui_number}.DisplayOps.clrmap = 'lines';
 
 % Default MultiBinFile Load Options
     SR{handles.gui_number}.LoadOps.warpD = 3; % set to 0 for no chromatic warp
@@ -570,39 +570,7 @@ else
     h = zeros(length(mlist),1);
     for i=1:length(mlist)
         binfile = [SR{handles.gui_number}.LoadOps.pathin,SR{handles.gui_number}.fnames{i}];
-        parsfile = ReadListParsFile(binfile);
-        hasROIinfo = true;  
-        if   ~isempty(parsfile)
-            parsflag = parsfile(end-3:end);
-            if strcmp(parsflag,'.xml');
-            roiFlags = {'<x_start type="int">',...
-                        '<x_stop type="int">',...
-                        '<y_start type="int">',...
-                        '<y_stop type="int">'};
-            endmarker = '<';
-            elseif strcmp(parsflag,'.ini');
-            roiFlags = {'ROI_x0=',...
-                        'ROI_x1=',...
-                        'ROI_y0=',...
-                        'ROI_y1='};
-            endmarker = '';
-            else
-               hasROIinfo = false;  
-            end
-            if hasROIinfo
-                roiInfo = read_parameterfile(parsfile,roiFlags,endmarker);
-                roi = cellfun(@str2double,roiInfo);
-                w(i) = roi(2) - roi(1);
-                h(i) = roi(4) - roi(3); 
-                mlist{i}.xc = mlist{i}.xc - roi(1);
-                mlist{i}.x = mlist{i}.x - roi(1);
-                mlist{i}.yc = mlist{i}.yc - roi(3);
-                mlist{i}.y = mlist{i}.y - roi(3);      
-            end
-        else
-            h(i) = SR{handles.gui_number}.infofile.frame_dimensions(2); % actual size of image
-            w(i) = SR{handles.gui_number}.infofile.frame_dimensions(1);
-        end
+        [mlist{i},h(i),w(i)] = ReZeroROI(binfile,mlist{i});
     end
     if sum(w==w(1)) ~= length(mlist) || sum(h==h(1)) ~= length(mlist)
         error('ROIs for the selected molecule lists different sizes'); 
