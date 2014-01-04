@@ -251,8 +251,7 @@ end
 if sum(hasbin) ~= 0 
     if overwrite == 2   
         disp(char(txtout));
-        disp('these files will be overwritten.  ');
-        overwritefiles = input('type 2 to skip, 1 to overwrite, 0 to cancel:  ');
+        overwritefiles = input('Please select: 2=skip, 1=overwrite, 0=cancel:  ');
     elseif overwrite == 1
         overwritefiles = 1;
         if verbose
