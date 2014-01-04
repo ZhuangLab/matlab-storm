@@ -73,25 +73,10 @@ global CC
        
        m = cat(1,Dprops.PixelValues); 
        xy = cat(1,Dprops.PixelList);
-       % ROIcent = [m'*xy(:,1),m'*xy(:,2)]/sum(m);
        mI = m'*(xy(:,1).^2+xy(:,2).^2);
               
-%        figure(3); clf; imagesc(M2); hold on;
-%        plot(ROIcent(:,1),ROIcent(:,2),'c+','MarkerSize',20);
-       
-    %   Zps(n,:) = zernike_coeffs(M2)';
        CC{handles.gui_number}.M2{nn} = M2;
        CC{handles.gui_number}.map{nn} = map;
-       
-      
-       
-       % figure(2+n); clf; hist(log(M2(M2>0)),10); 
-       % ylabel('frequency'); xlabel('log(# Localizations)'); 
-      
-      % % Plotting only 
-      % maindotIm = 0*M2;
-      % maindotIm(Dprops(mainIdx).PixelIdxList) = 1;
-      % figure(2); clf; imagesc(maindotIm);
        
       % histogram variability
       hvs = M2(Dprops(mainIdx).PixelIdxList);% histgram values over main dot
@@ -113,7 +98,6 @@ global CC
              
     % Record statistics  
        CC{handles.gui_number}.data.mI{imnum,n} = mI;
-     %  CC{handles.gui_number}.data.Zps{imnum,n} = Zps(n); 
        CC{handles.gui_number}.data.AllLocs{imnum,n} = AllLocs(n);
        CC{handles.gui_number}.data.MainLocs{imnum,n} = MainLocs(n);
        CC{handles.gui_number}.data.MainArea{imnum,n} = MainArea(n);

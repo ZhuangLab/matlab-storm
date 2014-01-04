@@ -1,6 +1,15 @@
 function handles = FindChromatinClusters(handles)
 
+global CC
+
+
+
 %% Load step data
+
+    H = CC{handles.gui_number}.pars0.H;
+    W = CC{handles.gui_number}.pars0.W;
+    npp = CC{handles.gui_number}.pars0.npp;
+
     scale = CC{handles.gui_number}.pars5.scale/npp;
     zm = CC{handles.gui_number}.pars5.zm;  
     mlist = CC{handles.gui_number}.mlist; 
@@ -54,7 +63,7 @@ function handles = FindChromatinClusters(handles)
 
    % Add dot labels to overview image           
         axes(handles.axes2); hold on; text(imaxes.cx+6,imaxes.cy,...
-         ['dot ',num2str(n)],'color','w');
+         ['dot ',num2str(n)],'color','w'); %#ok<*LAXES>
      figure(2);  hold on; text(imaxes.cx+6,imaxes.cy,...
          ['dot ',num2str(n)],'color','w');
      

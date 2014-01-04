@@ -5,15 +5,18 @@ global CC
  % Load variables
     mlist = CC{handles.gui_number}.mlist;
     drift_err = '';
- %   CC{handles.gui_number}.handles = handles;
       
     % Load user defined parameters
+    
+    H = CC{handles.gui_number}.pars0.H;
+    W = CC{handles.gui_number}.pars0.W;
+    npp = CC{handles.gui_number}.pars0.npp;
+        
     maxDrift = CC{handles.gui_number}.pars4.maxDrift;
     fmin = CC{handles.gui_number}.pars4.fmin;
     startFrame = CC{handles.gui_number}.pars4.startFrame;
     showPlots = CC{handles.gui_number}.pars4.showPlots; 
     showExtraPlots = CC{handles.gui_number}.pars4.showExtraPlots; 
-    
     
     % -----------Apply Drift Correction------------------
     try
