@@ -1,6 +1,35 @@
 function [mlist,h,w] = ReZeroROI(binfile,mlist,varargin)
+%  [mlist,h,w] = ReZeroROI(binfile,mlist,varargin)
 % 
-% 
+
+%--------------------------------------------------------------------------
+% Default optional parameters
+%--------------------------------------------------------------------------
+verbose = true;
+
+%--------------------------------------------------------------------------
+% Parse Variable Input Parameters
+%--------------------------------------------------------------------------
+if nargin < 1
+   error([mfilename,' expects inputs: cell of binnames, cell of channels, and string to a chromewarps.mat warp file']);
+end
+if nargin > 1
+    if (mod(length(varargin), 2) ~= 0 ),
+        error(['Extra Parameters passed to the function ''' mfilename ''' must be passed in pairs.']);
+    end
+    parameterCount = length(varargin)/2;
+    for parameterIndex = 1:parameterCount,
+        parameterName = varargin{parameterIndex*2 - 1};
+        parameterValue = varargin{parameterIndex*2};
+        switch parameterName    
+            case 'verbose'
+                verbose = CheckParameter(parameterValue,'boolean','verbose');                
+            otherwise
+                error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
+        end
+    end
+end
+
 
 %% Main Function
 if isempty(mlist)
