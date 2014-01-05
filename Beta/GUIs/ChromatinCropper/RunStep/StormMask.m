@@ -112,8 +112,16 @@ colordef black;
 CC{handles.gui_number}.axesObjects.legend = ...
     legend({'chn1 keep','chn1 reject','chn2 keep','chn2 reject'});
 
+ 
+
 % %----------------------------
 % % Troubleshooting:
+% 
+%    figure(1); clf;
+%     plot(CC{handles.gui_number}.mlist.xc,CC{handles.gui_number}.mlist.yc,'b.');
+%     hold on; 
+%     plot(CC{handles.gui_number}.mlist1.xc,CC{handles.gui_number}.mlist1.yc,'ro');
+%
 % figure(1); clf; plot(CC{handles.gui_number}.mlist1.xc,CC{handles.gui_number}.mlist1.yc,'k.');
 % figure(1); clf; imagesc(CC{handles.gui_number}.M1);
 % 
