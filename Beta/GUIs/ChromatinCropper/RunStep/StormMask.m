@@ -37,7 +37,7 @@ for n=1:numChns;
      
     % Step 3: Load molecule list and bin it to create image
     mlist =     ReadMasterMoleculeList([folder,filesep,binfile]);
-    mlist =     ReZeroROI(binfile,mlist);
+    mlist =     ReZeroROI([folder,filesep,binfile],mlist);
     infilt =    mlist.frame>startframe;   
     M =         hist3([mlist.yc(infilt),mlist.xc(infilt)],...
                       {0:1/cluster_scale:H,0:1/cluster_scale:W});
@@ -73,6 +73,7 @@ for n=1:numChns;
         CC{handles.gui_number}.infilt = infilt; 
         CC{handles.gui_number}.R = R; % This is the STORM mask
         CC{handles.gui_number}.M = M; % This is for reference
+        CC{handles.gui_number}.mlist1 = []; % helps ID number of active channels 
     elseif n == 2
         CC{handles.gui_number}.mlist1 = mlist; 
         CC{handles.gui_number}.infilt1 = infilt; 
@@ -82,9 +83,19 @@ for n=1:numChns;
 end
 
 % plot results 
+ keepOutline = imdilate(edge(keep),strel('disk',1));
+ keepOutline1 = imdilate(edge(keep1),strel('disk',1));
+ rejectOutline = imdilate(edge(reject),strel('disk',1));
+ rejectOutline1 = imdilate(edge(reject1),strel('disk',1));
+ convI(:,:,2) = zeros(H,W,'uint16'); 
+ 
  maskIm = imresize(convI,[h,w]);
- maskIm = maskIm + repmat(uint16(2^16*(keep+keep1)),1,1,4);
- maskIm(:,:,1) = maskIm(:,:,1) + uint16(2^16*(reject+reject1));
+maskIm(:,:,1) = maskIm(:,:,1) + uint16(2^16*(rejectOutline));
+maskIm(:,:,2) = maskIm(:,:,2) + uint16(2^16*(keepOutline));
+maskIm(:,:,3) = maskIm(:,:,3) + uint16(2^16*(keepOutline1));
+maskIm(:,:,4) = maskIm(:,:,4) + uint16(2^16*(rejectOutline1));
+
+
 
 % plot mask in main figure window
 axes(handles.axes1); cla;
@@ -92,17 +103,22 @@ set(gca,'color','k');
 set(gca,'XTick',[],'YTick',[]);
 Ncolor(maskIm); 
 title('dot mask'); 
-xlim([0,w]); ylim([0,h]);
+xlim([0,w]); ylim([0,h]); hold on;
+cMap = lines(4); 
+for i=1:4; 
+    plot(0,0,'color',cMap(i,:));
+end
+colordef black; 
+legend({'chn1 keep','chn1 reject','chn2 keep','chn2 reject'});
 
-%----------------------------
-% Troubleshooting:
-figure(1); clf; plot(CC{handles.gui_number}.mlist1.xc,CC{handles.gui_number}.mlist1.yc,'k.');
-figure(1); clf; imagesc(CC{handles.gui_number}.M1);
-
-
-
-figure(1); clf; 
-subplot(2,2,1); imagesc(CC{handles.gui_number}.M);
-subplot(2,2,2); imagesc(CC{handles.gui_number}.M1);
-subplot(2,2,3); imagesc(keep);
-subplot(2,2,4); imagesc(keep1);
+% %----------------------------
+% % Troubleshooting:
+% figure(1); clf; plot(CC{handles.gui_number}.mlist1.xc,CC{handles.gui_number}.mlist1.yc,'k.');
+% figure(1); clf; imagesc(CC{handles.gui_number}.M1);
+% 
+% 
+% figure(1); clf; 
+% subplot(2,2,1); imagesc(CC{handles.gui_number}.M); caxis([0,10]);
+% subplot(2,2,2); imagesc(CC{handles.gui_number}.M1); caxis([0,10]);
+% subplot(2,2,3); imagesc(keep);
+% subplot(2,2,4); imagesc(keep1); colormap hot;

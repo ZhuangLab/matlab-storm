@@ -2,23 +2,45 @@ function handles = CropperDriftCorrection(handles)
 
 global CC
 
+if isempty(CC{handles.gui_number}.mlist1)
+    numChns = 1;
+else
+    numChns = 2;
+end
+
+for n=1:numChns
+
  % Load variables
+ if n==1
     mlist = CC{handles.gui_number}.mlist;
+ else
+     mlist = CC{handles.gui_number}.mlist1;
+ end
     drift_err = '';
       
     % Load user defined parameters
-    
     H = CC{handles.gui_number}.pars0.H;
     W = CC{handles.gui_number}.pars0.W;
     npp = CC{handles.gui_number}.pars0.npp;
-        
-    maxDrift = CC{handles.gui_number}.pars4.maxDrift;
-    fmin = CC{handles.gui_number}.pars4.fmin;
-    startFrame = CC{handles.gui_number}.pars4.startFrame;
-    showPlots = CC{handles.gui_number}.pars4.showPlots; 
-    showExtraPlots = CC{handles.gui_number}.pars4.showExtraPlots; 
     
-    % -----------Apply Drift Correction------------------
+    folder = CC{handles.gui_number}.source;
+    imnum = CC{handles.gui_number}.imnum;
+    binfile = CC{handles.gui_number}.binfiles(imnum).name;
+    daxname = [binfile(1:end-10),'.dax'];  
+    
+    if n==2
+        daxname = regexprep(daxname,'647','750'); 
+    end
+    
+    maxDrift = CC{handles.gui_number}.pars4.maxDrift(n);
+    fmin = CC{handles.gui_number}.pars4.fmin(n);
+    startFrame = CC{handles.gui_number}.pars4.startFrame(n);
+    showPlots = CC{handles.gui_number}.pars4.showPlots(n); 
+    showExtraPlots = CC{handles.gui_number}.pars4.showExtraPlots(n); 
+    
+    % -------------- Method 1 (Default) -----------------------------
+    % Attempts to automatically detect a movie of feducial beads and use
+    % this for drift correction.  
     try
     beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
     beadbin = [folder,filesep,beadname];
@@ -26,7 +48,7 @@ global CC
          'maxdrift',maxDrift,'showplots',showPlots,'fmin',fmin,...
          'startframe',startFrame,'showextraplots',showExtraPlots);
     missingframes = max(mlist.frame) - length(x_drift);
-    x_drift = [x_drift; zeros(missingframes,1)];
+    x_drift = [x_drift; zeros(missingframes,1)]; %#ok<*AGROW>
     y_drift = [y_drift; zeros(missingframes,1)];
     mlist.xc = mlist.x - x_drift(mlist.frame);
     mlist.yc = mlist.y - y_drift(mlist.frame); 
@@ -39,7 +61,11 @@ global CC
         retry = input(['Enter 1 to change parameters, 2 to attempt ',... 
             'image-based drift correction, 3 to skip. ']);
     end
+    %--------------------------------------------------------------------
     
+    %------------------ Method 2: Correlation based drift correction -----
+    % (not as accurate as feducial beads)
+    % 
     if retry == 2
            dlg_title = 'Step 4 Pars: Drfit Correction';  num_lines = 1;
         Dprompt = {
@@ -80,6 +106,7 @@ global CC
         mlist.xc = mlist.x - x_drift(mlist.frame)';
         mlist.yc = mlist.y - y_drift(mlist.frame)';
         goOn = true;
+        %-----------------------------------------------------------------%
         
     elseif retry == 1;
         goOn = false;
@@ -92,8 +119,8 @@ global CC
     end
     
     if goOn
-             % plot mask in main figure window
-        axes(handles.axes1); cla;
+        % plot mask in main figure window
+        axes(handles.axes1); cla; %#ok<*LAXES>
         Nframes = length(x_drift); 
         try
         if Nframes > 1
@@ -114,7 +141,27 @@ global CC
         end
         catch
         end
-        
-        CC{handles.gui_number}.mlist = mlist; % update mlist; 
+    
+        if n == 1
+            CC{handles.gui_number}.mlist = mlist; % update mlist; 
+        else
+            CC{handles.gui_number}.mlist1 = mlist; % update mlist; 
+        end   
     end
- 
+end
+
+% use drift computation throughout 750 movie to align the 647 movie all the
+% way back to the beginning of the data set.  
+% Apply the chromatic warp.  
+if n==2 
+    BeadFolder = CC{handles.gui_number}.pars1.BeadFolder;
+    warpfile = [BeadFolder,filesep,'chromewarps.mat'];
+    mlists = {CC{handles.gui_number}.mlist1,...
+             CC{handles.gui_number}.mlist};
+         
+    mlists = MultiChnDriftCorrect(mlists);
+    mlists = ApplyChromeWarp(mlists,{'750','647'},warpfile); 
+    
+    CC{handles.gui_number}.mlist1 = mlists{1};
+    CC{handles.gui_number}.mlist = mlists{2};   
+end

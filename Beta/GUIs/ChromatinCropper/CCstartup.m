@@ -49,6 +49,7 @@ set(handles.CCinstance,'String',['inst id',num2str(handles.gui_number)]);
     % step1 parameters
     CC{handles.gui_number}.pars1.BeadFolder = '';
     CC{handles.gui_number}.pars1.overlays = {};  
+    CC{handles.gui_number}.pars1.chns = {'750','647','561','488'};
     % step 2 parameters
      CC{handles.gui_number}.pars2.saturate = [0.001 0.001];
      CC{handles.gui_number}.pars2.makeblack = [0.998 0.998]; 
@@ -60,14 +61,14 @@ set(handles.CCinstance,'String',['inst id',num2str(handles.gui_number)]);
      CC{handles.gui_number}.pars3.maxsize = [1.2E5 1.2E5]; % 1E4 at 10nm boxsize, 1.2 um x 1.2 um 
      CC{handles.gui_number}.pars3.minsize= [20 20]; % eg. minsize is 100 10x10 nm boxes.  400 is 200x200nm
      CC{handles.gui_number}.pars3.mindots = [500 500]; % min number of localizations per STORM dot
-     CC{handles.gui_number}.pars3.mindensity = [0 0]; % min number of localizations per STORM dot
+     CC{handles.gui_number}.pars3.mindensity = [0 0]; % min density of localizations per STORM dot
      CC{handles.gui_number}.pars3.startFrame = [1 1]; 
      % step 4 parameters
-    CC{handles.gui_number}.pars4.maxDrift = 3;
-    CC{handles.gui_number}.pars4.fmin = .5;
-    CC{handles.gui_number}.pars4.startFrame = 1;
-    CC{handles.gui_number}.pars4.showPlots = true; 
-    CC{handles.gui_number}.pars4.showExtraPlots = false; 
+    CC{handles.gui_number}.pars4.maxDrift = [3 3];
+    CC{handles.gui_number}.pars4.fmin = [.5 .5];
+    CC{handles.gui_number}.pars4.startFrame = [1 1];
+    CC{handles.gui_number}.pars4.showPlots = [1 1]; 
+    CC{handles.gui_number}.pars4.showExtraPlots = [0 0]; 
     % step 5 parameters
     CC{handles.gui_number}.pars5.scale = 2048;
     CC{handles.gui_number}.pars5.zm = 1; 
@@ -81,7 +82,7 @@ set(handles.CCinstance,'String',['inst id',num2str(handles.gui_number)]);
     CC{handles.gui_number}.pars7.saveColorTime = true; % This is useful but slow
     CC{handles.gui_number}.pars7.saveroot = '';
     % step X parameters for X-correlation drift correction
-    CC{handles.gui_number}.parsX.stepFrame = 8000; % 'stepframe' / double / 10E3 -- number of frames to average
-    CC{handles.gui_number}.parsX.scale  = 5; % 'scale' / double / 5 -- upsampling factor for binning localizations
-    CC{handles.gui_number}.parsX.showPlots = true;   % 'showplots' / logical / true -- plot computed drift?
-    CC{handles.gui_number}.parsX.local = 0;
+    CC{handles.gui_number}.parsX.stepFrame = [8000 8000]; % 'stepframe' / double / 10E3 -- number of frames to average
+    CC{handles.gui_number}.parsX.scale  = [5 5]; % 'scale' / double / 5 -- upsampling factor for binning localizations
+    CC{handles.gui_number}.parsX.showPlots = [1 1];   % 'showplots' / logical / true -- plot computed drift?
+    CC{handles.gui_number}.parsX.local = [0 0];

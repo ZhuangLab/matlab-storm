@@ -22,8 +22,8 @@ dlg_title = 'Step 2 Pars: Conv. Segmentation';  num_lines = 1;
         notCancel = false;
     end
     if notCancel
-     CC{handles.gui_number}.pars2.saturate = Str2vec(Opts{1});
-     CC{handles.gui_number}.pars2.makeblack = Str2vec(Opts{2}); 
-     CC{handles.gui_number}.pars2.beadDilate= Str2vec(Opts{3}); 
-     CC{handles.gui_number}.pars2.beadThresh= Str2vec(Opts{4}); 
+     CC{handles.gui_number}.pars2.saturate = str2num(Opts{1}); %#ok<*ST2NM>
+     CC{handles.gui_number}.pars2.makeblack = str2num(Opts{2}); 
+     CC{handles.gui_number}.pars2.beadDilate= str2double(Opts{3}); 
+     CC{handles.gui_number}.pars2.beadThresh= str2double(Opts{4}); 
     end

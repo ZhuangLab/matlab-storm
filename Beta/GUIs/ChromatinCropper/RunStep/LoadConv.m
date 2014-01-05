@@ -112,28 +112,28 @@ end
      conv0 = uint16(mean(ReadDax(conv0Name,'verbose',false,'endFrame',100),3));
  catch er
     disp(er.message);
-    conv0 = dax;  
+    conv0 = zeros(H,W,'uint16');  
  end
 
  try 
      conv1 = uint16(mean(ReadDax(conv1Name,'verbose',false,'endFrame',100),3));
  catch er
     disp(er.message);
-    conv1 = zeros(size(dax),'uint16');  
+    conv1 = zeros(H,W,'uint16');  
  end
 
  try
     lamina = uint16(mean(ReadDax(laminaName,'verbose',false,'endFrame',100),3));
  catch er
     disp(er.message);
-    lamina = zeros(size(dax),'uint16');  
+    lamina = zeros(H,W,'uint16');  
  end
 
  try
      beads = uint16(mean(ReadDax(beadsName,'verbose',false,'endFrame',100),3));
  catch er
     disp(er.message);
-    beads = zeros(size(dax),'uint16');
+    beads = zeros(H,W,'uint16');  
  end
 
  % ----- Attempt Chromatic alignment of conventional images ---------
@@ -148,8 +148,8 @@ end
         BeadFolder = 'skip';
      end 
      CC{handles.gui_number}.pars1.BeadFolder = BeadFolder;
-      warpfile = [BeadFolder,filesep,'chromewarps.mat'];
-      CC{handles.gui_number}.pars1.BeadFolder = BeadFolder;
+     warpfile = [BeadFolder,filesep,'chromewarps.mat'];
+     CC{handles.gui_number}.pars1.warpfile = warpfile;
  end
 
  if ~strcmp(BeadFolder,'skip')

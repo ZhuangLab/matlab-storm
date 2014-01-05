@@ -23,9 +23,9 @@ dlg_title = 'Step 4 Pars: Drift Correction';  num_lines = 1;
         notCancel = false;
     end
     if notCancel
-        CC{handles.gui_number}.pars4.maxDrift = str2double(Opts{1});
-        CC{handles.gui_number}.pars4.fmin = str2double(Opts{2});
-        CC{handles.gui_number}.pars4.startFrame= str2double(Opts{3});
-        CC{handles.gui_number}.pars4.showPlots = str2double(Opts{4}); 
-        CC{handles.gui_number}.pars4.showExtraPlots = str2double(Opts{5});
+        CC{handles.gui_number}.pars4.maxDrift = str2num(Opts{1}); %#ok<*ST2NM>
+        CC{handles.gui_number}.pars4.fmin = str2num(Opts{2});
+        CC{handles.gui_number}.pars4.startFrame= str2num(Opts{3});
+        CC{handles.gui_number}.pars4.showPlots = str2num(Opts{4}); 
+        CC{handles.gui_number}.pars4.showExtraPlots = str2num(Opts{5});
     end
