@@ -6,45 +6,51 @@ global CC
 
 %% Load step data
 
+    % Load user selected / default parameters
     H = CC{handles.gui_number}.pars0.H;
     W = CC{handles.gui_number}.pars0.W;
     npp = CC{handles.gui_number}.pars0.npp;
-
     scale = CC{handles.gui_number}.pars5.scale/npp;
     zm = CC{handles.gui_number}.pars5.zm;  
+    cluster_scale= CC{handles.gui_number}.pars0.npp/...
+               CC{handles.gui_number}.pars3.boxSize(1); 
+    
+    % Load data from previous steps
     mlist = CC{handles.gui_number}.mlist; 
     infilt = CC{handles.gui_number}.infilt;
     R = CC{handles.gui_number}.R;
-    
-    if isempty(CC{handles.gui_number}.mlist1)
-        mlists = {mlist};
-    else
-        mlist1 = CC{handles.gui_number}.mlist1;
-        mlists = {mlist1;
-                  mlist};
-      % Update M with drift correction
-      M1 = hist3([mlist.yc(infilt),mlist.xc(infilt)],...
-             {0:1/cluster_scale:H,0:1/cluster_scale:W});
-      CC{handles.gui_number}.M1 = M1; 
-              
-              
-    end
-            
-    
-    Nclusters = length(R);
     conv0 = CC{handles.gui_number}.conv;
-    conv1 = CC{handles.gui_number}.conv1;
-    convI = CC{handles.gui_number}.convI;
-    
+    convI = CC{handles.gui_number}.convI;      
+           
     % Update M with drift correction
       M = hist3([mlist.yc(infilt),mlist.xc(infilt)],...
              {0:1/cluster_scale:H,0:1/cluster_scale:W});
       CC{handles.gui_number}.M = M; 
-      
-      
+    
+    % 
+    if isempty(CC{handles.gui_number}.mlist1)
+        mlists = {mlist};
+    else
+        infilt1= CC{handles.gui_number}.infilt1;
+        conv1 = CC{handles.gui_number}.conv1;
+        mlist1 = CC{handles.gui_number}.mlist1;
+        mlists = {mlist1; mlist};
+        filters = {infilt1; infilt}; 
+      % Update M with drift correction
+      M1 = hist3([mlist.yc(infilt1),mlist.xc(infilt1)],...
+             {0:1/cluster_scale:H,0:1/cluster_scale:W});
+      CC{handles.gui_number}.M1 = M1;    
+    end
+     
+%     figure(1); clf;
+%     plot(mlist.xc,mlist.yc,'k.');
+%     hold on; 
+%     plot(mlist1.xc,mlist1.yc,'ro');
+%     
+    %%  
         % Conventional image in finder window
      axes(handles.axes2); cla;
-     imagesc(convI); colormap hot;
+     Ncolor(convI); colormap hot;
      set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
     
         % Initialize subplots Clean up main figure window
@@ -55,6 +61,7 @@ global CC
      
   %------------------ Split and Plot Clusters   -----------------------
       % Arrays to store plotting data in
+       Nclusters = length(R);
        Istorm = cell(Nclusters,1);
        Iconv = cell(Nclusters,1); 
        Itime = cell(Nclusters,1);
@@ -64,7 +71,7 @@ global CC
        vlists = cell(Nclusters,1); 
        allImaxes = cell(Nclusters,1); 
        
-       figure(2); clf; imagesc(convI); 
+       figure(2); clf; Ncolor(convI); 
      for n=1:Nclusters % n=3    
         % For dsiplay and judgement purposes 
         imaxes.zm = 256/(scale);
@@ -86,10 +93,12 @@ global CC
      
 
    % Get STORM image      
-        I = list2img(mlists,imaxes,'filter',{infilt'},...
-           'Zsteps',1,'scalebar',500,'correct drift',true,'Zsteps',1); 
+        I = list2img(mlists,imaxes,'filter',filters,...
+           'scalebar',500,'correct drift',true); 
         Istorm{n} = I{1};  % save image; 
               
+        figure(1); clf; STORMcell2img(I);
+        
     % Zoom in on histogram (determines size / density etc)
         x1 = ceil(imaxes.xmin*cluster_scale);
         x2 = floor(imaxes.xmax*cluster_scale);
@@ -104,17 +113,19 @@ global CC
      % STORM image of whole cell
        cellaxes = imaxes;
        cellaxes.zm = 4; % zoom out to cell scale;
+       cellaxes.W = 256;
+       cellaxes.H = 256;
        cellaxes.xmin = cellaxes.cx - cellaxes.W/2/cellaxes.zm;
        cellaxes.xmax = cellaxes.cx + cellaxes.W/2/cellaxes.zm;
        cellaxes.ymin = cellaxes.cy - cellaxes.H/2/cellaxes.zm;
        cellaxes.ymax = cellaxes.cy + cellaxes.H/2/cellaxes.zm;
-       Izmout = plotSTORM_colorZ({mlist},cellaxes,...
-           'filter',{infilt'},'Zsteps',1,'scalebar',500);
+       Izmout = list2img(mlists,cellaxes,...
+           'filter',filters,'Zsteps',1,'scalebar',500);
        Icell{n} = sum(Izmout{1},3);
    
      % Gaussian Fitting and Cluster
        % Get subregion, exlude distant zs which are poorly fit
-        vlist = msublist(mlist,imaxes,'filter',infilt');
+        vlist = msublist(mlist,imaxes,'filter',infilt);
         vlist.c( vlist.z>=480 | vlist.z<-480 ) = 9;    
           % filt = (vlist.c~=9) ;        
      %  Indicate color as time. 

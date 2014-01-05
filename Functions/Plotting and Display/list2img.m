@@ -50,6 +50,10 @@ function In = list2img(mlist,varargin)
 %                 print text notes to command line? 
 %  'very verbose' / bolean / true
 %                 print out image properties for troubleshooting
+%-------------------------------------------------------------------------- 
+% Related Functions
+% see: STORMcell2img
+% 
 %--------------------------------------------------------------------------  
 % Alistair Boettiger                                  Date Begun: 08/11/12
 % Zhuang Lab                                        Last Modified: 12/30/13 
@@ -196,8 +200,8 @@ end
 
 % (mostly shorthand)
 zm = imaxes.zm*imaxes.scale; % pixel size
-W = imaxes.W*imaxes.scale; % floor(w*zm);
-H = imaxes.W*imaxes.scale; %  floor(h*zm); 
+W = round(imaxes.W*imaxes.scale); % floor(w*zm);
+H = round(imaxes.W*imaxes.scale); %  floor(h*zm); 
 
 if length(dotsize) < Cs
     dotsize = repmat(dotsize,Cs,1);
