@@ -314,7 +314,7 @@ for s=1:Sections % loop through all dax movies in que
         binnumber = ['_',sprintf('%04d',s)];
         newBinName = binname;
         newBinName = regexprep(newBinName,'#',binnumber);
-        newBinName = regexprep(newBinName,'DAX',['_',daxroots{s}]);
+        newBinName = regexprep(newBinName,'DAX',daxroots{s});
         binfile = [dpath,filesep,newBinName,datatype];
    end
    

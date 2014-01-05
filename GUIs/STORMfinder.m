@@ -66,33 +66,33 @@ else
 end
 
 gui_number = length(SF);
+set(handles.SFinstance,'String',['inst id',num2str(gui_number)]);
+handles.gui_number = gui_number;
 
-SF{gui_number}.daxfile = daxfile; 
+SF{handles.gui_number}.daxfile = daxfile; 
 % initialize other variables as empty
-SF{gui_number}.inifile = ''; 
-SF{gui_number}.xmlfile = ''; 
-SF{gui_number}.gpufile = ''; 
-SF{gui_number}.mlist = []; 
-SF{gui_number}.FitPars = []; 
-SF{gui_number}.impars = []; 
-SF{gui_number}.fullmlist = []; 
+SF{handles.gui_number}.inifile = ''; 
+SF{handles.gui_number}.xmlfile = ''; 
+SF{handles.gui_number}.gpufile = ''; 
+SF{handles.gui_number}.mlist = []; 
+SF{handles.gui_number}.FitPars = []; 
+SF{handles.gui_number}.impars = []; 
+SF{handles.gui_number}.fullmlist = []; 
 
 % Default Analysis options
-SF{gui_number}.defaultAopts{1} = 'true';
-SF{gui_number}.defaultAopts{2} = 'false';
-SF{gui_number}.defaultAopts{3} = '2';
-SF{gui_number}.defaultAopts{4} = '60E3';
-SF{gui_number}.defaultAopts{5} = '95';
-SF{gui_number}.defaultAopts{6}= 'true';
+SF{handles.gui_number}.defaultAopts{1} = 'true';
+SF{handles.gui_number}.defaultAopts{2} = 'false';
+SF{handles.gui_number}.defaultAopts{3} = '2';
+SF{handles.gui_number}.defaultAopts{4} = '60E3';
+SF{handles.gui_number}.defaultAopts{5} = '95';
+SF{handles.gui_number}.defaultAopts{6}= 'true';
+SF{handles.gui_number}.defaultAopts{7}= '';
 
 
-% Display the instance ID
-set(handles.SFinstance,'String',['inst id',num2str(gui_number)]);
 
 % Choose default command line output for STORMfinder
 handles.output = hObject;
 
-handles.gui_number = gui_number;
 % Update handles structure
 guidata(hObject, handles);
 
@@ -764,9 +764,10 @@ global SF
  printprogress = ~eval(SF{handles.gui_number}.defaultAopts{1});
  hideterminal = eval(SF{handles.gui_number}.defaultAopts{2});
  overwrite = eval(SF{handles.gui_number}.defaultAopts{3});
- minsize = eval(SF{handles.gui_number}.defaultAopts{4});
+ minsize = eval(SF{handles.gui_number}.defaultAopts{4})*1E6;
  maxCPU  = eval(SF{handles.gui_number}.defaultAopts{5});
  verbose = eval(SF{handles.gui_number}.defaultAopts{6});
+ binname = SF{handles.gui_number}.defaultAopts{7};
  
 if FitMethod == 1
     method = 'insight';
@@ -775,11 +776,11 @@ elseif FitMethod == 2
     method= 'DaoSTORM'; 
     parsfile = SF{handles.gui_number}.xmlfile;
 end
-method
  RunDotFinder('daxfile',SF{handles.gui_number}.daxfile,'parsfile',...
       parsfile,'method',method,'maxCPU',maxCPU,'verbose',verbose,...
      'runinMatlab',runinMatlab,'printprogress',printprogress,...
-     'hideterminal',hideterminal,'overwrite',overwrite,'minsize',minsize);
+     'hideterminal',hideterminal,'overwrite',overwrite,'minsize',minsize,...
+     'binname',binname);
 
 % --------------------------------------------------------------------
 function MenuAnalyzeAll_Callback(hObject, eventdata, handles)
@@ -814,13 +815,13 @@ end
 dlg_title = 'Run all dax files in folder';
 num_lines = 1;
 Dprompt = {
-    'batch size';
+    'batch size (number of jobs to run at once)';
     'all dax files containing string'; %  
-    'parameter file or file root'; % 
-    'overwrite existing?';
-    'min file size (bytes)';
-    'run silently?';
-    'new mlist name (DaoSTORM only)'};
+    'parameter file name or unique part of name'; % 
+    'overwrite existing? (1=yes all, 0=no all, 2=ask me)';
+    'min file size (Mb)';
+    'run silently? (no cmd windows will be opened)';
+    'new mlist name  (''=current, DAX = append daxfile, # = index)'};
 Dopts = {
     '3',...
     '',...
@@ -845,7 +846,7 @@ if ~isempty(Dopts)  % dealing with cancel
     fpath = SF{handles.gui_number}.daxfile(1:k(end));
     RunDotFinder('path',fpath,'batchsize',eval(Dopts{1}),'daxroot',Dopts{2},...
          parflag,Dopts{3},'overwrite',eval(Dopts{4}),'method',method,...
-         'minsize',eval(Dopts{5}),'hideterminal',eval(Dopts{6}),...
+         'minsize',eval(Dopts{5})*1E6,'hideterminal',eval(Dopts{6}),...
          'binname',Dopts{7},'maxCPU',maxCPU,'verbose',verbose);
 end
 
@@ -1127,9 +1128,10 @@ num_lines = 1;
     'run externally (set false for troubeshooting)',...
     'run in background (or in new cmd prompt)',...
     'overwrite? (1=y,0=n,2=ask me)',...
-    'min daxfile size',...
+    'min daxfile size (Mb)',...
     'max CPU % (reserve system resources)'...
     'verbose',...
+    'new binfile name (DAX = daxfile name, # = index num)'; 
     };
 defaultAopts = SF{handles.gui_number}.defaultAopts;
 defaultAopts = inputdlg(Aprompt,dlg_title,num_lines,defaultAopts);
