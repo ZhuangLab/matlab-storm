@@ -1,6 +1,5 @@
-
- 
-function UpdateMainDisplay(hObject,handles)
+function handles = UpdateMainDisplay(hObject,handles)
+% Updates the main display in the STORMrender GUI
 global  SR scratchPath  %#ok<NUSED>
 
 I = SR{handles.gui_number}.I;
@@ -11,7 +10,6 @@ imaxes = SR{handles.gui_number}.imaxes;
 
 guidata(hObject, handles);
 numChannels = length(I); 
-[h,w,Zs] = size(I{1});
 numOverlays = length(SR{handles.gui_number}.Oz);
 
 % Find out which channels are toggled for display
@@ -27,7 +25,8 @@ for c = 1:numOverlays
     overlays(c) = eval(['get(','handles.oLayer',num2str(c),', ','''Value''',')']);
 end
 active_overlays = find(overlays);
-numClrs = numChannels + numOverlays;  
+[~,~,Zs] = size(I{1});
+numClrs = numChannels*Zs + numOverlays;  
 %-----------------------------------------------------------
 % Stack all image layers (channels, z-dimensions, and overlays)
 %   into a common matrix for multicolor rendering.  Apply indicated

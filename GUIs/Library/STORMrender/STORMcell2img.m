@@ -111,6 +111,6 @@ end
 if nargout ~= 0
     Io = Ncolor(Ic,cMap); % Actually builds the RGB picture
 else
-     Ncolor(Ic,[]); % Actually builds the RGB picture
+     Ncolor(Ic,cMap); % Actually builds the RGB picture
 end
 

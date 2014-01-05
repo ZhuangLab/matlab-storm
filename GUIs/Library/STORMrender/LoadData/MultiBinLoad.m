@@ -1,4 +1,4 @@
-function MultiBinLoad(hObject,eventdata,handles,binnames)
+function handles = MultiBinLoad(hObject,eventdata,handles,binnames)
  global SR scratchPath  %#ok<NUSED>
  % ----------------------------------------------------
  % Passed Inputs:
@@ -71,5 +71,5 @@ end
 % Cleanup settings from any previous data and render image:
 SR{handles.gui_number}.mlist = mlist; 
 ImSetup(hObject,eventdata, handles);
-ClearFilters_Callback(hObject, eventdata, handles); 
+handles = RunClearFilter(hObject,eventdata,handles);
 guidata(hObject, handles);

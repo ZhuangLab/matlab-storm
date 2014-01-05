@@ -19,8 +19,8 @@ eval(updateName);
 guidata(hObject, handles);
 
 % update levels
-LevelsNames = get(handles.LevelsChannel,'String');
-LevelsNames{layer_number} = Sname;
-set(handles.LevelsChannel,'String',LevelsNames);   
+levelsNames = get(handles.LevelsChannel,'String');
+levelsNames{layer_number} = Sname;
+set(handles.LevelsChannel,'String',levelsNames);   
 SR{handles.gui_number}.cmin(layer_number) = 0;
 SR{handles.gui_number}.cmax(layer_number) = .7; 

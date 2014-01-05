@@ -8,15 +8,15 @@ function Io = Ncolor(I,varargin)
 %                        -- Returns a 3D RGB matrix which has mapped each
 %                        of the z-dimensions of the input image to a
 %                        different color in RGB space.  
-% Io = Ncolor(I,cmap); 
+% Io = Ncolor(I,cMap); 
 %                        -- Convert the N layer matrix I into an RGB image
-%                           according to colormap, 'cmap'.  
+%                           according to colormap, 'cMap'.  
 %------------------------------------------------------------------------
 % Inputs
 % I double / single / uint16 or uint8, 
 %                       -- HxWxN where each matrix I(:,:,n) is
 %                          to be assigned a different color. 
-% cmap                  
+% cMap                  
 %                       -- a valid matlab colormap. leave blank for default
 %                       hsv (which is RGB for N=3).  Must be Nx3
 %-------------------------------------------------------------------------
@@ -33,36 +33,42 @@ function Io = Ncolor(I,varargin)
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
 
+global scratchPath
+
 if nargin == 1
-    cmap = [];
+    cMap = [];
 elseif nargin == 2
-    cmap = varargin{1};
+    cMap = varargin{1};
 else
     error('wrong number of inputs');
 end
     
 
 [h,w,cls] = size(I);
-if isempty(cmap);
-    cmap = hsv(cls);
+if isempty(cMap);
+    cMap = hsv(cls);
 end
 
 Io = zeros(h,w,3,class(I));
 
+try
 % make white the default for single color images
-% make red cyan the default for dual color images
 if cls == 1
    Io = I; 
-% elseif cls == 2 
-%     Io(:,:,3) = I(:,:,1);
 else
     for c=1:cls
         for cc = 1:3
-        Io(:,:,cc) = Io(:,:,cc) + I(:,:,c)*cmap(c,cc);
+        Io(:,:,cc) = Io(:,:,cc) + I(:,:,c)*cMap(c,cc);
         end
     end
-
 end
+catch er
+    save([scratchPath,'troubleshoot.mat']);
+    warning(er.getReport);
+    warning(['Data saved in:' scratchPath,'troubleshoot.mat']);
+    error('error running Ncolor'); 
+end
+
 
 if nargout == 0
     try

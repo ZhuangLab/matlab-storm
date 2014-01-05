@@ -20,7 +20,7 @@ if FilterIndex ~=0
     if ~iscell(FileName) % Single Binfile selected
         binfile = [PathName,filesep,FileName];
         handles = AddStormLayer(hObject,handles,FileName,1);
-        handles = guidata(hObject, handles);
+        guidata(hObject, handles);
         handles = SingleBinLoad(hObject,eventdata,handles);
     else  % For Multiple Bin Files Selected      
         prompt = 'In what order were these taken?  ';
@@ -31,7 +31,7 @@ if FilterIndex ~=0
         binnames = eval(['FileName(',chnOrder,')']);
         for c=1:length(FileName)
             handles = AddStormLayer(hObject,handles,binnames{c},c);
-            handles = guidata(hObject, handles);
+            guidata(hObject, handles);
         end
         handles = MultiBinLoad(hObject,eventdata,handles,binnames);
     end       

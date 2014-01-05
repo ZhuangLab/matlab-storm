@@ -38,7 +38,7 @@ if ~isempty(SR{handles.gui_number}.Oz)
     IntegrateOverlay(hObject,handles); % Integrate the Overlay, if it exists
 end
 
-UpdateMainDisplay(hObject,handles); % converts I, applys contrast, to RBG
+handles = UpdateMainDisplay(hObject,handles); % converts I, applys contrast, to RBG
 guidata(hObject, handles);
 % plottime = toc;
 % disp(['total time to render image: ',num2str(plottime)]);
