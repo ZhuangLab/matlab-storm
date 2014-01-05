@@ -1,4 +1,5 @@
-function handles = SRstartup(handles)
+function handles = SRstartup(hObject,eventdata,handles)
+% Initialize new structure in the SR (STORMrender) global variable
 
 
 global binfile SR
@@ -43,8 +44,7 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.omin = 0;
     SR{handles.gui_number}.omax = 1;
     
-% Choose default command line output for STORMrender
-handles.output = hObject;
+
 
 % avoid startup error
 set(handles.Yslider,'Value',128);
@@ -77,9 +77,8 @@ set(handles.MinIntSlider,'Max',1);
 set(handles.MinIntSlider,'Min',0);
 set(handles.MinIntSlider,'Value',0); 
 set(handles.MinIntSlider,'SliderStep',[1/2^12,1/2^4])
-guidata(hObject, handles);
 
 
 if ~isempty(binfile)
-    handles = QuickLoad(hObject, eventdata, handles);
+    handles = QuickLoad(hObject,eventdata,handles);
 end

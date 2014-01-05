@@ -51,8 +51,16 @@ function STORMrender_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to STORMrender (see VARARGIN)
-handles = SRstartup(handles);
+
+
+% Choose default command line output for STORMrender
+handles.output = hObject;
+
 % Update handles structure
+guidata(hObject, handles);
+
+% Get default parameters for STORMrender
+handles = SRstartup(hObject,eventdata,handles);
 guidata(hObject, handles);
 
 % UIWAIT makes STORMrender wait for user response (see UIRESUME)
@@ -76,21 +84,7 @@ varargout{1} = handles.output;
 %%                               Load Data
 %========================================================================%
 % --- Executes on button press in QuickLoad.
-function QuickLoad(hObject, eventdata, handles)
-global binfile SR
-SR{handles.gui_number}.mlist = [];
-if isempty(binfile)
-   [FileName,PathName] = uigetfile('*.bin');
-   binfile = [PathName,filesep,FileName];
-else
-    [~,FileName] = extractpath(binfile);
-end
-handles = AddStormLayer(hObject,handles,FileName,1);
-guidata(hObject, handles);
-handles = guidata(hObject);
-SingleBinLoad(hObject,eventdata,handles);
-handles = guidata(hObject);
-guidata(hObject, handles);
+
 
 % --------------------------------------------------------------------
 function MenuOpenBin_Callback(hObject, eventdata, handles)
@@ -98,8 +92,9 @@ function MenuOpenBin_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 multiselect = 'off';
-LoadBin(hObject,eventdata,handles,multiselect);
-   
+handles = LoadBin(hObject,eventdata,handles,multiselect);
+guidata(hObject, handles);
+
 % --------------------------------------------------------------------
 function MenuOpenMulti_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuOpenMulti (see GCBO)
@@ -107,51 +102,8 @@ function MenuOpenMulti_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 multiselect = 'on';
 % Multiload assumes you wish to clear all current data;
-LoadBin(hObject,eventdata,handles,multiselect);
-
-
-
-
-        
-function LoadBin(hObject,eventdata,handles,multiselect)
-% Brings up dialogue box to select bin file(s) to load;     
-global binfile SR
-handles=ClearCurrentData(hObject,eventdata,handles);
-
-if ~isempty(SR{handles.gui_number}.LoadOps.pathin)
-    startfolder = SR{handles.gui_number}.LoadOps.pathin;
-elseif ~isempty(binfile)
-    startfolder = extractpath(binfile);
-else
-    startfolder = pwd;
-end
-[FileName,PathName,FilterIndex] = uigetfile({'*.bin','Bin file (*.bin)';...
-    '*.*','All Files (*.*)'},'Select molecule list',startfolder,...
-    'MultiSelect',multiselect);
-if FilterIndex ~=0
-    SR{handles.gui_number}.LoadOps.pathin = PathName;
-    set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin); 
-    if ~iscell(FileName)
-        binfile = [PathName,filesep,FileName];
-        handles = AddStormLayer(hObject,handles,FileName,1);
-        guidata(hObject, handles);
-        SingleBinLoad(hObject,eventdata,handles);
-    else
-        
-        prompt = 'In what order were these taken?  ';
-        chnOrder = inputdlg(char({prompt,FileName{:}}),...
-            '',1,{['[',num2str(1:length(FileName)),']'] }) ;  
-        chnOrder = chnOrder{1}; 
-        SR{handles.gui_number}.LoadOps.chnOrder = chnOrder;     
-        binnames = eval(['FileName(',chnOrder,')']);
-        for c=1:length(FileName)
-            handles = AddStormLayer(hObject,handles,binnames{c},c);
-            guidata(hObject, handles);
-        end
-        MultiBinLoad(hObject,eventdata,handles,binnames);
-    end       
-end
-
+handles = LoadBin(hObject,eventdata,handles,multiselect);
+guidata(hObject, handles);
 
 
 
@@ -163,305 +115,22 @@ function MenuAutoMultiLoad_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuAutoMultiLoad (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SR scratchPath  %#ok<NUSED>
 
-handles=ClearCurrentData(hObject,eventdata,handles);
-stoprun = 0;
-% confirm auto-load options
-dlg_title = 'Bin file names must begin with unique channel flag';
-num_lines = 1;
-prompt = ...
-    {'files containing string',...
-    'bin type',...
-    'channel flag',...
-    'Match set to load (0 to print matches)'...
-    };
-default_opts = ...
-    {SR{handles.gui_number}.LoadOps.sourceroot,...
-    SR{handles.gui_number}.LoadOps.bintype,...
-    CSL2str(SR{handles.gui_number}.LoadOps.chnFlag),...
-    num2str(SR{handles.gui_number}.LoadOps.dataset),...
-    };   
-opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
-
-if ~isempty(opts) % don't try anything if dialogue box is canceled
-    SR{handles.gui_number}.LoadOps.sourceroot = opts{1};
-    SR{handles.gui_number}.LoadOps.bintype = opts{2};
-    SR{handles.gui_number}.LoadOps.chnFlag = parseCSL(opts{3}); 
-    SR{handles.gui_number}.LoadOps.dataset = str2double(opts{4});
-    %  if we don't have a file path, prompt user to find one. 
-    if isempty(SR{handles.gui_number}.LoadOps.pathin)
-        SR{handles.gui_number}.LoadOps.pathin = uigetdir(pwd,'select data folder');
-        if ~SR{handles.gui_number}.LoadOps.pathin
-            SR{handles.gui_number}.LoadOps.pathin = '';
-            stoprun = 1;
-        end
-    end
-
-    if ~stoprun
-        % Automatically group all bin files of same section in different colors
-        %   based on image number, if it has not already been done
-        if SR{handles.gui_number}.LoadOps.dataset == 0 || isempty(SR{handles.gui_number}.fnames)
-        [SR{handles.gui_number}.bins,SR{handles.gui_number}.allfnames] = ...
-            automatch_files( [SR{handles.gui_number}.LoadOps.pathin,filesep],...
-               'sourceroot',SR{handles.gui_number}.LoadOps.sourceroot,...
-               'filetype',SR{handles.gui_number}.LoadOps.bintype,...
-               'chns',SR{handles.gui_number}.LoadOps.chnFlag);
-        disp('files found and grouped:'); 
-        disp(SR{handles.gui_number}.bins(:));
-        end
-
-        % Figure out which channels are really in data set  
-        if SR{handles.gui_number}.LoadOps.dataset == 0
-         i=1;
-        else
-         i=SR{handles.gui_number}.LoadOps.dataset;
-        end
-
-        hasdata = logical(1-cellfun(@isempty, SR{handles.gui_number}.bins(:,i)));
-        binnames =  SR{handles.gui_number}.bins(hasdata,i); % length cls must equal length binnames
-        if sum((logical(1-hasdata))) ~=0
-        disp('no data found for in channels:');
-        disp(SR{handles.gui_number}.LoadOps.chnFlag(logical(1-hasdata)))
-        end
-
-        SR{handles.gui_number}.fnames = SR{handles.gui_number}.allfnames(hasdata,i);
-        disp('will load:');
-        disp(SR{handles.gui_number}.fnames);   
-        for c=1:length(SR{handles.gui_number}.fnames)
-        handles = AddStormLayer(hObject,handles,SR{handles.gui_number}.fnames{c},c);
-        guidata(hObject, handles);
-        end
-    MultiBinLoad(hObject,eventdata,handles,binnames);    
-    end
-end
-
-
-
-%~~~~~~~~~~~~~~~~~~
- function handles=ClearAllData(hObject,eventdata,handles)
-    global SR
-     SR{handles.gui_number}.allfnames = [];
-     SR{handles.gui_number}.froots = [];
-     SR{handles.gui_number}.bins = [];
-     handles=ClearCurrentData(hObject,eventdata,handles);
-
-function handles=ClearCurrentData(hObject,eventdata,handles)
-        % clear existing fields for these variables
-        global SR
-        SR{handles.gui_number}.mlist = [];
-        SR{handles.gui_number}.fnames = [];
-        SR{handles.gui_number}.infofile = [];
-        SR{handles.gui_number}.Oz = {};     
-        SR{handles.gui_number}.O = {};
-        if isfield(SR{handles.gui_number},'imaxes');
-        SR{handles.gui_number}=rmfield(SR{handles.gui_number},'imaxes');
-        end
-        
-    % Clear levels (contrasting)
-    set(handles.LevelsChannel,'Value',1);
-    set(handles.LevelsChannel,'String',{'channel1'});
-      
-    % Make STORM and Overlay layers invisible again
-    for c=1:6
-        eval(['set(','handles.sLayer',num2str(c),', ','''Visible''',', ','''off''',')']);
-        eval(['set(','handles.oLayer',num2str(c),', ','''Visible''',', ','''off''',')']);
-    end
-
-
- %~~~~~~~
-function handles = AddStormLayer(hObject,handles,Sname,layer_number)
-        % Adds a new radio button to the STORM layer, which can toggle this
-        % channel on and off.  
-global SR scratchPath  %#ok<NUSED>
-
-verbose = SR{handles.gui_number}.DisplayOps.verbose;
-if verbose
-disp(['Adding New STORM layer ',num2str(layer_number)]);
-end
-
-% Make button visible
-buttonName = ['handles.sLayer',num2str(layer_number)];
-makeVisible = ['set(',buttonName,', ','''Visible''',', ','''on''',')'];
-buttonPress = ['set(',buttonName,', ','''Value''',', ','true',')'];
-updateName =  ['set(',buttonName,', ','''String''',', ','''',Sname,'''',')'];
-eval(makeVisible); 
-eval(buttonPress); 
-eval(updateName); 
+handles = ClearCurrentData(hObject,eventdata,handles);
+handles = AutoMultiLoad(handles); 
 guidata(hObject, handles);
-
-% update levels
-LevelsNames = get(handles.LevelsChannel,'String');
-LevelsNames{layer_number} = Sname;
-set(handles.LevelsChannel,'String',LevelsNames);   
-SR{handles.gui_number}.cmin(layer_number) = 0;
-SR{handles.gui_number}.cmax(layer_number) = .7; 
-
-            
-          
-
-
-function SingleBinLoad(hObject,eventdata,handles)
-% Loads single bin files
-global binfile SR 
-[pathname,filename] = extractpath(binfile); 
-disp('reading binfile...');
-SR{handles.gui_number}.mlist{1} = ReadMasterMoleculeList(binfile);
-SR{handles.gui_number}.LoadOps.pathin = pathname;
-SR{handles.gui_number}.fnames{1} = filename; 
-disp('file loaded'); 
-
-k = strfind(filename,'_');
-SR{handles.gui_number}.infofile = ReadInfoFile(...
-    [pathname,filesep,filename(1:k(end)-1),'.inf']);
-disp('setting up image options...');
-ImSetup(hObject,eventdata, handles);
-disp('drawing data...');
-ClearFilters_Callback(hObject, eventdata, handles); 
-guidata(hObject, handles);
-
-
-
-        
- function MultiBinLoad(hObject,eventdata,handles,binnames)
- global SR scratchPath  %#ok<NUSED>
- % ----------------------------------------------------
- % Passed Inputs:
- % binnames
- % ----------------------------------------------------
- % % Global Inputs (from SR structure):
- % .LoadOps: structure containing filepaths for data, warps etc
- % .fnames: cell array of names of current data files in display 
- %          (used for display only).
- %------------------------------------------------------
- % Outputs (saved in SR data structure)
- % .mlist:  cell array of all molecule lists loaded for display
- % .infofile: InfoFile structure for dataset (contains stage position,
- %          needed for MosaicView reconstruction).  
-
-% Extract some useful info for later:
-    guidata(hObject, handles);
-%  Set up title field in display   
-SR{handles.gui_number}.fnames = binnames; % display name for the files
-% Get infofile #1 for position information
-k = strfind(binnames{1},'_'); 
-SR{handles.gui_number}.infofile = ...
-    ReadInfoFile([SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf']);
-
-% Load the binfiles 
-Tchns = length(binnames);
-mlist = cell(Tchns,1); 
-for c=1:Tchns
-    fullBinName = strcat(SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{c});
-    mlist{c} = ReadMasterMoleculeList(fullBinName,'verbose',...
-                    SR{handles.gui_number}.DisplayOps.verbose); 
-end
-
-    
-% Apply global drift correction, then return loaded mlist file.
-% Then apply chromewarp.
-mlist = MultiChnDriftCorrect(mlist,...
-        'correctDrift',SR{handles.gui_number}.LoadOps.correctDrift,...
-        'verbose',SR{handles.gui_number}.DisplayOps.verbose);
-
-% Need a warp map.  
-if isempty(SR{handles.gui_number}.LoadOps.warpfile)
-[FileName,PathName] = uigetfile({'*.mat','Matlab data (*.mat)';...
-'*.*','All Files (*.*)'},'Select warpfile',SR{handles.gui_number}.LoadOps.pathin);
-SR{handles.gui_number}.LoadOps.warpfile = [PathName,FileName];
-end
-
-if isempty([SR{handles.gui_number}.LoadOps.chns{:}])
-chns = inputdlg({'Channel Names: (name must match warpmap, order match layer order)'},...
-'',1,{'750,647,561,488'});  % <--  Default channel names
-SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1});
-end
-% Automatically dealing with old or new style chromewarp format
-if ~isempty(SR{handles.gui_number}.LoadOps.warpfile)   
-[warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
-    if ~isempty(strfind(warpname,'tform'))
-        for c=1:length(mlist)
-            mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
-                mlist{c},warppath,'warpD',SR{handles.gui_number}.LoadOps.warpD);
-        end        
-    else  % Run new style
-        mlist = ApplyChromeWarp(mlist,SR{handles.gui_number}.LoadOps.chns,...
-            SR{handles.gui_number}.LoadOps.warpfile,...
-            'warpD',SR{handles.gui_number}.LoadOps.warpD,...
-            'names',SR{handles.gui_number}.fnames);    
-    end
-else
-    disp('warning, no warp file found to align color channels');
-end
-% Cleanup settings from any previous data and render image:
-SR{handles.gui_number}.mlist = mlist; 
-ImSetup(hObject,eventdata, handles);
-ClearFilters_Callback(hObject, eventdata, handles); 
-guidata(hObject, handles);
-
-
-    
+ 
 
 % --------------------------------------------------------------------
 function MenuLoadOptions_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuLoadOptions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global SR scratchPath  %#ok<NUSED>
+global SR;
+SRLoadOptions;
+set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin);
+guidata(hObject, handles);
 
-    dlg_title = 'Update Load Options';
-    num_lines = 1;
-
-    default_opts = ...
-        {SR{handles.gui_number}.LoadOps.pathin,...
-        CSL2str(SR{handles.gui_number}.LoadOps.chns),...
-        SR{handles.gui_number}.LoadOps.warpfile,...
-        num2str(SR{handles.gui_number}.LoadOps.warpD),...
-        num2str(SR{handles.gui_number}.LoadOps.correctDrift),...
-        SR{handles.gui_number}.LoadOps.chnOrder,...
-        }';
-    prompt = ...
-        {'Data Folder',...
-        'Channel Names (must match names in chromewarp)',...
-        'warpfile',...
-        'warp dimension',...
-        'Correct global drift (files must be loaded in order acquired)',...
-        'Order acquired (see display channels box for order listed)',...
-        };
-try    
-opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
-catch er  % if values get really screwed up, start again
-    disp(er.message); 
-    SR{handles.gui_number}.LoadOps.warpD = 3; % set to 0 for no chromatic warp
-    SR{handles.gui_number}.LoadOps.warpfile = ''; % can leave blank if no chromatic warp
-    SR{handles.gui_number}.LoadOps.chns = {''};% {'750','647','561','488'};
-    SR{handles.gui_number}.LoadOps.pathin = '';
-    SR{handles.gui_number}.LoadOps.correctDrift = true;
-    SR{handles.gui_number}.LoadOps.chnOrder = '[1:end]'; 
-    SR{handles.gui_number}.LoadOps.sourceroot = '';
-    SR{handles.gui_number}.LoadOps.bintype = '_alist.bin';
-    SR{handles.gui_number}.LoadOps.chnFlag = {'750','647','561','488'};  
-    SR{handles.gui_number}.LoadOps.dataset = 0;
-        default_opts = ...
-        {SR{handles.gui_number}.LoadOps.pathin,...
-        CSL2str(SR{handles.gui_number}.LoadOps.chns),...
-        SR{handles.gui_number}.LoadOps.warpfile,...
-        num2str(SR{handles.gui_number}.LoadOps.warpD),...
-        num2str(SR{handles.gui_number}.LoadOps.correctDrift),...
-        SR{handles.gui_number}.LoadOps.chnOrder,...
-        }';
-    opts = inputdlg(prompt,dlg_title,num_lines,default_opts);
-end
-
-if ~isempty(opts)
-    SR{handles.gui_number}.LoadOps.pathin = opts{1};
-    SR{handles.gui_number}.LoadOps.chns = parseCSL(opts{2});
-    SR{handles.gui_number}.LoadOps.warpfile = opts{3};
-    SR{handles.gui_number}.LoadOps.warpD = str2double(opts{4});
-    SR{handles.gui_number}.LoadOps.correctDrift = logical(str2double(opts{5}));
-    SR{handles.gui_number}.LoadOps.chnOrder = opts{6}; 
-    set(handles.datapath,'String',SR{handles.gui_number}.LoadOps.pathin);     
-end
 
 % --------------------------------------------------------------------
 function ToolbarOpenFile_ClickedCallback(hObject, eventdata, handles)
@@ -471,47 +140,7 @@ LoadBin(hObject,eventdata,handles,'off')
 
 
 
-% Setup defaults
-% -------------------------------------------------------------------
-function ImSetup(hObject,eventdata, handles)
-global SR scratchPath
 
-% if imaxes is already defined, use it. 
-if isfield(SR{handles.gui_number},'imaxes')
-   imaxes = SR{handles.gui_number}.imaxes; 
-else
-    % build new imaxes structure using ROI from parameter file if available
-    mlist = SR{handles.gui_number}.mlist;  % short hand;
-    w = zeros(length(mlist),1);
-    h = zeros(length(mlist),1);
-    for i=1:length(mlist)
-        binfile = [SR{handles.gui_number}.LoadOps.pathin,SR{handles.gui_number}.fnames{i}];
-        [mlist{i},h(i),w(i)] = ReZeroROI(binfile,mlist{i});
-    end
-    if sum(w==w(1)) ~= length(mlist) || sum(h==h(1)) ~= length(mlist)
-        error('ROIs for the selected molecule lists different sizes'); 
-    end
-    imaxes.W = w(1);
-    imaxes.H = h(1);
-    SR{handles.gui_number}.mlist = mlist;
-end
-
-imaxes.scale = 2;  % upscale on display
-imaxes.zm = 1;
-imaxes.cx = imaxes.W/2;
-imaxes.cy = imaxes.H/2;
-imaxes.xmin = 0;
-imaxes.xmax = imaxes.W;
-imaxes.ymin = 0; 
-imaxes.ymax = imaxes.H; 
-imaxes.updatemini = true; 
-set(handles.Xslider,'Min',imaxes.xmin);
-set(handles.Xslider,'Max',imaxes.xmax);
-set(handles.Yslider,'Min',imaxes.ymin);
-set(handles.Yslider,'Max',imaxes.ymax);
-SR{handles.gui_number}.imaxes = imaxes;
-guidata(hObject, handles);
-UpdateSliders(hObject,eventdata,handles);
 
 %=========================================================================%  
 %       end of load data functions
@@ -622,94 +251,6 @@ end
 
 
 
-function GetEdges(hObject, eventdata, handles)
-% if cx/cy is near the edge and zoom is small, we should have a different
-% maxx maxy
-global SR     
-imaxes = SR{handles.gui_number}.imaxes;
-% imaxes.xmin = max(0,imaxes.cx - imaxes.W/2/imaxes.zm);
-% imaxes.xmax = min(imaxes.W,imaxes.cx + imaxes.W/2/imaxes.zm);
-% imaxes.ymin = max(0,imaxes.cy - imaxes.H/2/imaxes.zm);
-% imaxes.ymax = min(imaxes.H,imaxes.cy + imaxes.H/2/imaxes.zm);
-
-% Attempt to bounce back from edges if center point overlaps a substantial
-% blank image at this amount of zoom.  
-imaxes.xmin = imaxes.cx - imaxes.W/2/imaxes.zm;
-imaxes.xmax = imaxes.cx + imaxes.W/2/imaxes.zm;
-imaxes.ymin = imaxes.cy - imaxes.H/2/imaxes.zm;
-imaxes.ymax = imaxes.cy + imaxes.H/2/imaxes.zm;
-
-if imaxes.xmin < 0 
-    imaxes.cx = imaxes.cx - imaxes.xmin;
-    imaxes.xmin = imaxes.cx - imaxes.W/2/imaxes.zm;
-end
-if imaxes.xmax > imaxes.W
-    imaxes.cx = imaxes.cx - (imaxes.xmax - imaxes.W);
-    imaxes.xmax = imaxes.cx + imaxes.W/2/imaxes.zm;
-end
-if imaxes.ymin < 0 
-    imaxes.cy = imaxes.cy - imaxes.ymin;
-    imaxes.ymin = imaxes.cy - imaxes.H/2/imaxes.zm;
-end
-if imaxes.ymax > imaxes.H
-    imaxes.cy = imaxes.cy - (imaxes.ymax - imaxes.H);
-    imaxes.ymax = imaxes.cy + imaxes.H/2/imaxes.zm;
-end
-SR{handles.gui_number}.imaxes = imaxes;
-
-
-
-
-
-%==========================================================================
-%% Main plotting function
-%==========================================================================
-function ImLoad(hObject,eventdata, handles)
-% load variables
-global   SR
-
-mlist = SR{handles.gui_number}.mlist;  
-
-% if we're zoomed out fully, recenter everything
-if SR{handles.gui_number}.imaxes.zm == 1
-  ImSetup(hObject,eventdata, handles); % reset to center
-end
-GetEdges(hObject, eventdata, handles);
-UpdateSliders(hObject,eventdata,handles);
-
-% tic
-if SR{handles.gui_number}.DisplayOps.ColorZ
-    Zsteps = SR{handles.gui_number}.DisplayOps.Zsteps;
-    % In general, not worth excluding these dots from 2d images.
-    % if desired, can be done by applying a molecule list filter.  
-    if SR{handles.gui_number}.DisplayOps.HidePoor 
-        for c = 1:length(SR{handles.gui_number}.infilter)
-            SR{handles.gui_number}.infilter{c}(mlist{c}.c==9) = 0;  
-        end
-    end
-else
-    Zsteps = 1;
-end
-
-
-SR{handles.gui_number}.I = list2img(mlist, SR{handles.gui_number}.imaxes,...
-    'filter',SR{handles.gui_number}.infilter,...
-    'Zrange',SR{handles.gui_number}.DisplayOps.zrange,...
-    'dotsize',SR{handles.gui_number}.DisplayOps.DotScale,...
-    'Zsteps',Zsteps,'scalebar',0,...
-    'N',6,...
-    'correct drift',SR{handles.gui_number}.DisplayOps.CorrDrift);
-
-if ~isempty(SR{handles.gui_number}.Oz)
-    IntegrateOverlay(hObject,handles); % Integrate the Overlay, if it exists
-end
-
-UpdateMainDisplay(hObject,handles); % converts I, applys contrast, to RBG
-guidata(hObject, handles);
-% plottime = toc;
-% disp(['total time to render image: ',num2str(plottime)]);
-
-
 
 
 
@@ -726,75 +267,29 @@ guidata(hObject, handles);
 %=========================================================================%
 % --- Executes on selection change in choosefilt.
 function choosefilt_Callback(hObject, eventdata, handles)
-    contents = cellstr(get(handles.choosefilt,'String')); % returns choosefilt contents as cell array
-    par = contents{get(handles.choosefilt,'Value')}; % returns selected item from choosefilt 
- if strcmp(par,'custom') % apply custom filter
-          disp({'custom filter: f = logical function of m.*';
-              'examples: (remove " to eval)';
-              'returns molecules with parameter a > 100:'
-              '    "f = [m.a] > 100" ';
-              'return molecules with an i/a ratio of .5-5';
-              ' or total intensity > 1000';
-              '   "f =  ([m.i] ./ [m.a]) > .5 & ([m.i] ./ [m.a]) <5 ';
-              '    | [m.i] > 1000" returns  '; 
-              ' returns molecules with more than k=4 neighbors';
-              'in a radius of dmax=5:';
-              '       "d = transpose([[m.xc];[m.yc]]);" ';
-              '       "[idx,dist] = knnsearch(d,d,"k",4);"';
-              '       "f = (max(dist,[],2) < 5);"';
-           ' note: need to change double "k" to single to eval.'});
- end
+    handles = SelectFilter(hObject,handles); 
+    guidata(hObject,handles); 
+    
+
  
  
 
 % --- Executes on button press in ClearFilters.
 function ClearFilters_Callback(hObject, eventdata, handles)
-global  SR
-SR{handles.gui_number}.filts = struct('custom',[]); % empty structure to store filters
-Cs = length(SR{handles.gui_number}.mlist);
-    SR{handles.gui_number}.infilter = cell(Cs,1);
-    channels = find(1-cellfun(@isempty,SR{handles.gui_number}.mlist))';
-    for i=channels
-        SR{handles.gui_number}.infilter{i} = true(size([SR{handles.gui_number}.mlist{i}.xc]));  % 
-    end
-SR{handles.gui_number}.cmax = .3*ones(Cs,1); % default values
-SR{handles.gui_number}.cmin = 0*ones(Cs,1);  % default values
-ImLoad(hObject,eventdata, handles); % calls plotdata function
+    handles = RunClearFilters(hObject,eventdata,handles);
+    guidata(hObject,handles); 
+    
+
  
  
 
 % --- Executes on button press in ApplyFilter.
 function ApplyFilter_Callback(hObject, eventdata, handles)
 % chose filter
-  global  SR scratchPath  %#ok<NUSED>
-  filts = SR{handles.gui_number}.filts;
-  contents = cellstr(get(handles.choosefilt,'String')); % returns choosefilt contents as cell array
-  par = contents{get(handles.choosefilt,'Value')}; % returns selected item from choosefilt 
+handles = RunApplyFilter(hObject,eventdata,handles); 
+guidata(hObject,handles); 
 
-    % see which channels are selected to apply
-    channels(1) = get(handles.fchn1,'Value');
-    channels(2) = get(handles.fchn2,'Value');
-    channels(3) = get(handles.fchn3,'Value');
-    channels(4) = get(handles.fchn4,'Value');
-    channels = find(channels);
-    
-    myfilt = get(handles.CustomFilter,'String');
-    vlist = MolsInView(handles);
-    
-    local_filter = cell(max(channels),1);
- for c=1:channels;
-    local_filter{c} = vlist{c}.locinfilter;
- end
-  axes(handles.axes2);  
-  [newfilter,filts] = applyfilter(vlist,local_filter, filts, channels, par, myfilt,...
-      SR{handles.gui_number}.imaxes); 
-  
-  
-  for c=1:channels
-    SR{handles.gui_number}.infilter{c}(vlist{c}.inbox & vlist{c}.infilter) =  newfilter{c};
-  end
-   SR{handles.gui_number}.filts = filts;
-  ImLoad(hObject,eventdata, handles); % calls plotdata function
+   
 
 % --- Executes on button press in ShowFilters.
 function ShowFilters_Callback(hObject, eventdata, handles)
@@ -806,74 +301,6 @@ disp('this function still under development');
 
 
  
- 
-function UpdateMainDisplay(hObject,handles)
-global  SR scratchPath  %#ok<NUSED>
-
-I = SR{handles.gui_number}.I;
-imaxes = SR{handles.gui_number}.imaxes;
-% I cell containing current STORM image
-% Oz cell containing appropriately rescaled overlay image
-% Io 3-color output image. Global only to pass to export/save image calls.
-
-guidata(hObject, handles);
-numChannels = length(I); 
-[h,w,Zs] = size(I{1});
-numOverlays = length(SR{handles.gui_number}.Oz);
-
-% Find out which channels are toggled for display
-%------------------------------------------------------------        
-channels = zeros(1,numChannels); % Storm Channels
-for c = 1:numChannels; 
-    channels(c) = eval(['get(','handles.sLayer',num2str(c),', ','''Value''',')']);
-end
-active_channels = find(channels);
-
-overlays = zeros(1,numOverlays); % Overlay channels
-for c = 1:numOverlays
-    overlays(c) = eval(['get(','handles.oLayer',num2str(c),', ','''Value''',')']);
-end
-active_overlays = find(overlays);
-numClrs = numChannels + numOverlays;  
-%-----------------------------------------------------------
-% Stack all image layers (channels, z-dimensions, and overlays)
-%   into a common matrix for multicolor rendering.  Apply indicated
-%   contrast for all data.  
-Io = STORMcell2img(I,'overlays',SR{handles.gui_number}.Oz,...
-'active channels',active_channels,'active overlays',active_overlays,...
-'cmin',SR{handles.gui_number}.cmin,'cmax',SR{handles.gui_number}.cmax,...
-'omin',SR{handles.gui_number}.omin,'omax',SR{handles.gui_number}.omax,...
-'numClrs',numClrs,'colormap',SR{handles.gui_number}.DisplayOps.clrmap);
-
-% Add ScaleBar (if indicated)
-Cs_out = size(Io,3); 
-if SR{handles.gui_number}.DisplayOps.scalebar > 0 
-    scb = round(1:SR{handles.gui_number}.DisplayOps.scalebar/SR{handles.gui_number}.DisplayOps.npp*imaxes.zm*imaxes.scale);
-    h1 = round(imaxes.H*.9*imaxes.scale);
-    Io(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Cs_out,'uint16'); % Add scale bar and labels
-end
-%-----------------------------------------------------------
-
-% Update the display
-%--------------------------------------------------
-axes(handles.axes2); cla;
-set(gca,'XTick',[],'YTick',[]);
-imagesc(Io); 
-shading interp;
-axes(handles.axes2);
-set(handles.imtitle,'String',SR{handles.gui_number}.fnames(:)); % interpreter, none
-% colorbar; colormap(hsv(Zs*Cs));
-set(gca,'XTick',[],'YTick',[]);
-if imaxes.updatemini
-    axes(handles.axes1); cla;
-    set(gca,'XTick',[],'YTick',[]);
-    imagesc(Io); 
-    imaxes.updatemini = false;
-    set(gca,'XTick',[],'YTick',[]);
-    SR{handles.gui_number}.imaxes = imaxes;
-end
-SR{handles.gui_number}.Io = Io; 
-guidata(hObject, handles);
 
 
 % --------------------------------------------------------------------
@@ -902,70 +329,7 @@ global SR
  guidata(hObject, handles);
 
 % ------
- function scalecolor(hObject,handles)
- global SR scratchPath %#ok<NUSED>
-
-% x scale for histogram (log or normal)
-logscalecolor = logical(get(handles.logscalecolor,'Value'));
-N_stormchannels = length(SR{handles.gui_number}.cmax);
-selected_channel = get(handles.LevelsChannel,'Value');
-
-% Read in current slider postions, set numeric displays accordingly
-maxin = get(handles.MaxIntSlider,'Value');
-minin = get(handles.MinIntSlider,'Value'); 
-set(handles.MaxIntBox,'String',num2str(maxin));
-set(handles.MinIntBox,'String',num2str(minin));
-
-% If it's STORM data, record data range from I and store max min as
-% cmax / cmin
-if selected_channel <= N_stormchannels
-    raw_ints  = double(SR{handles.gui_number}.I{selected_channel}(:)); 
-    SR{handles.gui_number}.cmax(selected_channel) = maxin;
-    SR{handles.gui_number}.cmin(selected_channel) = minin;
-else % If it's Overlay data adjust O
-    selected_channel = selected_channel-N_stormchannels;
-    raw_ints  = double(SR{handles.gui_number}.Oz{selected_channel}(:)); 
-    SR{handles.gui_number}.omax(selected_channel) = maxin;
-    SR{handles.gui_number}.omin(selected_channel) = minin;
-end
  
- % Display histogram;            
-    raw_ints = raw_ints(:);
-    max_int = max(raw_ints);
-
-   axes(handles.axes3); cla reset; 
-    set(gca,'XTick',[],'YTick',[]); 
-   if ~logscalecolor
-       xs = linspace(0,max_int,1000); 
-        hi1 = hist(nonzeros(raw_ints)./max_int,xs);
-        hist(nonzeros(raw_ints),xs); hold on;
-        inrange = nonzeros(raw_ints( raw_ints/max_int>minin & raw_ints/max_int<maxin))./max_int;
-        hist(inrange,xs);
-        h2 = findobj('type','patch'); 
-        xlim([min(xs),max(xs)]);
-   else  % For Log-scale histogram  
-       xs = linspace(-5,0,50);
-       lognorm =  log10(nonzeros(raw_ints)/max_int);
-       hi1 = hist(lognorm,xs);
-       hist(lognorm,xs); hold on;
-       xlim([min(xs),max(xs)]);
-       log_min = (minin-1)*5; % map relative [0,1] to logpowers [-5 0];
-       log_max = (maxin-1)*5; % map relative [0,1] to logpowers [-5 0];
-       inrange = lognorm(lognorm>log_min & lognorm<log_max);
-       hist(inrange,xs);
-       xlim([min(xs),max(xs)]);
-       clear h2;
-       h2 = findobj('type','patch'); 
-   end
-    ylim([0,1.2*max(hi1)]);
-   set(h2(2),'FaceColor','b','EdgeColor','b');
-   set(h2(1),'FaceColor','r','EdgeColor','r');
-   set(gca,'XTick',[],'YTick',[]);
-   alpha .5;
-
-  clear raw_ints;        
-  UpdateMainDisplay(hObject,handles);
-  guidata(hObject, handles);
 
 
 % --- Executes on selection change in LevelsChannel.
@@ -993,24 +357,24 @@ set(handles.MaxIntBox,'String',num2str(maxin));
 function MinIntBox_Callback(hObject, eventdata, handles) %#ok<*INUSL>
  minin = str2double(get(handles.MinIntBox,'String'));
  set(handles.MinIntSlider,'Value',minin);
- scalecolor(hObject,handles);
+ ScaleColor(hObject,handles);
  guidata(hObject, handles); 
 
  % --- Executes on update of MaxIntBox
 function MaxIntBox_Callback(hObject, eventdata, handles)      
  maxin = str2double(get(handles.MaxIntBox,'String'));
  set(handles.MaxIntSlider,'Value',maxin);
-  scalecolor(hObject,handles);
+  ScaleColor(hObject,handles);
   guidata(hObject, handles); 
  
 % --- Executes on slider movement.
 function MaxIntSlider_Callback(hObject, eventdata, handles)
- scalecolor(hObject,handles);
+ ScaleColor(hObject,handles);
  guidata(hObject, handles);   
  
 % --- Executes on slider movement.
 function MinIntSlider_Callback(hObject, eventdata, handles)
- scalecolor(hObject,handles);
+ ScaleColor(hObject,handles);
  guidata(hObject, handles);
 
 
@@ -1587,8 +951,8 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 
 
-% --- Executes on button press in logscalecolor.
-function logscalecolor_Callback(hObject, eventdata, handles)
+% --- Executes on button press in logScaleColor.
+function logScaleColor_Callback(hObject, eventdata, handles)
 
     
  
