@@ -37,7 +37,7 @@ global CC
         mlists = {mlist1; mlist};
         filters = {infilt1; infilt}; 
       % Update M with drift correction
-      M1 = hist3([mlist.yc(infilt1),mlist.xc(infilt1)],...
+      M1 = hist3([mlist1.yc(infilt1),mlist1.xc(infilt1)],...
              {0:1/cluster_scale:H,0:1/cluster_scale:W});
       CC{handles.gui_number}.M1 = M1;    
     end
