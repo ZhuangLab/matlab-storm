@@ -109,7 +109,8 @@ for i=1:4;
     plot(0,0,'color',cMap(i,:));
 end
 colordef black; 
-legend({'chn1 keep','chn1 reject','chn2 keep','chn2 reject'});
+CC{handles.gui_number}.axesObjects.legend = ...
+    legend({'chn1 keep','chn1 reject','chn2 keep','chn2 reject'});
 
 % %----------------------------
 % % Troubleshooting:

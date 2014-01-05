@@ -16,8 +16,24 @@ global CC
     infilt = CC{handles.gui_number}.infilt;
     R = CC{handles.gui_number}.R;
     
+    if isempty(CC{handles.gui_number}.mlist1)
+        mlists = {mlist};
+    else
+        mlist1 = CC{handles.gui_number}.mlist1;
+        mlists = {mlist1;
+                  mlist};
+      % Update M with drift correction
+      M1 = hist3([mlist.yc(infilt),mlist.xc(infilt)],...
+             {0:1/cluster_scale:H,0:1/cluster_scale:W});
+      CC{handles.gui_number}.M1 = M1; 
+              
+              
+    end
+            
+    
     Nclusters = length(R);
     conv0 = CC{handles.gui_number}.conv;
+    conv1 = CC{handles.gui_number}.conv1;
     convI = CC{handles.gui_number}.convI;
     
     % Update M with drift correction
@@ -70,7 +86,7 @@ global CC
      
 
    % Get STORM image      
-        I = plotSTORM_colorZ({mlist},imaxes,'filter',{infilt'},...
+        I = list2img(mlists,imaxes,'filter',{infilt'},...
            'Zsteps',1,'scalebar',500,'correct drift',true,'Zsteps',1); 
         Istorm{n} = I{1};  % save image; 
               

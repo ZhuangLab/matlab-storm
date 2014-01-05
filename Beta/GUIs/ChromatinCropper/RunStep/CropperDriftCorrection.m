@@ -1,6 +1,13 @@
 function handles = CropperDriftCorrection(handles)
 
-global CC
+global CC scratchPath
+
+% clear legend from previous step.  
+ax = CC{handles.gui_number}.axesObjects.legend;
+try
+delete(ax);
+catch
+end
 
 if isempty(CC{handles.gui_number}.mlist1)
     numChns = 1;
@@ -16,7 +23,7 @@ for n=1:numChns
  else
      mlist = CC{handles.gui_number}.mlist1;
  end
-    drift_err = '';
+    drift_error = '';
       
     % Load user defined parameters
     H = CC{handles.gui_number}.pars0.H;
@@ -44,7 +51,7 @@ for n=1:numChns
     try
     beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
     beadbin = [folder,filesep,beadname];
-     [x_drift,y_drift,~,drift_err] = feducialDriftCorrection(beadbin,...
+     [x_drift,y_drift,~,~,drift_error] = feducialDriftCorrection(beadbin,...
          'maxdrift',maxDrift,'showplots',showPlots,'fmin',fmin,...
          'startframe',startFrame,'showextraplots',showExtraPlots);
     missingframes = max(mlist.frame) - length(x_drift);
@@ -56,7 +63,7 @@ for n=1:numChns
     goOn = true;
     retry = 0; 
     catch er
-        disp(er.message);
+        disp(er.getReport);
         warning('Feducial Drift Correction Failed');
         retry = input(['Enter 1 to change parameters, 2 to attempt ',... 
             'image-based drift correction, 3 to skip. ']);
@@ -118,28 +125,30 @@ for n=1:numChns
         goOn = true; 
     end
     
+    
     if goOn
+        driftReport = strcat('Drift Correction Uncertainty: ',num2str(drift_error,3),'nm');
         % plot mask in main figure window
-        axes(handles.axes1); cla; %#ok<*LAXES>
+        axes(handles.axes1); %#ok<*LAXES>
         Nframes = length(x_drift); 
-        try
+ 
         if Nframes > 1
-            buf = round(.05*Nframes); 
-        z = zeros(size(x_drift')); z= [z(1:end-buf),NaN*ones(1,buf)];
-        col = [double(1:Nframes-1),NaN];  % This is the color, vary with x in this case.
-         surface([x_drift';x_drift']*npp,[y_drift';y_drift']*npp,...
-             [z;z],[col;col],'facecol','no','edgecol','interp',...
-            'linew',1);    
-        colormap('jet');
-        set(gcf,'color','w'); 
-        xlabel('nm'); 
-        ylabel('nm'); 
-        xlim([min(x_drift*npp),max(x_drift*npp)]);
-        ylim([min(y_drift*npp),max(y_drift*npp)]);
-         text(mean(x_drift*npp),mean(y_drift*npp),...
-             ['Drift Correction Uncertainty: ',num2str(drift_err,3),'nm']);
-        end
-        catch
+            z = zeros(size(x_drift'));
+            col = [double(1:Nframes-1),NaN];  % This is the color, vary with x in this case.
+             surface([x_drift';x_drift']*npp,[y_drift';y_drift']*npp,...
+                 [z;z],[col;col],'facecol','no','edgecol','interp',...
+                'linew',1);    
+            colormap(jet);
+            set(gca,'color','w'); 
+            colordef white;
+            set(gca,'XTick',linspace(min(x_drift*npp),max(x_drift*npp),10));
+            set(gca,'XTickLabel',linspace(min(x_drift*npp),max(x_drift*npp),10));
+            set(gca,'YTick',linspace(min(y_drift*npp),max(y_drift*npp),10));
+            set(gca,'YTickLabel',linspace(min(y_drift*npp),max(y_drift*npp),10));
+            xlabel('nm');  ylabel('nm'); 
+            xlim([min(x_drift*npp),max(x_drift*npp)]);
+            ylim([min(y_drift*npp),max(y_drift*npp)]);
+             text(mean(x_drift*npp),mean(y_drift*npp),driftReport);
         end
     
         if n == 1

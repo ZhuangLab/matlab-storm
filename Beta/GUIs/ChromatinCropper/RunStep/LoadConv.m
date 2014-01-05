@@ -2,6 +2,11 @@ function handles = LoadConv(handles)
 
 global CC
 
+% clear start
+axes(handles.axes1); 
+set(gca,'color','k');
+set(gca,'XTick',[],'YTick',[]);
+
 % Previously common parameters
 %-------------------------------------------------------
 H = CC{handles.gui_number}.pars0.H;
