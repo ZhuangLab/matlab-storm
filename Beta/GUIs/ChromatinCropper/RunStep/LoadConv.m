@@ -181,8 +181,14 @@ convI(:,:,3) = warpedLamina;
 convI(:,:,4) = warpedConv1;
 
 % -------- Plot results ----------
+channels = false(1,2); % Storm Channels
+for c = 1:4; 
+    channels(c) = eval(['get(','handles.oLayer',num2str(c),', ','''Value''',')']);
+end
+
+
 axes(handles.axes1);
-Ncolor(convI);
+Ncolor(convI(:,:,channels));
 xlim([0,W]); 
 ylim([0,H]);
 axes(handles.axes1);
@@ -193,6 +199,7 @@ axes(handles.axes2);
 Ncolor(convI); 
 set(gca,'color','k');
 set(gca,'XTick',[],'YTick',[]);
+%--------------------------------------
 
 % if conv1 is empty (all zero), save as empty; 
 if sum(conv1(:)) == 0

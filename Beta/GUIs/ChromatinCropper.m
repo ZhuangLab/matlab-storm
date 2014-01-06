@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 03-Jan-2014 19:43:49
+% Last Modified by GUIDE v2.5 05-Jan-2014 23:36:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -324,3 +324,21 @@ function oLayer4_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of oLayer4
+
+
+% --- Executes on button press in AdjustChn2.
+function AdjustChn2_Callback(hObject, eventdata, handles)
+% hObject    handle to AdjustChn2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of AdjustChn2
+
+
+% --- Executes on button press in AdjustChn1.
+function AdjustChn1_Callback(hObject, eventdata, handles)
+% hObject    handle to AdjustChn1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of AdjustChn1
