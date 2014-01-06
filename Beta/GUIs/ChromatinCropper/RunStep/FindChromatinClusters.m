@@ -95,9 +95,9 @@ global CC
    % Get STORM image      
         I = list2img(mlists,imaxes,'filter',filters,...
            'scalebar',500,'correct drift',true); 
-        Istorm{n} = I{1};  % save image; 
+        Istorm{n} = I;  % save image; 
               
-        figure(1); clf; STORMcell2img(I);
+       %  figure(1); clf; STORMcell2img(I);
         
     % Zoom in on histogram (determines size / density etc)
         x1 = ceil(imaxes.xmin*cluster_scale);
@@ -107,8 +107,8 @@ global CC
         Ihist{n} = M(y1:y2,x1:x2); 
 
       % Conventional Image of Spot 
-        Iconv{n} = conv0(ceil(imaxes.ymin):floor(imaxes.ymax),...
-            ceil(imaxes.xmin):floor(imaxes.xmax));
+        Iconv{n} = convI(ceil(imaxes.ymin):floor(imaxes.ymax),...
+            ceil(imaxes.xmin):floor(imaxes.xmax),:);
 
      % STORM image of whole cell
        cellaxes = imaxes;

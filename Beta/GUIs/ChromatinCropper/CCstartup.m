@@ -44,8 +44,8 @@ set(handles.CCinstance,'String',['inst id',num2str(handles.gui_number)]);
     CC{handles.gui_number}.pars0.H = 256;
     CC{handles.gui_number}.pars0.W = 256;
     CC{handles.gui_number}.pars0.npp = 160;
-    CC{handles.gui_number}.pars0.cmin = 0;
-    CC{handles.gui_number}.pars0.cmax = 1;
+    CC{handles.gui_number}.pars0.cmin = [0 0];
+    CC{handles.gui_number}.pars0.cmax = [1 1];
     % step1 parameters
     CC{handles.gui_number}.pars1.BeadFolder = '';
     CC{handles.gui_number}.pars1.overlays = {};  

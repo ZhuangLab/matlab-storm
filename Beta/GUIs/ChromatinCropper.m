@@ -52,8 +52,6 @@ function ChromatinCropper_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to ChromatinCropper (see VARARGIN)
 
-global CC
-
 % Choose default command line output for ChromatinCropper
 handles.output = hObject;
 
@@ -86,38 +84,7 @@ function RunStep_Callback(hObject, eventdata, handles) %#ok<*DEFNU,*INUSL,*INUSD
 % hObject    handle to RunStep (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% global parameters
-global CC ScratchPath %#ok<*NUSED>
-   
-% Actual Step Commands
-step = CC{handles.gui_number}.step;
-if step == 1
-    handles = LoadConv(handles);   
-          
-elseif step == 2
-   handles = ConvMask(handles);       
-        
-elseif step == 3
-    handles = StormMask(handles); 
-        
-elseif step == 4  
-    handles = CropperDriftCorrection(handles);
-
-elseif step == 5
-    handles = FindChromatinClusters(handles);
- 
-
-elseif step == 6
-    handles = FliterChromatinClusters(handles);
-   
-elseif step == 7
-    handles = SaveChromatinClusters(handles);
-   
-end % end if statement over steps
-   
-% Update handles structure
-guidata(hObject, handles);
+RunRunStep(hObject, eventdata, handles);
 
     
 % --- Executes on button press in StepParameters.
@@ -125,31 +92,8 @@ function StepParameters_Callback(hObject, eventdata, handles)
 % hObject    handle to StepParameters (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global CC
-step = CC{handles.gui_number}.step;
+RunStepParameters(hObject, eventdata, handles);
 
-% parameters get updated in the CC structure array
-if step == 1
-  GetParsLoadConv(handles); % just loading the image
-  
-elseif step == 2
-    GetParsConvMask(handles);
-    
-elseif step == 3
-    GetParsStormMask(handles);
-    
-elseif step == 4
-    GetParsCropperDrift(handles);
-
-elseif step == 5
-    GetParsFindChromatin(handles);
-    
-elseif step == 6
-    GetParsFilterChromatin(handles) 
-    
-elseif step == 7
-    GetParsSaveChromatin(handles)
-end
     
 
 % --- Executes on button press in NextStep.
@@ -157,30 +101,15 @@ function NextStep_Callback(hObject, eventdata, handles)
 % hObject    handle to NextStep (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global CC
-Dirs = CC{handles.gui_number}.Dirs;
-CC{handles.gui_number}.step = CC{handles.gui_number}.step +1;
-step = CC{handles.gui_number}.step;
-if step>7
-    NextImage_Callback(hObject, eventdata, handles);
-    step = 1;
-    % step = 7;
-    % CC{handles.gui_number}.step = step;
-end
-set(handles.DirectionsBox,'String',Dirs{step});
+RunNextStep(hObject, eventdata, handles);
+
     
 % --- Executes on button press in BackStep.
 function BackStep_Callback(hObject, eventdata, handles)
 % hObject    handle to BackStep (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global CC
-
-Dirs = CC{handles.gui_number}.Dirs;
-CC{handles.gui_number}.step = CC{handles.gui_number}.step -1;
-step = CC{handles.gui_number}.step;
-set(handles.DirectionsBox,'String',Dirs{step});
-
+RunBackStep(hObject, eventdata, handles);
 
 
 % --- Executes on button press in NextImage.
@@ -188,75 +117,23 @@ function NextImage_Callback(hObject, eventdata, handles)
 % hObject    handle to NextImage (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global CC
-Nbins = length(CC{handles.gui_number}.binfiles);
-CC{handles.gui_number}.imnum = CC{handles.gui_number}.imnum + 1;
-if CC{handles.gui_number}.imnum <= 0
-    CC{handles.gui_number}.imnum = 1;
-end
-if CC{handles.gui_number}.imnum > Nbins
-    CC{handles.gui_number}.imnum = Nbins;
-end
+RunNextImage(hObject, eventdata, handles);
 
-% Remove manually selected overlays 
-CC{handles.gui_number}.pars1.overlays = {};
-
-binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);    
-set(handles.ImageBox,'String',binfile.name);
-CC{handles.gui_number}.step = 1;
-set(handles.DirectionsBox,'String',CC{handles.gui_number}.Dirs{1});
-RunStep_Callback(hObject, eventdata, handles)
 
 % --- Executes on button press in PreviousImage.
 function PreviousImage_Callback(hObject, eventdata, handles)
 % hObject    handle to PreviousImage (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global CC
-Nbins = length(CC{handles.gui_number}.binfiles);
-CC{handles.gui_number}.imnum = CC{handles.gui_number}.imnum - 1;
-if CC{handles.gui_number}.imnum <= 0
-    CC{handles.gui_number}.imnum = 1;
-end
-if CC{handles.gui_number}.imnum > Nbins
-    CC{handles.gui_number}.imnum = Nbins;
-end
+RunPreviousImage(hObject, eventdata, handles);
 
-binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);    
-set(handles.ImageBox,'String',binfile.name);
-CC{handles.gui_number}.step = 1;
-set(handles.DirectionsBox,'String',CC{handles.gui_number}.Dirs{1});
 
 
 function SourceFolder_Callback(hObject, eventdata, handles)
 % hObject    handle to SourceFolder (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global CC
-CC{handles.gui_number}.step = 1;
-CC{handles.gui_number}.source = get(handles.SourceFolder,'String');
-CC{handles.gui_number}.binfiles = ...
-         dir([CC{handles.gui_number}.source,filesep,'*_alist.bin']);
-set(handles.DirectionsBox,'String',CC{handles.gui_number}.Dirs{1});
-CC{handles.gui_number}.imnum = 1;
-if isempty(CC{handles.gui_number}.binfiles)
- error(['error, no alist.bin files found in folder ',...
-     CC{handles.gui_number}.source]);
-end
-binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);    
-set(handles.ImageBox,'String',binfile.name);
-
-StepParameters_Callback(hObject, eventdata, handles)
-RunStep_Callback(hObject, eventdata, handles)
-
-% Clear current data
-cleardata = input('New folder selected.  Clear current data? y/n? ','s');
-if strcmp(cleardata,'y');
-     CC{handles.gui_number}.data = [];
-     CC{handles.gui_number}.pars7.saveroot ='';
-     disp('data cleared'); 
-end
-
+GetSourceFolder(hObject, eventdata, handles);
 
 
 
@@ -265,19 +142,8 @@ function DotSlider_Callback(hObject, eventdata, handles)
 % hObject    handle to DotSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global CC
-if CC{handles.gui_number}.step == 5
-    n = round(get(hObject,'Value'));
-    set(handles.DotNum,'String',num2str(n));
-    CC{handles.gui_number}.dotnum = n;
-    ChromatinPlots(handles, n);
-end
-if CC{handles.gui_number}.step >= 6
-    n = round(get(hObject,'Value'));
-    set(handles.DotNum,'String',num2str(n));
-    CC{handles.gui_number}.dotnum = n;
-    ChromatinPlots2(handles, n);
-end
+GetDotSlider(hObject, eventdata, handles);
+
 
 function ImageBox_Callback(hObject, eventdata, handles)
 
@@ -332,42 +198,16 @@ function AutoCycle_Callback(hObject, eventdata, handles)
 % hObject    handle to AutoCycle (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-global CC
-CC{handles.gui_number}.auto = true; 
-currImage = CC{handles.gui_number}.imnum;
-dat = dir([handles.Source,filesep,'*_alist.bin']);
-Nfiles = length(dat); 
-for n=currImage:Nfiles
-    disp(['Analyzing image ',num2str(1),' of ',num2str(Nfiles),' ',...
-        dat.Name]); 
-    for step = 1:7
-        CC{handles.gui_number}.step = step;
-        RunStep_Callback(hObject, eventdata, handles);
-    end
-    NextImage_Callback(hObject, eventdata, handles)
-end
-CC{handles.gui_number}.auto = false; 
+RunAutoCycle(hObject, eventdata, handles);
 
 
 
+% --- Executes when DotNum Edit text is updated
 function DotNum_Callback(hObject, eventdata, handles)
-global CC
-CC{handles.gui_number}.dotnum = str2double(get(hObject,'String'));
-try
- set(handles.DotSlider,'Value',CC{handles.gui_number}.dotnum);
- DotSlider_Callback; 
-catch er
-    disp(er.message);
-    warning('value out of range.');
-end
-
- 
-% Hints: get(hObject,'String') returns contents of DotNum as text
-%        str2double(get(hObject,'String')) returns contents of DotNum as a double
-
-
-
+% hObject    handle to AutoCycle (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+GetDotNum(hObject, eventdata, handles);
 
 
 % --- Executes on slider movement.
@@ -375,24 +215,15 @@ function CMaxSlider_Callback(hObject, eventdata, handles)
 % hObject    handle to CMaxSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global CC
-CC{handles.gui_number}.pars0.cmax = get(hObject,'Value');
-if CC{handles.gui_number}.step > 4
-    axes(handles.subaxis2); cla;
-    ShowSTORM(handles,CC{handles.gui_number}.dotnum);
-end
+GetCMaxSlider(hObject, eventdata, handles);
+
 
 % --- Executes on slider movement.
 function CMinSlider_Callback(hObject, eventdata, handles)
 % hObject    handle to CMinSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global CC
-CC{handles.gui_number}.pars0.cmin = get(hObject,'Value');
-if CC{handles.gui_number}.step > 4
-    axes(handles.subaxis2); cla;
-    ShowSTORM(handles,CC{handles.gui_number}.dotnum);
-end
+GetCMinSlider(hObject, eventdata, handles);
 
 
 % --------------------------------------------------------------------
@@ -400,7 +231,6 @@ function FileMenu_Callback(hObject, eventdata, handles)
 % hObject    handle to FileMenu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 
 % --------------------------------------------------------------------
 function OptionsMenu_Callback(hObject, eventdata, handles)
@@ -416,7 +246,7 @@ function MenuResumePrevious_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 notCancel = ResumePrevious(handles);
 if notCancel ~= 0
-    NextImage_Callback(hObject, eventdata, handles);
+    RunNextImage(hObject, eventdata, handles);
 end
 
 
@@ -425,10 +255,9 @@ function MenuSetWorkingDir_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuSetWorkingDir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global CC
-CC{handles.gui_number}.source = uigetdir;
-set(handles.SourceFolder,'String',CC{handles.gui_number}.source);
-SourceFolder_Callback(hObject, eventdata, handles);
+SetWorkingDir(hObject, eventdata, handles);
+
+
 
 
 % --- Executes on button press in sLayer1.
