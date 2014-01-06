@@ -1,4 +1,4 @@
-function SRLoadOptions
+function SRLoadOptions(handles)
 global SR scratchPath  %#ok<NUSED>
 
     dlg_title = 'Update Load Options';
