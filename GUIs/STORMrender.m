@@ -22,7 +22,7 @@ function varargout = STORMrender(varargin)
 
 % Edit the above text to modify the response to help STORMrender
 
-% Last Modified by GUIDE v2.5 28-Dec-2013 15:46:28
+% Last Modified by GUIDE v2.5 07-Jan-2014 10:54:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -198,7 +198,7 @@ function choosefilt_Callback(hObject, eventdata, handles)
 
 % --- Executes on button press in ClearFilters.
 function ClearFilters_Callback(hObject, eventdata, handles)
-    handles = RunClearFilters(hObject,eventdata,handles);
+    handles = RunClearFilter(hObject,eventdata,handles);
     guidata(hObject,handles); 
     
 

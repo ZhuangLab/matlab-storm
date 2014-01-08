@@ -16,5 +16,5 @@ function handles = SelectFilter(hObject,handles)
               '       "[idx,dist] = knnsearch(d,d,"k",4);"';
               '       "f = (max(dist,[],2) < 5);"';
            ' note: need to change double "k" to single to eval.'};
-          disp(toolTips{:});
+          disp(toolTips(:));
  end

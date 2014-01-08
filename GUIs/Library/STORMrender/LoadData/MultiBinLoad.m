@@ -53,7 +53,7 @@ SR{handles.gui_number}.LoadOps.chns = parseCSL(chns{1});
 end
 % Automatically dealing with old or new style chromewarp format
 if ~isempty(SR{handles.gui_number}.LoadOps.warpfile)   
-[warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
+    [warppath,warpname] = extractpath(SR{handles.gui_number}.LoadOps.warpfile); % detect old style
     if ~isempty(strfind(warpname,'tform'))
         for c=1:length(mlist)
             mlist{c} = chromewarp(SR{handles.gui_number}.LoadOps.chns(c),...
