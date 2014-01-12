@@ -38,7 +38,8 @@ end
 
 parsfile = ReadListParsFile(binfile);
 hasROIinfo = true;  
-if   ~isempty(parsfile)
+hasParsFile = ~isempty(parsfile);
+if  hasParsFile
     parsflag = parsfile(end-3:end);
     if strcmp(parsflag,'.xml');
     roiFlags = {'<x_start type="int">',...
@@ -56,7 +57,20 @@ if   ~isempty(parsfile)
        hasROIinfo = false;  
     end
     if hasROIinfo
-        roiInfo = read_parameterfile(parsfile,roiFlags,endmarker);
+        try
+         roiInfo = read_parameterfile(parsfile,roiFlags,endmarker);
+        catch
+            try
+                binPath = extractpath(binfile);
+                [~, parsName] = extractpath(parsfile);
+                roiInfo = read_parameterfile([binPath,parsName],roiFlags,endmarker);
+            catch
+                hasROIinfo = false;
+                hasParsFile = false;
+            end
+        end
+    end
+    if hasROIinfo
         roi = cellfun(@str2double,roiInfo);
         w = roi(2) - roi(1);
         h = roi(4) - roi(3); 
@@ -65,7 +79,8 @@ if   ~isempty(parsfile)
         mlist.yc = mlist.yc - roi(3);
         mlist.y = mlist.y - roi(3);      
     end
-else
+end
+if ~hasParsFile
     if verbose
        disp('No ROI parameters found. using dimensions from .inf file');  
     end

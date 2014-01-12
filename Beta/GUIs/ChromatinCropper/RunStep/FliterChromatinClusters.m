@@ -3,6 +3,7 @@ function handles = FliterChromatinClusters(handles)
 global CC
 
   %% Load data
+    imnum = CC{handles.gui_number}.imnum;
     Nclusters = CC{handles.gui_number}.Nclusters;
     vlists = CC{handles.gui_number}.vlists;
     npp = CC{handles.gui_number}.pars0.npp;

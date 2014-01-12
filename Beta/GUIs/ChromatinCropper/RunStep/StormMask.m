@@ -74,6 +74,7 @@ for n=1:numChns;
         CC{handles.gui_number}.R = R; % This is the STORM mask
         CC{handles.gui_number}.M = M; % This is for reference
         CC{handles.gui_number}.mlist1 = []; % helps ID number of active channels 
+         CC{handles.gui_number}.M1  =[];
     elseif n == 2
         CC{handles.gui_number}.mlist1 = mlist; 
         CC{handles.gui_number}.infilt1 = infilt; 
@@ -126,8 +127,10 @@ CC{handles.gui_number}.axesObjects.legend = ...
 % figure(1); clf; imagesc(CC{handles.gui_number}.M1);
 % 
 % 
+if n == 2
 figure(2); clf; 
 subplot(2,2,1); imagesc(CC{handles.gui_number}.M); caxis([0,10]);
 subplot(2,2,2); imagesc(CC{handles.gui_number}.M1); caxis([0,10]);
 subplot(2,2,3); imagesc(keep);
 subplot(2,2,4); imagesc(keep1); colormap hot;
+end

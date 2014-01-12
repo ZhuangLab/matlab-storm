@@ -13,9 +13,15 @@ global CC
     MaxD = max(R(n).PixelValues);
     cluster_scale = CC{handles.gui_number}.pars0.npp/...
                     CC{handles.gui_number}.pars3.boxSize(1);     
-  
-channels = false(1,2); % Storm Channels
-for c = 1:2; 
+ 
+if isempty(CC{handles.gui_number}.mlist1)
+    numChns = 1;
+else
+    numChns = 2;
+end
+
+channels = false(1,numChns); % Storm Channels
+for c = 1:numChns; 
     channels(c) = eval(['get(','handles.sLayer',num2str(c),', ','''Value''',')']);
 end
 active_channels = find(channels);

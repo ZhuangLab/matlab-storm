@@ -30,6 +30,7 @@ global CC
     % 
     if isempty(CC{handles.gui_number}.mlist1)
         mlists = {mlist};
+        filters = {infilt}; 
     else
         infilt1= CC{handles.gui_number}.infilt1;
         conv1 = CC{handles.gui_number}.conv1;
