@@ -52,9 +52,14 @@ end
 Io = zeros(h,w,3,class(I));
 
 try
-% make white the default for single color images
+% make hot the default for single color images
 if cls == 1
    Io = I; 
+   if nargin == 1 || isempty(varargin{1})
+      colormap hot;
+   else
+       colormap(cMap);
+   end
 else
     for c=1:cls
         for cc = 1:3
@@ -64,6 +69,7 @@ else
 end
 catch er
     save([scratchPath,'troubleshoot.mat']);
+    % load([scratchPath,'troubleshoot.mat']);
     warning(er.getReport);
     warning(['Data saved in:' scratchPath,'troubleshoot.mat']);
     error('error running Ncolor'); 
