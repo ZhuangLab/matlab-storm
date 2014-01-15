@@ -41,7 +41,7 @@ daxname = CC{handles.gui_number}.daxname;
     disp(['saving data in: ',savefolder])
    
     Iout2 = figure(2); clf;
-    imagesc(CC{handles.gui_number}.convI);
+    Ncolor(CC{handles.gui_number}.convI);
     colormap hot; hold on;
     
     for n=saveNs

@@ -85,7 +85,8 @@ end
         fileNum = strfind(daxname,'_0_');
         fileNum = daxname(fileNum:end);
         overlays = dir([folder,'\*','_z0',fileNum]);
-        CC{handles.gui_number}.pars1.overlays = strcat([folder,'\splitdax\'],{overlays.name});
+        CC{handles.gui_number}.pars1.overlays = strcat([folder,'\'],{overlays.name});
+        % CC{handles.gui_number}.pars1.overlays = strcat([folder,'\splitdax\'],{overlays.name});
     end
  end
   if isempty(CC{handles.gui_number}.pars1.overlays) % still empty

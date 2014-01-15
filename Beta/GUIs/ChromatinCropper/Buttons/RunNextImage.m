@@ -21,4 +21,5 @@ binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);
 set(handles.ImageBox,'String',binfile.name);
 CC{handles.gui_number}.step = 1;
 set(handles.DirectionsBox,'String',CC{handles.gui_number}.Dirs{1});
-RunRunStep(hObject, eventdata, handles)
+guidata(hObject,handles); 
+RunRunStep(hObject, eventdata, handles);

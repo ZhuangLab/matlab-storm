@@ -16,8 +16,10 @@ global CC
  
 if isempty(CC{handles.gui_number}.mlist1)
     numChns = 1;
+    clrmap = 'hot';
 else
     numChns = 2;
+    clrmap = 'lines';
 end
 
 channels = false(1,numChns); % Storm Channels
@@ -26,12 +28,11 @@ for c = 1:numChns;
 end
 active_channels = find(channels);
 
-clrmap = 'lines';
+
 Io = STORMcell2img(Istorm,...
 'active channels',active_channels,...
 'cmin',cmin,'cmax',cmax,...
 'colormap',clrmap);
-%
 % 'numClrs',numClrs,
 
 Ncolor(Io);
