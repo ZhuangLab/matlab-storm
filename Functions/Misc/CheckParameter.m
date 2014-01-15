@@ -17,6 +17,10 @@ function value = CheckParameter(value, type, name)
 %           'string'
 %           'boolean'
 %           'array' 
+%           'filePath'
+%           'fileDir'
+%           'colormap'
+%           'fraction'
 % 
 % name/string: The name of the parameter to be checked
 %--------------------------------------------------------------------------
@@ -97,6 +101,14 @@ for i=1:length(type)
         case 'cell'
             if ~iscell(value)
                 error([name 'is not a cell']);
+            end
+        case 'colormap'
+            if ~(ischar(value) || size(value,2) == 3)
+                error([name 'is not a valid colormap']); 
+            end
+        case 'fraction'
+            if ~(value >= 0 && value <= 1)
+                error([name ' is not a valid fraction']);
             end
         otherwise
             error('Not a valid type');
