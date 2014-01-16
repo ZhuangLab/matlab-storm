@@ -5,11 +5,18 @@ global SR
 imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
 set(handles.Xslider,'Value',imaxes.cx);
-set(handles.Yslider,'Value',imaxes.ymax-imaxes.cy+imaxes.ymin);
-set(handles.Xslider,'Min',imaxes.xmin);
-set(handles.Xslider,'Max',imaxes.xmax);
-set(handles.Yslider,'Min',imaxes.ymin);
-set(handles.Yslider,'Max',imaxes.ymax);
+set(handles.Yslider,'Value',imaxes.H-imaxes.cy);
+
+set(handles.Xslider,'Min',0);
+set(handles.Xslider,'Max',imaxes.W);
+set(handles.Yslider,'Min',0);
+set(handles.Yslider,'Max',imaxes.H);
+
+stepSlider =  .15/imaxes.zm;  % Move field of view by this percent
+jumpSlider = min(1,5*stepSlider);
+set(handles.Xslider,'SliderStep',[stepSlider,jumpSlider])
+set(handles.Yslider,'SliderStep',[stepSlider,jumpSlider])
+
 SR{handles.gui_number}.imaxes = imaxes;
 handles = UpdateNavigator(hObject,handles);
 guidata(hObject, handles);
