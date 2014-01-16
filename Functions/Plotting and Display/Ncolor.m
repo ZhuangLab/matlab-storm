@@ -35,54 +35,54 @@ function Io = Ncolor(I,varargin)
 
 global scratchPath
 
-if nargin == 1
-    cMap = [];
-elseif nargin == 2
-    cMap = varargin{1};
-else
+
+clrmap = []; 
+if nargin == 2
+    clrmap = varargin{1};
+elseif nargin > 2
     error('wrong number of inputs');
 end
-    
+[h,w,numColors] = size(I);
 
-[h,w,cls] = size(I);
-if isempty(cMap);
-    cMap = hsv(cls);
+
+if isempty(clrmap)
+    clrmap = 'hot';
 end
 
-Io = zeros(h,w,3,class(I));
 
-try
-% make hot the default for single color images
-if cls == 1
-   Io = I; 
-   if nargin == 1 || isempty(varargin{1})
-      colormap hot;
-   else
-       colormap(cMap);
-   end
+if numColors == 1;
+    imax = double( max(I(:)));
+    Io = makeuint( ind2rgb(I, hot(imax) ),16);
 else
-    for c=1:cls
-        for cc = 1:3
-        Io(:,:,cc) = Io(:,:,cc) + I(:,:,c)*cMap(c,cc);
+    if ischar(clrmap)
+        try
+            clrmap = eval([clrmap,'(numColors)']);
+        catch
+            disp([clrmap,' is not a valid colormap name']);  
         end
     end
+    
+    Io = zeros(h,w,3,class(I));
+    try
+        for c=1:numColors
+            for cc = 1:3
+                Io(:,:,cc) = Io(:,:,cc) + I(:,:,c)*clrmap(c,cc);
+            end
+        end
+    catch er
+        save([scratchPath,'troubleshoot.mat']);
+        % load([scratchPath,'troubleshoot.mat']);
+        warning(er.getReport);
+        warning(['Data saved in:' scratchPath,'troubleshoot.mat']);
+        error('error running Ncolor'); 
+    end
 end
-catch er
-    save([scratchPath,'troubleshoot.mat']);
-    % load([scratchPath,'troubleshoot.mat']);
-    warning(er.getReport);
-    warning(['Data saved in:' scratchPath,'troubleshoot.mat']);
-    error('error running Ncolor'); 
-end
-
 
 if nargout == 0
     try
-    imagesc(Io);
+        imagesc(Io);
     catch
         imagesc(makeuint(Io,8));
     end
 end
 
-
- 

@@ -44,16 +44,21 @@ if SR{handles.gui_number}.DisplayOps.scalebar > 0
     h1 = round(imaxes.H*.9*imaxes.scale);
     Io(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Cs_out,'uint16'); % Add scale bar and labels
 end
-%-----------------------------------------------------------
 
+SR{handles.gui_number}.Io = Io; 
+
+%-----------------------------------------------------------
 % Update the display
 %--------------------------------------------------
-axes(handles.axes2); cla;
+axes(handles.axes2);  cla;
 set(gca,'XTick',[],'YTick',[]);
-imagesc(Io); 
+imagesc(Io);
+guidata(hObject, handles);
+
 shading interp;
 axes(handles.axes2);
 set(handles.imtitle,'String',SR{handles.gui_number}.fnames(:)); % interpreter, none
+
 % colorbar; colormap(hsv(Zs*Cs));
 set(gca,'XTick',[],'YTick',[]);
 if imaxes.updatemini
@@ -66,3 +71,5 @@ if imaxes.updatemini
 end
 SR{handles.gui_number}.Io = Io; 
 guidata(hObject, handles);
+
+SR{handles.gui_number}.handles = handles;
