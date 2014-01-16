@@ -22,10 +22,10 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 05-Jan-2014 23:36:01
+% Last Modified by GUIDE v2.5 15-Jan-2014 22:35:25
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
+gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
                    'gui_OpeningFcn', @ChromatinCropper_OpeningFcn, ...

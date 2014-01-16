@@ -73,7 +73,7 @@ for n=1:numChns
     % (not as accurate as feducial beads)
     % 
     if retry == 2
-           dlg_title = 'Step 4 Pars: Drfit Correction';  num_lines = 1;
+        dlg_title = 'Step 4 Pars: Drift Correction';  num_lines = 1;
         Dprompt = {
         'Frames per correlation step',... 1
         'upsampling factor',... 2
@@ -85,29 +85,35 @@ for n=1:numChns
         Opts{3} = num2str(CC{handles.gui_number}.parsX.showPlots);
         Opts{4} = num2str(CC{handles.gui_number}.parsX.local);
         Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
-
-        if eval(Opts{4})==0
-       [x_drift,y_drift] = XcorrDriftCorrect(mlist,'stepframe',eval(Opts{1}),...
-            'scale',eval(Opts{2}),'showplots',eval(Opts{3}),...    
-            'imagesize',[H,W],'nm per pixel',npp);
+        
+        stepframe = str2num(Opts{1});   %#ok<ST2NM>
+        scale = str2num(Opts{2});       %#ok<ST2NM>
+        showplots = str2num(Opts{3});   %#ok<ST2NM>
+        localRegion = str2num(Opts{4}); %#ok<ST2NM>
+        
+        if localRegion(n) == 0
+           [x_drift,y_drift] = XcorrDriftCorrect(mlist,...
+                'stepframe',stepframe(n),...
+                'scale',scale(n),'showplots',showplots(n),...    
+                'imagesize',[H,W],'nm per pixel',npp);
         else
-          disp(['This option requires local regions to be detected first ',...
+            disp(['This option requires local regions to be detected first ',...
               'Run step 4 once without drift correction, then chose a dot ',...
               'and rerun step 4 using your preferred dot for calibration']); 
-          vlist = CC{handles.gui_number}.vlists{ eval(Opts{4}) };
-          imaxes = CC{handles.gui_number}.imaxes{ eval(Opts{4}) };
-          H = imaxes.ymax - imaxes.ymin + 1;
-          W = imaxes.xmax - imaxes.xmin + 1; 
-          [x_drift,y_drift] = XcorrDriftCorrect(vlist,...
-             'stepframe',eval(Opts{1}),...
-            'scale',eval(Opts{2}),'showplots',eval(Opts{3}),...    
+            vlist = CC{handles.gui_number}.vlists{ localRegion(n) };
+            imaxes = CC{handles.gui_number}.imaxes{ localRegion(n) };
+            H = imaxes.ymax - imaxes.ymin + 1;
+            W = imaxes.xmax - imaxes.xmin + 1; 
+            [x_drift,y_drift] = XcorrDriftCorrect(vlist,...
+             'stepframe',stepframe(n),...
+            'scale',scale(n),'showplots',showplots(n),...    
             'imagesize',[H,W],'nm per pixel',npp);  
                 % local area may not have dots localized up through the last frame
-        % of the movie.  Just assume no drift for these final frames if
-        % doing local region based correction.  (They should only be a
-        % couple to couple dozen of frames = a few seconds of drift at most).
-        x_drift = [x_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
-        y_drift = [y_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
+            % of the movie.  Just assume no drift for these final frames if
+            % doing local region based correction.  (They should only be a
+            % couple to couple dozen of frames = a few seconds of drift at most).
+            x_drift = [x_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
+            y_drift = [y_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
         end
         mlist.xc = mlist.x - x_drift(mlist.frame)';
         mlist.yc = mlist.y - y_drift(mlist.frame)';
@@ -131,7 +137,7 @@ for n=1:numChns
         axes(handles.axes1); cla; %#ok<*LAXES>
         Nframes = length(x_drift); 
  
-        if Nframes > 1
+        if Nframes > 1 && retry ~= 2
             z = zeros(size(x_drift'));
             col = [double(1:Nframes-1),NaN];  % This is the color, vary with x in this case.
              surface([x_drift';x_drift']*npp,[y_drift';y_drift']*npp,...

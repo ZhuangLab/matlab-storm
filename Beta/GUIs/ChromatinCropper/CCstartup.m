@@ -76,7 +76,7 @@ set(handles.CCinstance,'String',['inst id',num2str(handles.gui_number)]);
     % step 6 parameters
     CC{handles.gui_number}.pars6.boxSize = 32;
     CC{handles.gui_number}.pars6.startFrame= 1; % 
-	CC{handles.gui_number}.pars6.minloc = 1; % min number of localization per box
+	CC{handles.gui_number}.pars6.minloc = 2; % min number of localization per box
 	CC{handles.gui_number}.pars6.minSize = 30; % min size in number of boxes
     % step 7 parameters
     CC{handles.gui_number}.pars7.saveColorTime = true; % This is useful but slow

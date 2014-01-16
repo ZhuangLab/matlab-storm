@@ -127,7 +127,7 @@ daxname = CC{handles.gui_number}.daxname;
         'Overview_',num2str(imnum),'.png']);
         
     
-    figure(1); clf;
+    figure(1); clf; colordef white; 
     subplot(3,2,1); hist( [data.MainArea{:}] ); title('Area');
     subplot(3,2,2); hist( [data.Dvar{:}] ); title('Intensity Variation')
     subplot(3,2,3); hist( [data.MainDots{:}]./[data.MainArea{:}] ); title('localization density');
