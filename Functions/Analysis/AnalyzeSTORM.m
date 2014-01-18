@@ -241,14 +241,14 @@ filePaths = {};
 prefix = [];
 switch method
     case 'insight'
-        prefix = [];
+        fileExt = '_list.bin';
     case {'multifit', 'daoSTORM'}
-        prefix = '_dao';
+        fileExt = '_mlist.bin';
 end
 
 for i=1:length(infoFiles)
-    fileNames{i} =  [infoFiles(i).localName(1:(end-4)) '.dax'];
-    binFileNames{i} = [infoFiles(i).localName(1:(end-4)) prefix '_list.bin'];
+    fileNames{i} =  [infoFiles(i).localName(1:(end-4)) ];
+    binFileNames{i} = [infoFiles(i).localName(1:(end-4)) fileExt ];
     filePaths{i} = infoFiles(i).localPath;
 end
 
