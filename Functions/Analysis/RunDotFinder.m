@@ -169,7 +169,7 @@ if nargin > 1
             case 'printprogress'
                 printprogress = CheckParameter(parameterValue, 'boolean', 'printprogress');
             case 'maxCPU'
-                maxCPU = CheckParameter(parameterValue, 'boolean', 'maxCPU');
+                maxCPU = CheckParameter(parameterValue, 'positive', 'maxCPU');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...

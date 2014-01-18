@@ -71,7 +71,8 @@ for i=1:numDataTypes
     quartiles(i,:) = quantile(data{i},[.25,.75]);
     quarts = quantile(data{i},[.25,.75]);
     medians(i) = median(data{i});
-    boxes = [x(i)-w/2,quarts(1),w,quarts(2)-quarts(1)];  
+    h = max(1E-16,quarts(2)-quarts(1));
+    boxes = [x(i)-w/2,quarts(1),w,h];  
     
     hold on;
     rectangle('Position',boxes,'EdgeColor',clrmap(i,:)); 

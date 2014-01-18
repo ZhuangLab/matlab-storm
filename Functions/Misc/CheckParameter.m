@@ -110,6 +110,10 @@ for i=1:length(type)
             if ~(value >= 0 && value <= 1)
                 error([name ' is not a valid fraction']);
             end
+        case 'handle'
+            if ~ishandle(value)
+               error([name 'is not a handle']);  
+            end
         otherwise
             error('Not a valid type');
     end
