@@ -85,7 +85,16 @@ if ~hasParsFile
        disp('No ROI parameters found. using dimensions from .inf file');  
     end
     daxname = regexprep(binfile,{'_list.bin','_mlist.bin','_alist.bin'},'.dax');
-    infofile = ReadInfoFile(daxname);
-    h = infofile.frame_dimensions(2); % actual size of image
-    w = infofile.frame_dimensions(1);
+    try
+        infofile = ReadInfoFile(daxname);
+        h = infofile.frame_dimensions(2); % actual size of image
+        w = infofile.frame_dimensions(1);
+    catch er
+        warning(['Unable to read infofile',infofileName]);
+        disp(er.message); 
+        disp(er.getReport);
+        warning('Unable to determine file size: assuming 256x256');
+        h = 256;
+        w = 256;
+    end
 end
