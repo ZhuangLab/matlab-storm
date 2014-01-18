@@ -70,7 +70,6 @@ end
 
 %% Main Function
 load(warpfile)
- 
 
 % If chromewarp file does not have channel names, assume defaults.  
 if ~exist('chn_warp_names','var')
@@ -96,6 +95,7 @@ if ~isempty(chnIdx)
 else
     if verbose
         disp('Data not warped');
+        imageOut = imageIn; 
     end
 end
 

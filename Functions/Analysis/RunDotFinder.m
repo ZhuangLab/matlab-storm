@@ -169,7 +169,7 @@ if nargin > 1
             case 'printprogress'
                 printprogress = CheckParameter(parameterValue, 'boolean', 'printprogress');
             case 'maxCPU'
-                maxCPU = CheckParameter(parameterValue, 'boolean', 'maxCPU');
+                maxCPU = CheckParameter(parameterValue, 'positive', 'maxCPU');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -251,8 +251,7 @@ end
 if sum(hasbin) ~= 0 
     if overwrite == 2   
         disp(char(txtout));
-        disp('these files will be overwritten.  ');
-        overwritefiles = input('type 2 to skip, 1 to overwrite, 0 to cancel:  ');
+        overwritefiles = input('Please select: 2=skip, 1=overwrite, 0=cancel:  ');
     elseif overwrite == 1
         overwritefiles = 1;
         if verbose
@@ -315,7 +314,7 @@ for s=1:Sections % loop through all dax movies in que
         binnumber = ['_',sprintf('%04d',s)];
         newBinName = binname;
         newBinName = regexprep(newBinName,'#',binnumber);
-        newBinName = regexprep(newBinName,'DAX',['_',daxroots{s}]);
+        newBinName = regexprep(newBinName,'DAX',daxroots{s});
         binfile = [dpath,filesep,newBinName,datatype];
    end
    

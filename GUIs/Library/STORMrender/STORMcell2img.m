@@ -1,5 +1,5 @@
 function Io = STORMcell2img(I,varargin)
-
+% converts the cell array output of list2img into a RBG image. 
 
 %--------------------------------------------------------------------------
 % Default Parameters
@@ -15,7 +15,7 @@ omin = 0;
 omax = 0;
 active_overlays = 0; 
 numClrs = [];
-clrmap = 'hsv';
+clrmap = [];  % Default will be hot for 1 
 
 %--------------------------------------------------------------------------
 % Parse variable input
@@ -67,11 +67,25 @@ end
 if omax == 0
     omax = ones(1,numOverlays); 
 end
+
 if isempty(numClrs)
-    cMap = [];
-else
-    cMap = eval([clrmap,'(',num2str(numClrs),')']);
+    numClrs = length(I);
 end
+
+if isempty(clrmap)
+    if length(numClrs) <= 1
+        cMap = 'hot'; 
+    else
+        cMap = hsv(numClrs); 
+    end
+else
+    if length(numClrs) <= 1
+        cMap = clrmap;
+    else
+        cMap = eval([clrmap,'(',num2str(numClrs),')']);
+    end
+end
+
 numOverlays = length(active_overlays);
 
 %--------------------------------------------------------------------------
@@ -108,9 +122,10 @@ if ~isempty(active_overlays)
     end
 end
 
+
 if nargout ~= 0
     Io = Ncolor(Ic,cMap); % Actually builds the RGB picture
 else
-     Ncolor(Ic,[]); % Actually builds the RGB picture
+     Ncolor(Ic,cMap); % Actually builds the RGB picture
 end
 

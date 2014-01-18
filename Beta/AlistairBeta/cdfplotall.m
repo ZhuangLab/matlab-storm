@@ -1,4 +1,7 @@
-function fighand = cdfplotall(data,varargin)
+function cdfplotall(data,varargin)
+%--------------------------------------------------------------------------
+% generate a cumulative density function plots fo cell data
+% 
 %--------------------------------------------------------------------------
 % cdfplotall(data)       -- histograms of the data in each cell of data
 % cdfplotall(data,bins)  -- histograms of the data in each cell of data
@@ -18,7 +21,6 @@ function fighand = cdfplotall(data,varargin)
 %--------------------------------------------------------------------------
 groupnames = repmat({''},length(data),1); 
 clrmap = 'jet';
-fighand = [];
 xlab = '';
 
 %--------------------------------------------------------------------------

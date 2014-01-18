@@ -8,15 +8,15 @@ function Io = Ncolor(I,varargin)
 %                        -- Returns a 3D RGB matrix which has mapped each
 %                        of the z-dimensions of the input image to a
 %                        different color in RGB space.  
-% Io = Ncolor(I,cmap); 
+% Io = Ncolor(I,cMap); 
 %                        -- Convert the N layer matrix I into an RGB image
-%                           according to colormap, 'cmap'.  
+%                           according to colormap, 'cMap'.  
 %------------------------------------------------------------------------
 % Inputs
 % I double / single / uint16 or uint8, 
 %                       -- HxWxN where each matrix I(:,:,n) is
 %                          to be assigned a different color. 
-% cmap                  
+% cMap                  
 %                       -- a valid matlab colormap. leave blank for default
 %                       hsv (which is RGB for N=3).  Must be Nx3
 %-------------------------------------------------------------------------
@@ -33,44 +33,56 @@ function Io = Ncolor(I,varargin)
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
 
-if nargin == 1
-    cmap = [];
-elseif nargin == 2
-    cmap = varargin{1};
-else
+global scratchPath
+
+
+clrmap = []; 
+if nargin == 2
+    clrmap = varargin{1};
+elseif nargin > 2
     error('wrong number of inputs');
 end
-    
+[h,w,numColors] = size(I);
 
-[h,w,cls] = size(I);
-if isempty(cmap);
-    cmap = hsv(cls);
+
+if isempty(clrmap)
+    clrmap = 'hot';
 end
 
-Io = zeros(h,w,3,class(I));
 
-% make white the default for single color images
-% make red cyan the default for dual color images
-if cls == 1
-   Io = I; 
-% elseif cls == 2 
-%     Io(:,:,3) = I(:,:,1);
+if numColors == 1;
+    imax = double( max(I(:)));
+    Io = makeuint( ind2rgb(I, hot(imax) ),16);
 else
-    for c=1:cls
-        for cc = 1:3
-        Io(:,:,cc) = Io(:,:,cc) + I(:,:,c)*cmap(c,cc);
+    if ischar(clrmap)
+        try
+            clrmap = eval([clrmap,'(numColors)']);
+        catch
+            disp([clrmap,' is not a valid colormap name']);  
         end
     end
-
+    
+    Io = zeros(h,w,3,class(I));
+    try
+        for c=1:numColors
+            for cc = 1:3
+                Io(:,:,cc) = Io(:,:,cc) + I(:,:,c)*clrmap(c,cc);
+            end
+        end
+    catch er
+        save([scratchPath,'troubleshoot.mat']);
+        % load([scratchPath,'troubleshoot.mat']);
+        warning(er.getReport);
+        warning(['Data saved in:' scratchPath,'troubleshoot.mat']);
+        error('error running Ncolor'); 
+    end
 end
 
 if nargout == 0
     try
-    imagesc(Io);
+        imagesc(Io);
     catch
         imagesc(makeuint(Io,8));
     end
 end
 
-
- 

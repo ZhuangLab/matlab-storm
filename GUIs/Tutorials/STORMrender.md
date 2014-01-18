@@ -1,5 +1,9 @@
 # STORMrender
 
+Visualize and explore STORM data binary files.  
+
+![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrenderDemoData1.PNG)
+
 ## Loading a file
 ### Basic Loading
 To load a file, simply drag and drop a molecule list bin file into the Matlab command window (\*\_list.bin, \*\_mlist.bin, or \*\_alist.bin produced by DaoSTORM3D, InsightM, or STORMfinder).  Matlab will prompt if you want to open the file in STORMrender or just read it into the global variable `binfile`.
@@ -20,9 +24,7 @@ STORMrender will also ask you for a `chromewarps.mat` file, which tells it the p
 #### Automatic matching of multi-color data
 Alternatively, STORMrender can try to automatically match all the files in your working directory based on their file names.  Then you need only increase the counter and it will automatically load all the corresponding bin files and apply the appropriate chromatic alignment and drift correction.  
 
-For this to work your file names will have to adhere to the following structure:
-
-[Explanation of filename structure for automatic multi-color matching] 
+You first need to tell STORMrender your naming conventions. First, do you want to restrict the matching to files that only contain a certain particular phrase in the name?  In the example here I want only files that contain 'storm' in the name, this makes it easy to exclude conventional files, bead calibration movies, etc, that might be in the same directory.  What part of the filename specifies which channel it is a part of?  In my example, for a given image, the different color channels are distinguished as '750...', '647...' etc.  Everything that is not part of the channel flag must be a perfect match for the files to be considered different channels of the same movie.  You should also specify what type of bin file you are looking (e.g. `_alist.bin` or `_list.bin`) and which of the matched files you would like to load.  Enter zero to have STORMrender print in the command line a list of all the files its matched together and their corresponding number.   
 
 
 
@@ -147,8 +149,10 @@ By zooming in we can see the integration more clearly.
 ![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_FeducialDriftFixed2.PNG)
 
 ## Adding Overlays
-You may wish to overlay your STORM image on some other images (e.g. conventional images taken in the same and or other channels). Simply select "Options" "Add Overlay", select Okay, and navigate to the image you wish to overlay.  STORMrender assumes this image has the same maximum dimensions as the STORM data, so if your binfile is just a cropped ROI, you will need to crop the overlay image to the same dimensions first.  
+You may wish to overlay your STORM image on some other images (e.g. conventional images taken in the same and or other channels). Simply select "Options" "Add Overlay", select Okay, and navigate to the image you wish to overlay.  Overlays may be dax movies or other standard image formats, like png, jpeg or tiff.  STORMrender assumes this image has the same maximum dimensions as the STORM data, so if your binfile is just a cropped ROI relative to the complete conventional image, you will need to crop the overlay image to the same dimensions first.  
 
 ![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_OverlayOps.PNG)
 
 ![](https://raw.github.com/ZhuangLab/matlab-storm/master/GUIs/Tutorials/figs/STORMrender_OverlayDemo.PNG)
+
+As you can see, the new overlay image appears as a new button in the overlay panel on the right.  You can toggle display of this overlay on and off.  The overlay has also been added to the drop down menu on the Levels panel.  You can select it here and tune the contrast by changing the min and max intensity values.  
