@@ -21,9 +21,16 @@ guidata(hObject, handles);
 SR{handles.gui_number}.fnames = binnames; % display name for the files
 
 % Get infofile #1 for position information
-k = strfind(binnames{1},'_'); 
-SR{handles.gui_number}.infofile = ...
-    ReadInfoFile([SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf']);
+% Very few functions require the information in the info file
+try
+    k = strfind(binnames{1},'_');  % strip off final '_mlist.bin _alist.bin _list.bin etc
+    infofileName = [SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf'];
+    SR{handles.gui_number}.infofile = ReadInfoFile(infofileName);
+catch er
+    warning(['Unable to read infofile',infofileName]);
+    disp(er.message); 
+    disp(er.getReport);
+end
 
 % Load the binfiles 
 Tchns = length(binnames);
