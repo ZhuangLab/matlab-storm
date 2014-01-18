@@ -96,10 +96,6 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
-% STARTUP
-% addpath(genpath('..')); % adds the whole Matlab_STORM directory to path.
-% alterantively, this can be specified by the matlab startup script.  
- addpath(genpath('.'));
 
 % If any daxfile has been loaded, open it along with opening the GUI.  
 try
