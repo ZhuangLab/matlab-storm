@@ -247,7 +247,7 @@ switch method
 end
 
 for i=1:length(infoFiles)
-    fileNames{i} =  [infoFiles(i).localName(1:(end-4)) ];
+    fileNames{i} =  [infoFiles(i).localName(1:(end-4)) '.dax'];
     binFileNames{i} = [infoFiles(i).localName(1:(end-4)) fileExt ];
     filePaths{i} = infoFiles(i).localPath;
 end
