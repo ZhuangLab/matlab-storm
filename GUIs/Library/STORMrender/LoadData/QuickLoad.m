@@ -9,4 +9,5 @@ else
 end
 handles = AddStormLayer(hObject,handles,FileName,1);
 handles = SingleBinLoad(hObject,eventdata,handles);
+RunLevelsChannel(hObject,eventdata,handles);
 guidata(hObject, handles);
