@@ -51,8 +51,7 @@ end
 
 
 if numColors == 1;
-    imax = double( max(I(:)));
-    Io = makeuint( ind2rgb(I, hot(imax) ),16);
+    Io = I; 
 else
     if ischar(clrmap)
         try
@@ -81,8 +80,10 @@ end
 if nargout == 0
     try
         imagesc(Io);
+        colormap(clrmap);
     catch
         imagesc(makeuint(Io,8));
+        colormap(clrmap);
     end
 end
 
