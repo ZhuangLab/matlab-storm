@@ -3,8 +3,8 @@ function ShowSTORM(handles,n)
 % n - index of chromatin spot to plot
 
 global CC
-    cmin = CC{handles.gui_number}.pars0.cmin;
-    cmax = CC{handles.gui_number}.pars0.cmax;
+    cmin = CC{handles.gui_number}.pars0.cmin
+    cmax = CC{handles.gui_number}.pars0.cmax
     Istorm = CC{handles.gui_number}.Istorm{n};
 
     R = CC{handles.gui_number}.R;
@@ -16,7 +16,7 @@ global CC
  
 if isempty(CC{handles.gui_number}.mlist1)
     numChns = 1;
-    clrmap = 'hot';
+    clrmap = CC{handles.gui_number}.clrmap;
 else
     numChns = 2;
     clrmap = 'lines';
@@ -28,14 +28,15 @@ for c = 1:numChns;
 end
 active_channels = find(channels);
 
+axes(handles.subaxis2);
 
-Io = STORMcell2img(Istorm,...
+
+STORMcell2img(Istorm,...
 'active channels',active_channels,...
 'cmin',cmin,'cmax',cmax,...
 'colormap',clrmap);
-% 'numClrs',numClrs,
 
-Ncolor(Io);
+
     set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
     text(1.2*cluster_scale,2*cluster_scale,...
     ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...

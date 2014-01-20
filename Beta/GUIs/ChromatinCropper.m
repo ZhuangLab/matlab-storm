@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 15-Jan-2014 22:35:25
+% Last Modified by GUIDE v2.5 20-Jan-2014 14:55:30
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -286,6 +286,12 @@ function MenuSpecifyOverlays_Callback(hObject, eventdata, handles)
 SpecifyOverlays(handles); 
 
 
+% --------------------------------------------------------------------
+function MenuSelectColormap_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuSelectColormap (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+SelectColormap(handles)
 
 
 %% Set these to update display 
@@ -342,3 +348,4 @@ function AdjustChn1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of AdjustChn1
+

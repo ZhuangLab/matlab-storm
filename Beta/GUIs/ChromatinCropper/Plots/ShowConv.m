@@ -7,7 +7,8 @@ for c = 1:2;
 end
 display_channels = [1,4];
 display_channels = display_channels(channels); 
-Ncolor(CC{handles.gui_number}.Iconv{n}(:,:,display_channels)); 
+Ncolor(CC{handles.gui_number}.Iconv{n}(:,:,display_channels),CC{handles.gui_number}.clrmap); 
 set(gca,'color','k'); 
 set(gca,'XTick',[],'YTick',[]);
 
+CC{handles.gui_number}.clrmap

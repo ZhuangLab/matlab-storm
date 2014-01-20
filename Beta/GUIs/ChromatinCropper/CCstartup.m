@@ -85,4 +85,6 @@ set(handles.CCinstance,'String',['inst id',num2str(handles.gui_number)]);
     CC{handles.gui_number}.parsX.stepFrame = [8000 8000]; % 'stepframe' / double / 10E3 -- number of frames to average
     CC{handles.gui_number}.parsX.scale  = [5 5]; % 'scale' / double / 5 -- upsampling factor for binning localizations
     CC{handles.gui_number}.parsX.showPlots = [1 1];   % 'showplots' / logical / true -- plot computed drift?
-    CC{handles.gui_number}.parsX.local = [0 0];
+    CC{handles.gui_number}.parsX.local = [0 0];  
+    % colormap
+    CC{handles.gui_number}.clrmap = hot(256); 

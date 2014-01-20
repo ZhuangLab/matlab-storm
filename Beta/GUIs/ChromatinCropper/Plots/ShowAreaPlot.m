@@ -6,7 +6,7 @@ global CC
     imagesc(CC{handles.gui_number}.map{n}); %
     text(1.2*cluster_scale,2*cluster_scale,...
         ['dot',num2str(n),' Area=',num2str(Area)],'color','w');
-    caxis([0,1]); colormap hot;
+    caxis([0,1]); colormap(CC{handles.gui_number}.clrmap);
     set(gca,'XTick',[],'YTick',[]);
     catch er
         disp(er.getReport); 
