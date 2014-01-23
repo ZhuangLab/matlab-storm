@@ -178,7 +178,7 @@ M4s = imfilter(M4,gaussblur,'replicate');
 
 % threshold and get region props (just the big ones); 
 bw = M4seg>0; 
-R3 = regionprops(bw,M4,'PixelValues','WeightedCentroid','BoundingBox','PixelList');
+R3 = regionprops(bw,M4,'PixelValues','WeightedCentroid','BoundingBox','PixelList','Area');
 lengths = cellfun(@length, {R3.PixelValues});
 R3 = R3(lengths>minvoxels);
 Nsubclusters = length(R3);

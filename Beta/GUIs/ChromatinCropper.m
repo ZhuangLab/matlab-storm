@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 20-Jan-2014 14:55:30
+% Last Modified by GUIDE v2.5 23-Jan-2014 14:19:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -143,6 +143,14 @@ function DotSlider_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 GetDotSlider(hObject, eventdata, handles);
+
+
+% --- Executes on button press in SaveBlob.
+function SaveBlob_Callback(hObject, eventdata, handles)
+% hObject    handle to SaveBlob (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+RunSaveBlob(hObject,eventdata,handles);
 
 
 function ImageBox_Callback(hObject, eventdata, handles)
@@ -348,4 +356,5 @@ function AdjustChn1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of AdjustChn1
+
 

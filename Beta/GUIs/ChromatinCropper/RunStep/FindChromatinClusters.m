@@ -155,11 +155,11 @@ global CC
               ChromatinPlots(handles, n);
               pause(.5); 
       end
-      if Nclusters > 1
+      if Nclusters >= 1
         CC{handles.gui_number}.dotnum = Nclusters;
         set(handles.DotSlider,'Value',Nclusters);
         set(handles.DotSlider,'Min',1);
         set(handles.DotSlider,'Max',Nclusters);  
-        set(handles.DotSlider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);
+        set(handles.DotSlider,'SliderStep',[1/(Nclusters),3/(Nclusters)]);
       end
     

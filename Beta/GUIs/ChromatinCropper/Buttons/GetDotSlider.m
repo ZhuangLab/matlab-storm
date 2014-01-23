@@ -15,6 +15,6 @@ if CC{handles.gui_number}.step >= 6
     n = round(get(hObject,'Value'));
     set(handles.DotNum,'String',num2str(n));
     CC{handles.gui_number}.dotnum = n;
-    ChromatinPlots2(handles, n);
+    % ChromatinPlots2(handles, n);
 end
 guidata(hObject,handles); 
