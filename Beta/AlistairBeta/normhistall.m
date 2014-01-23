@@ -73,7 +73,7 @@ if nargin > 2
             case 'xlabel'
                 xlab = CheckParameter(parameterValue, 'string', 'xlabel');
             case 'colormap'
-                clrmap = parameterValue; 
+                clrmap = CheckParameter(parameterValue, 'colormap', 'colormap');
             case 'alpha'
                 alphavalue = CheckParameter(parameterValue, 'nonnegative', 'alpha');
             otherwise

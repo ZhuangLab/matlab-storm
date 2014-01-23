@@ -14,8 +14,9 @@ function BoxPlot2D(x,data,varargin)
 %% Default parameters
 width = .03;
 clrmap = [];
-datanames = {}; 
-
+datanames = {};
+showdots = false;
+MarkerSize = 5;
 
 
 %--------------------------------------------------------------------------
@@ -37,6 +38,10 @@ if nargin > 1
                 datanames = CheckParameter(parameterValue, 'cell', 'datanames');
             case 'colormap'
                 clrmap = CheckParameter(parameterValue,'colormap','colormap') ; % string name of colormap or a colormap matrix.
+            case 'showdots'
+                showdots = CheckParameter(parameterValue,'boolean','showdots');
+            case 'MarkerSize'
+                MarkerSize = CheckParameter(parameterValue,'positive','dotsize'); 
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -80,5 +85,11 @@ for i=1:numDataTypes
     if ~isempty(datanames)
         text(x(i)+w,medians(i),datanames{i});
     end
+    if showdots
+        numPts = length(data{i}); 
+        plot( x(i) + xRange*w*.001*(.5-rand(numPts,1)),data{i},'.',...
+            'color',clrmap(i,:),'MarkerSize',MarkerSize);
+    end
+    
 end
 
