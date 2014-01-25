@@ -1,6 +1,12 @@
 function ChromatinPlots(handles, n)
 % plot data for cluster n in main figure window
 global CC   
+
+% fix background by clearing axis;
+axes(handles.axes1); cla;
+set(gca,'color','k');
+set(gca,'XTick',[],'YTick',[]);
+
     axes(handles.subaxis1); cla; %#ok<*LAXES>
     ShowConv(handles,n);
     
@@ -12,3 +18,9 @@ global CC
     
     axes(handles.subaxis4); cla; %#ok<*LAXES>
     ShowHist(handles,n);
+    
+      figure(3); clf; 
+      List2ImgXYZ(CC{handles.gui_number}.vlists{n},...
+          'colormap',CC{handles.gui_number}.clrmap,...
+          'xrange',[0,15],'yrange',[0,15]); 
+         

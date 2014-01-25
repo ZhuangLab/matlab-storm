@@ -37,6 +37,7 @@ CC{handles.gui_number}.Dirs = ...
     'Step 7: Save data'};
 
 % Default Parameters for GUI
+CC{handles.gui_number}.clrmapName = 'hot';
 CC{handles.gui_number}.clrmap = hot(256);  % default colormap
 
 % General control parameters
@@ -82,14 +83,15 @@ CC{handles.gui_number}.parsX.showPlots = [1 1];   % 'showplots' / logical / true
 CC{handles.gui_number}.parsX.local = [0 0];  % use whole image (0) or indicated spot (need to run step 5 so that spots get numbered, then come back and pick one to fix)
 
 % step 5 parameters
-CC{handles.gui_number}.pars5.scale = 2048;
-CC{handles.gui_number}.pars5.zm = 1; 
+CC{handles.gui_number}.pars5.regionSize = 2400; % nm
+CC{handles.gui_number}.pars5.boxSize = 16; 
 CC{handles.gui_number}.pars5.showColorTime = true; % This is useful but slow
+CC{handles.gui_number}.pars5.zrescale = 4;
 
 % step 6 parameters
 CC{handles.gui_number}.pars6.boxSize = 32; % in nm
 CC{handles.gui_number}.pars6.startFrame= 1; % exclude localizations before this from analysis
-CC{handles.gui_number}.pars6.minloc = 2; % min number of localization per box
+CC{handles.gui_number}.pars6.minLoc = 2; % min number of localization per box
 CC{handles.gui_number}.pars6.minSize = 30; % min size in number of boxes
 
 % step 7 parameters
@@ -102,8 +104,9 @@ maxDots = 200;
 
 % General information about spot
 CC{handles.gui_number}.data.locusname = '';
-    
-% Scalar summary statistics about blobs
+CC{handles.gui_number}.data.chromeError = NaN;
+
+% Summary statistics about blobs
 CC{handles.gui_number}.data.mI3 = NaN*zeros(maxDots,1);
 CC{handles.gui_number}.data.mainVolume = NaN*zeros(maxDots,1);
 CC{handles.gui_number}.data.mI = NaN*zeros(maxDots,1);
@@ -112,9 +115,9 @@ CC{handles.gui_number}.data.mainLocs = NaN*zeros(maxDots,1);
 CC{handles.gui_number}.data.allArea = NaN*zeros(maxDots,1);
 CC{handles.gui_number}.data.allLocs = NaN*zeros(maxDots,1);
 CC{handles.gui_number}.data.cvDensity = NaN*zeros(maxDots,1); 
-CC{handles.gui_number}.data.eccent = NaN*zeros(maxDots,1);
+CC{handles.gui_number}.data.props2D = cell(maxDots,1);
 CC{handles.gui_number}.data.driftError = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.chromeError = NaN*zeros(maxDots,1);
+
 
 % Raw data about blobs
 CC{handles.gui_number}.data.vlists = cell(maxDots,1);

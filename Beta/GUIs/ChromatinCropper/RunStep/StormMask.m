@@ -34,6 +34,7 @@ for n=1:numChns;
      if n==2
          binfile = regexprep(binfile,'647','750');
      end
+     CC{handles.gui_number}.currBinfiles{n} = [folder,filesep,binfile];
      
     % Step 3: Load molecule list and bin it to create image
     mlist =     ReadMasterMoleculeList([folder,filesep,binfile]);
@@ -133,4 +134,6 @@ subplot(2,2,1); imagesc(CC{handles.gui_number}.M); caxis([0,10]);
 subplot(2,2,2); imagesc(CC{handles.gui_number}.M1); caxis([0,10]);
 subplot(2,2,3); imagesc(keep);
 subplot(2,2,4); imagesc(keep1); colormap hot;
+else
+    set(handles.sLayer2,'Value',0)
 end

@@ -8,24 +8,31 @@ daxname = CC{handles.gui_number}.daxname;
     Icell = CC{handles.gui_number}.Icell;
     R = CC{handles.gui_number}.R;
     data = CC{handles.gui_number}.data;
-    saveroot = CC{handles.gui_number}.pars7.saveroot;
+   
+    
     
     % save parameters
+    
     imnum = CC{handles.gui_number}.imnum;
     saveNs = CC{handles.gui_number}.saveNs; 
+    
+    saveroot = CC{handles.gui_number}.pars7.saveroot;
     savefolder = get(handles.SaveFolder,'String');
+    
+    % Automatically get saveroot (whatever comes before _storm).  
+    %  strip off any automatically generated prefixes.   
     if isempty(saveroot)
         s1 = strfind(daxname,'quad_'); 
         s2 = strfind(daxname,'_storm');
-        saveroot = daxname(s1+5:s2);
+        saveroot = daxname(s1+5:s2);   
         if isempty(s1)
             s1 = 1;
             saveroot = daxname(s1:s2);
         end
-        
         CC{handles.gui_number}.pars7.saveroot = saveroot;
     end
     
+    % Check for a target folder. 
     if isempty(savefolder)
         error('error, no save location specified'); 
     end
@@ -37,6 +44,14 @@ daxname = CC{handles.gui_number}.daxname;
             mkdir(savefolder);
         end
     end
+    
+    
+    
+              
+    
+    
+    
+    
     
     disp(['saving data in: ',savefolder])
    
@@ -110,6 +125,10 @@ daxname = CC{handles.gui_number}.daxname;
         Imdata.Ihist = CC{handles.gui_number}.Ihist{n};
         Imdata.name = CC{handles.gui_number}.binfiles(imnum).name;
         
+
+       % create a structure will the information for just this dot.  
+       dotdata = IndexStructure(CC{handles.gui_number}.data,dotnum);
+        
         save([savefolder,filesep,saveroot,'DotData_',num2str(imnum),...
             '_d',num2str(n),'.mat'],'imaxes','vlist','parData','Imdata');
         
@@ -126,15 +145,7 @@ daxname = CC{handles.gui_number}.daxname;
     saveas(Iout2,[savefolder,filesep,saveroot,...
         'Overview_',num2str(imnum),'.png']);
         
-    
-    figure(1); clf; colordef white; 
-    subplot(3,2,1); hist( [data.MainArea{:}] ); title('Area');
-    subplot(3,2,2); hist( [data.Dvar{:}] ); title('Intensity Variation')
-    subplot(3,2,3); hist( [data.MainDots{:}]./[data.MainArea{:}] ); title('localization density');
-    subplot(3,2,4); hist( [data.Tregions{:}] ); title('number of regions'); 
-    subplot(3,2,5); hist( [data.TregionsW{:}] ); title('Weighted number of regions')
-    subplot(3,2,6); hist( [data.mI{:}] ); title('moment of Inertia'); 
-    % hist( [data.MainEccent{:}] ); title('eccentricity'); 
+
     
     CCguiData = CC{handles.gui_number};  %#ok<NASGU>
     save([savefolder,filesep,saveroot,'data.mat'],'data','CCguiData');

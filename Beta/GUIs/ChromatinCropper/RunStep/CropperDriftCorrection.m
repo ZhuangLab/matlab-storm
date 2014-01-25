@@ -133,6 +133,7 @@ for n=1:numChns
     
     if goOn
         driftReport = strcat('Drift Correction Uncertainty: ',num2str(drift_error,3),'nm');
+        CC{handles.gui_number}.tempData.driftError = drift_error; 
         % plot mask in main figure window
         axes(handles.axes1); cla; %#ok<*LAXES>
         Nframes = length(x_drift); 

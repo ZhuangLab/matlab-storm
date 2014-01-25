@@ -11,10 +11,10 @@ if CC{handles.gui_number}.step == 5
     CC{handles.gui_number}.dotnum = n;
     ChromatinPlots(handles, n);
 end
-if CC{handles.gui_number}.step >= 6
+if CC{handles.gui_number}.step == 6
     n = round(get(hObject,'Value'));
     set(handles.DotNum,'String',num2str(n));
     CC{handles.gui_number}.dotnum = n;
-    % ChromatinPlots2(handles, n);
+    FilterChromatinClusters(handles); 
 end
 guidata(hObject,handles); 

@@ -1,4 +1,4 @@
-function In = list2img(mlist,varargin)
+function [In, imaxes] = list2img(mlist,varargin)
 %--------------------------------------------------------------------------
 % I = list2img(mlist)  take the cell array of molecule lists (mlist) and
 %                    return a STORM image. If there are multiple elements
@@ -7,6 +7,9 @@ function In = list2img(mlist,varargin)
 %                    elements of the cell array I.  If 'Zsteps' option is
 %                    >1, the images will be 3D (see Outputs below).  
 %
+%  I = list2img(mlist,imaxes)
+%  I = list2img(mlist,'ParameterName',value,...)
+%  I = list2img(mlist,imaxes,'ParameterName',value,...)
 %--------------------------------------------------------------------------
 %  Inputs   
 %           mlist - 1xn cell where n is the number of channels in the
@@ -50,6 +53,9 @@ function In = list2img(mlist,varargin)
 %                 print text notes to command line? 
 %  'very verbose' / bolean / true
 %                 print out image properties for troubleshooting
+%  'zoom' / scalar / 10
+%                 instead of passing a full imaxes structure, just pass
+%                 zoom. 
 %-------------------------------------------------------------------------- 
 % Related Functions
 % see: STORMcell2img
@@ -74,6 +80,7 @@ Zs = 1;
 Zrange = [-500,500]; % range in nm 
 npp = 160; 
 scalebar = 500;
+zm = 10; 
 CorrectDrift = true;
 showScalebar = true;
 fastMode = false;
@@ -95,7 +102,7 @@ end
 
 % If imaxes is not passed as a variable
 if nargin == 1 || ischar(varargin{1})
-    imaxes.zm = 10; % default zoom; 
+    imaxes.zm = []; % default zoom; 
     imaxes.scale = 1;    
     molist = cell2mat(mlist);
     allx = cat(1,molist.xc);
@@ -104,8 +111,6 @@ if nargin == 1 || ischar(varargin{1})
     imaxes.xmax = ceil(max(allx));
     imaxes.ymin = floor(min(ally));
     imaxes.ymax = ceil(max(ally));
-    imaxes.H =  (imaxes.ymax - imaxes.ymin)*imaxes.zm*imaxes.scale;
-    imaxes.W =  (imaxes.xmax - imaxes.xmin)*imaxes.zm*imaxes.scale; 
 elseif ~ischar(varargin{1})
     imaxes = varargin{1};
 end
@@ -189,12 +194,19 @@ if ~isempty(varinput)
                 verbose = CheckParameter(parameterValue,'boolean','verbose');
             case 'very verbose'
                 veryverbose = CheckParameter(parameterValue,'boolean','very verbose'); 
+            case 'zoom'
+                zm = CheckParameter(parameterValue,'positive','zoom');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
     end
 end
 
+if isempty(imaxes.zm)
+    imaxes.zm = zm;
+    imaxes.H =  (imaxes.ymax - imaxes.ymin)*imaxes.zm*imaxes.scale;
+    imaxes.W =  (imaxes.xmax - imaxes.xmin)*imaxes.zm*imaxes.scale; 
+end
 
 %% More input conversion stuff
 
@@ -202,7 +214,7 @@ end
 % (mostly shorthand)
 zm = imaxes.zm*imaxes.scale; % pixel size
 W = round(imaxes.W*imaxes.scale); % floor(w*zm);
-H = round(imaxes.W*imaxes.scale); %  floor(h*zm); 
+H = round(imaxes.H*imaxes.scale); %  floor(h*zm);   % W
 
 if length(dotsize) < Cs
     dotsize = repmat(dotsize,Cs,1);

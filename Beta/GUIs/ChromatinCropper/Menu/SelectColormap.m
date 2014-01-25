@@ -8,7 +8,10 @@ dlg_title = 'Chose a color for spots';  num_lines = 1;
     'color ("red","yellow",...)',... 
      };     %5 
 
-    Opts{1} = CC{handles.gui_number}.clrmap;
+ CC{handles.gui_number}.clrmap; % map
+ CC{handles.gui_number}.clrmapName = 'hot';
+    Opts{1} = CC{handles.gui_number}.clrmapName;
+    
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
     clr = Opts{1}; 
     
@@ -43,6 +46,10 @@ if notCancel
         clrmap = [clrmap(:,1),clrmap(:,3),clrmap(:,1)];
         clrmap(clrmap<0) = 0;
         colormap(clrmap); 
+        
+        otherwise
+            disp(['colormap ',clr,' not recognized']); 
+            clrmap = CC{handles.gui_number}.clrmap;
     end
     CC{handles.gui_number}.clrmap = clrmap; 
 end

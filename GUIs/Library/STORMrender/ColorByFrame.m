@@ -1,4 +1,4 @@
-function cmp = ColorByFrame(vlist,varargin)
+function [cmp,dxc,dyc] = ColorByFrame(vlist,varargin)
 %--------------------------------------------------------------------------
 % ColorByFrame(vlist)
 %
@@ -36,6 +36,7 @@ function cmp = ColorByFrame(vlist,varargin)
 npp = 160;
 clrmap = 'jet';
 sizeData = 5;
+showPlot = false; 
 
 %--------------------------------------------------------------------------
 % Parse variable input
@@ -55,6 +56,8 @@ if nargin > 1
                 clrmap = CheckParameter(parameterValue,'string','colormap');
             case 'SizeData'
                 sizeData = CheckParameter(parameterValue,'positive','SizeData');
+            case 'showPlot'
+                showPlot = CheckParameter(parameterValue,'boolean','showPlot');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -62,16 +65,16 @@ if nargin > 1
 end
 
 %% Main Function
-dxc = vlist.xc;
-dyc = vlist.yc;
+dxc = vlist.xc*npp;
+dyc = vlist.yc*npp;
 numDots = length(vlist.frame);
 normFrames = vlist.frame - min(vlist.frame);
 normFrames = normFrames*numDots/(max(normFrames))+1;
 cmp = eval([clrmap,'(',num2str(numDots+1),')']);
 cmp = cmp(normFrames,:);
 
-if nargout == 0 
-    scatter(dxc*npp, dyc*npp, sizeData, cmp, 'filled');
+if nargout == 0 || showPlot
+    scatter(dxc, dyc, sizeData, cmp, 'filled');
     set(gcf,'color','w'); 
     xlabel('nm'); 
     ylabel('nm');

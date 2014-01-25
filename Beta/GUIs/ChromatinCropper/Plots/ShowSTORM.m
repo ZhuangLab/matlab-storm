@@ -2,9 +2,11 @@ function ShowSTORM(handles,n)
 % handles - contains user data
 % n - index of chromatin spot to plot
 
+
+
 global CC
-    cmin = CC{handles.gui_number}.pars0.cmin
-    cmax = CC{handles.gui_number}.pars0.cmax
+    cmin = CC{handles.gui_number}.pars0.cmin;
+    cmax = CC{handles.gui_number}.pars0.cmax;
     Istorm = CC{handles.gui_number}.Istorm{n};
 
     R = CC{handles.gui_number}.R;
@@ -30,15 +32,14 @@ active_channels = find(channels);
 
 axes(handles.subaxis2);
 
-
 STORMcell2img(Istorm,...
 'active channels',active_channels,...
 'cmin',cmin,'cmax',cmax,...
 'colormap',clrmap);
 
-
-    set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
-    text(1.2*cluster_scale,2*cluster_scale,...
-    ['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
-         num2str(DotSize),' maxD=',num2str(MaxD)],...
-         'color','w');
+set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
+text(1.2*cluster_scale,2*cluster_scale,...
+['dot',num2str(n),' counts=',num2str(TCounts),' size=',...
+     num2str(DotSize),' maxD=',num2str(MaxD)],...
+     'color','w');
+ axis image;
