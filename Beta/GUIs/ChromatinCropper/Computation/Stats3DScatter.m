@@ -73,7 +73,7 @@ xyz(:,1) = xyz(:,1)- props3D(mainReg).WeightedCentroid(1);
 xyz(:,2) = xyz(:,2)- props3D(mainReg).WeightedCentroid(2);
 xyz(:,3) = xyz(:,3)- props3D(mainReg).WeightedCentroid(3);
 m = double(props3D(mainReg).PixelValues); 
-mI3 = m'*(xyz(:,1).^2+xyz(:,2).^2+xyz(:,3).^2)/sum(m);
+mI3 = m'*((xyz(:,1)*bins(1)).^2+(xyz(:,2)*bins(2)).^2+(xyz(:,3)*bins(3)).^2)/sum(m);
 
 unitVolume = diff(xrange)/bins(1) * diff(yrange)/bins(2) * diff(zrange)/bins(3);
 maxVolume = maxVolume*unitVolume; 

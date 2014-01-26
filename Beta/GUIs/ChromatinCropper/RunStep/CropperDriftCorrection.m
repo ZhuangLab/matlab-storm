@@ -23,7 +23,7 @@ for n=1:numChns
  else
      mlist = CC{handles.gui_number}.mlist1;
  end
-    drift_error = '';
+    drift_error = NaN;
       
     % Load user defined parameters
     H = CC{handles.gui_number}.pars0.H;

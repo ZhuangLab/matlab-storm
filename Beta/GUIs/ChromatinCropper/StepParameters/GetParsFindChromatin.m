@@ -21,6 +21,7 @@ if isempty(Opts); notCancel = false; end
 if notCancel
     CC{handles.gui_number}.pars5.regionSize = eval(Opts{1}); % 30
     CC{handles.gui_number}.pars5.boxSize = eval(Opts{2});  %  1;
+    CC{handles.gui_number}.pars6.boxSize = eval(Opts{2});  %  1;
     CC{handles.gui_number}.pars5.showColorTime = eval(Opts{3});
     CC{handles.gui_number}.pars5.zrescale= eval(Opts{4});
 end

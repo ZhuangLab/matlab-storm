@@ -74,7 +74,7 @@ if minSize == 0;
 end
 
 % Area and locallizations
-props2D.mainArea  = maxArea*pixelSize^2;
+props2D.mainArea  = maxArea*pixelSize;
 props2D.mainLocs  = sum(props(mainIdx).PixelValues);
 props2D.allArea = sum([props.Area])*pixelSize^2;
 props2D.allLocs = sum(cat(1,props.PixelValues));

@@ -28,19 +28,19 @@ n = round(get(handles.DotSlider,'Value'));
     
     steps = regionSize*npp/boxSize;
     bins2D = linspace(0,regionSize,steps); 
-    [mapBW,mapIdx,props2D] = Stats2DScatter(vlist,'xBins',bins2D,'yBins',bins2D,'minLoc',minLoc,'minSize',minSize);
+    [mapBW,mapIdx,props2D] = Stats2DScatter(vlist,'xBins',bins2D,'yBins',bins2D,'minLoc',minLoc,'minSize',minSize,'pixelSize',boxSize);
     flist = MaskMoleculeList(vlist,mapBW,'xBins',bins2D,'yBins',bins2D); 
-    
+ 
     zBins = linspace(-300,300,steps)/npp*zrescale;
     xzlist = vlist;
     xzlist.yc = vlist.zc/npp*zrescale;
-    mapXZ =  Stats2DScatter(xzlist,'xBins',bins2D,'yBins',zBins,'minLoc',minLoc,'minSize',minSize);
+    mapXZ =  Stats2DScatter(xzlist,'xBins',bins2D,'yBins',zBins,'minLoc',minLoc,'minSize',minSize,'pixelSize',boxSize);
     flistXZ = MaskMoleculeList(xzlist,mapXZ,'xBins',bins2D,'yBins',zBins);
     
     yzlist = vlist;
     yzlist.xc = yzlist.yc;
     yzlist.yc = vlist.zc/npp*zrescale;
-    mapYZ = Stats2DScatter(yzlist,'xBins',bins2D,'yBins',zBins,'minLoc',minLoc,'minSize',minSize);
+    mapYZ = Stats2DScatter(yzlist,'xBins',bins2D,'yBins',zBins,'minLoc',minLoc,'minSize',minSize,'pixelSize',boxSize);
     flistYZ = MaskMoleculeList(yzlist,mapYZ,'xBins',bins2D,'yBins',zBins);
     
     % histogram variability
@@ -51,7 +51,7 @@ n = round(get(handles.DotSlider,'Value'));
     xc = vlists{n}.xc*npp;    
     yc = vlists{n}.yc*npp;  
     zc = vlists{n}.zc;      
-    [mainVolume, mI3] = Stats3DScatter(xc,yc,zc);
+    [mainVolume, mI3] = Stats3DScatter(xc,yc,zc,'minDots',minLoc);
     
 %% Some images
  % Saturate the ROI to show the connectivity.  
@@ -101,11 +101,10 @@ CC{handles.gui_number}.tempData.binname = CC{handles.gui_number}.currBinfiles;
 CC{handles.gui_number}.tempData.convImages = CC{handles.gui_number}.Iconv{n};
 CC{handles.gui_number}.tempData.cellImages = CC{handles.gui_number}.Icell{n};
 CC{handles.gui_number}.tempData.stormImages = CC{handles.gui_number}.Istorm{n};
-CC{handles.gui_number}.tempData.histImages = CC{handles.gui_number}.Ihist{n};
 CC{handles.gui_number}.tempData.timeMaps = CC{handles.gui_number}.Itime{n};
-CC{handles.gui_number}.tempData.stormImagesXZ = CC{handles.gui_number}.ImgZ{1}; 
-CC{handles.gui_number}.tempData.stormImagesYZ = CC{handles.gui_number}.ImgZ{2}; 
-CC{handles.gui_number}.tempData.stormImagesXY = CC{handles.gui_number}.ImgZ{3};
+CC{handles.gui_number}.tempData.stormImagesXZ = CC{handles.gui_number}.ImgZ{n}{1}; 
+CC{handles.gui_number}.tempData.stormImagesYZ = CC{handles.gui_number}.ImgZ{n}{2}; 
+CC{handles.gui_number}.tempData.stormImagesXY = CC{handles.gui_number}.ImgZ{n}{3};
 CC{handles.gui_number}.tempData.stormImagesXZfilt = stormXZfilt; 
 CC{handles.gui_number}.tempData.stormImagesYZfilt = stormYZfilt; 
 CC{handles.gui_number}.tempData.stormImagesXYfilt = stormXYfilt;
@@ -117,40 +116,46 @@ CC{handles.gui_number}.tempData.densityMaps = qMap;
     
 figure(4); clf; 
 subplot(2,3,1); 
-hist(CC{handles.gui_number}.tempData.mainArea,linspace(0,15E5,100));
-hold on; plot(CC{handles.gui_number}.tempData.mainArea,10,'r.','MarkerSize',20); 
+maxX = 3E4;
+hist(CC{handles.gui_number}.data.mainArea,linspace(0,maxX,50));
+hold on; plot(CC{handles.gui_number}.tempData.mainArea,9.5,'r.','MarkerSize',20); 
 title(['Area = ',num2str(CC{handles.gui_number}.tempData.mainArea,3)]); 
-xlim([0,15E5]);
+xlim([0,maxX]);
 
 subplot(2,3,2); 
-hist(CC{handles.gui_number}.tempData.mainVolume,linspace(0,15E8,100));
-hold on; plot(CC{handles.gui_number}.tempData.mainVolume,10,'r.','MarkerSize',20); 
+maxX = 8E8;
+hist(CC{handles.gui_number}.data.mainVolume,linspace(0,maxX,50));
+hold on; plot(CC{handles.gui_number}.tempData.mainVolume,9.5,'r.','MarkerSize',20); 
 title(['Volume = ',num2str(CC{handles.gui_number}.tempData.mainVolume,3)]); 
-xlim([0,15E8]); 
+xlim([0,maxX]); 
 
 subplot(2,3,3); 
-hist(CC{handles.gui_number}.tempData.mI,linspace(0,15E8,100));
-hold on; plot(CC{handles.gui_number}.tempData.mI,10,'r.','MarkerSize',20); 
+maxX = 8E6;
+hist(CC{handles.gui_number}.data.mI,linspace(0,maxX,50));
+hold on; plot(CC{handles.gui_number}.tempData.mI,9.5,'r.','MarkerSize',20); 
 title(['mI = ',num2str(CC{handles.gui_number}.tempData.mI,3)]); 
-xlim([0,5E2]);
+xlim([0,maxX]);
 
 subplot(2,3,4); 
-hist(CC{handles.gui_number}.tempData.mI3,linspace(0,15E8,100));
-hold on; plot(CC{handles.gui_number}.tempData.mI3,10,'r.','MarkerSize',20); 
+maxX = 5E4;
+hist(CC{handles.gui_number}.data.mI3,linspace(0,maxX,50));
+hold on; plot(CC{handles.gui_number}.tempData.mI3,9.5,'r.','MarkerSize',20); 
 title(['mI3 = ',num2str(CC{handles.gui_number}.tempData.mI3,3)]); 
-xlim([0,2E2]);
+xlim([0,maxX]);
 
 subplot(2,3,5); 
-hist(CC{handles.gui_number}.tempData.mainLocs,linspace(0,20E3,100));
-hold on; plot(CC{handles.gui_number}.tempData.mainLocs,10,'r.','MarkerSize',20); 
+maxX = 20E3;
+hist(CC{handles.gui_number}.data.mainLocs,linspace(0,maxX,50));
+hold on; plot(CC{handles.gui_number}.tempData.mainLocs,9.5,'r.','MarkerSize',20); 
 title(['Localizations = ',num2str(CC{handles.gui_number}.tempData.mainLocs,3)]);
-xlim([0,20E3]);
+xlim([0,maxX]);
 
 subplot(2,3,6); 
-hist(CC{handles.gui_number}.tempData.cvDensity,linspace(0,2,100));
-hold on; plot(CC{handles.gui_number}.tempData.cvDensity,10,'r.','MarkerSize',20); 
+maxX =3;
+hist(CC{handles.gui_number}.data.cvDensity,linspace(0,maxX,50));
+hold on; plot(CC{handles.gui_number}.tempData.cvDensity,9.5,'r.','MarkerSize',20); 
 title(['Density Variation = ',num2str(CC{handles.gui_number}.tempData.cvDensity,3)]);
-xlim([0,3]);
+xlim([0,maxX]);
 
 ChromatinPlots2(handles, n);
 

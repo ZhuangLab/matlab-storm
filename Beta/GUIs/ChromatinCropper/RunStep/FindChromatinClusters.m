@@ -122,8 +122,9 @@ for n=1:Nclusters % n=3
         vlists{n} = vlist; 
         
      % XZ and YZ plots
-         figure(2); clf; 
-         [stormXZ,stormYZ,stormXY] = List2ImgXYZ(vlist); 
+         figure(3); clf; 
+         [stormXZ,stormYZ,stormXY] = List2ImgXYZ(vlist,'colormap',...
+             CC{handles.gui_number}.clrmap); 
          ImgZ{n} = {stormXZ,stormYZ,stormXY}; 
 end  % end loop over dots
    
@@ -144,9 +145,9 @@ for n=1:Nclusters
 end
 
 if Nclusters > 1
-    CC{handles.gui_number}.dotnum = Nclusters;
-    set(handles.DotNum,'String',num2str(Nclusters)); 
-    set(handles.DotSlider,'Value',Nclusters);
+    CC{handles.gui_number}.dotnum = 1;
+    set(handles.DotNum,'String',num2str(1)); 
+    set(handles.DotSlider,'Value',1);
     set(handles.DotSlider,'Min',1);
     set(handles.DotSlider,'Max',Nclusters);  
     set(handles.DotSlider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);

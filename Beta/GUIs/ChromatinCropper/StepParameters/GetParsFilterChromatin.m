@@ -10,7 +10,7 @@ dlg_title = 'Step 6 Pars: Quantify Features';  num_lines = 1;
     'Min Localizations per box',...  4
     'Min Size (boxes)'};     %5 
 
-    Opts{1} = num2str(CC{handles.gui_number}.pars5.boxSize); % default to be the same as pars5 boxSize 
+    Opts{1} = num2str(CC{handles.gui_number}.pars6.boxSize); 
     Opts{2} = num2str(CC{handles.gui_number}.pars6.startFrame);
     Opts{3} = num2str(CC{handles.gui_number}.pars6.minLoc);
     Opts{4} = num2str(CC{handles.gui_number}.pars6.minSize);

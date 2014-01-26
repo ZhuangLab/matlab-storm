@@ -24,7 +24,7 @@ RunRunStep(hObject, eventdata, handles)
 % Clear current data
 cleardata = input('New folder selected.  Clear current data? y/n? ','s');
 if strcmp(cleardata,'y');
-     CC{handles.gui_number}.data = [];
+     ResetCCdata(handles);
      CC{handles.gui_number}.pars7.saveroot ='';
      disp('data cleared'); 
 end

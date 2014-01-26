@@ -148,7 +148,7 @@ end
  % If the file does not exist and the value is not set to  skip,
  % open a dialogue box to find the chromewarps file.
  if isempty(dir(warpfile)) && ~strcmp(BeadFolder,'skip')
-     [~,BeadFolder,loadCanceled] = uigetdir('chromewarps.mat','Find chromewarps',folder);
+     [~,BeadFolder,loadCanceled] = uigetfile('chromewarps.mat','Find chromewarps',folder);
  % If the warpfile load is aborted, set value to skip.  
      if loadCanceled == 0
         BeadFolder = 'skip';

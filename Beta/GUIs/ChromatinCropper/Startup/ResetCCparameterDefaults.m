@@ -1,40 +1,6 @@
-function handles = CCstartup(handles)
-% Default parameter values for Chromatin Cropper
+function  ResetCCparameterDefaults(handles)
 
-% Initialize Global GUI Parameters
 global CC
-if isempty(CC) % Build GUI instance ID 
-    CC = cell(1,1);
-else
-    CC = [CC;cell(1,1)];
-end
-handles.gui_number = length(CC);
-
-
-% Cleanup Axes
-axes(handles.axes1);
-set(gca,'color','k');
-set(gca,'XTick',[],'YTick',[]);
-
-axes(handles.axes2);
-set(gca,'color','k');
-set(gca,'XTick',[],'YTick',[]);
-
-% update instance ID#     
-set(handles.CCinstance,'String',['inst id',num2str(handles.gui_number)]);
-
-% Directions for steps
-CC{handles.gui_number}.source = '';
-CC{handles.gui_number}.imnum = 1;
-CC{handles.gui_number}.step = 1;
-CC{handles.gui_number}.Dirs = ...
-   {'Step 1: load conventional image';
-    'Step 2: Find all spots in conventional image';
-    'Step 3: load STORM image and filter on cluster properties';
-    'Step 4: Perform drift correction';
-    'Step 5: Crop and plot STORM-image';
-    'Step 6: Quantify structural features';
-    'Step 7: Save data'};
 
 % Default Parameters for GUI
 CC{handles.gui_number}.clrmapName = 'hot';
@@ -84,7 +50,7 @@ CC{handles.gui_number}.parsX.local = [0 0];  % use whole image (0) or indicated 
 
 % step 5 parameters
 CC{handles.gui_number}.pars5.regionSize = 2400; % nm
-CC{handles.gui_number}.pars5.boxSize = 16; 
+CC{handles.gui_number}.pars5.boxSize = 32; 
 CC{handles.gui_number}.pars5.showColorTime = true; % This is useful but slow
 CC{handles.gui_number}.pars5.zrescale = 4;
 
@@ -92,46 +58,8 @@ CC{handles.gui_number}.pars5.zrescale = 4;
 CC{handles.gui_number}.pars6.boxSize = 32; % in nm
 CC{handles.gui_number}.pars6.startFrame= 1; % exclude localizations before this from analysis
 CC{handles.gui_number}.pars6.minLoc = 2; % min number of localization per box
-CC{handles.gui_number}.pars6.minSize = 30; % min size in number of boxes
+CC{handles.gui_number}.pars6.minSize = 0; % min size in number of boxes
 
 % step 7 parameters
 CC{handles.gui_number}.pars7.saveColorTime = true; % This is useful but slow
 CC{handles.gui_number}.pars7.saveroot = '';
-
-%% Data structure -- All the stuff we're going to save and export
-   
-maxDots = 200; 
-
-% General information about spot
-CC{handles.gui_number}.data.locusname = '';
-CC{handles.gui_number}.data.chromeError = NaN;
-
-% Summary statistics about blobs
-CC{handles.gui_number}.data.mI3 = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.mainVolume = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.mI = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.mainArea = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.mainLocs = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.allArea = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.allLocs = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.cvDensity = NaN*zeros(maxDots,1); 
-CC{handles.gui_number}.data.props2D = cell(maxDots,1);
-CC{handles.gui_number}.data.driftError = NaN*zeros(maxDots,1);
-
-
-% Raw data about blobs
-CC{handles.gui_number}.data.vlists = cell(maxDots,1);
-CC{handles.gui_number}.data.imaxes = cell(maxDots,1);
-CC{handles.gui_number}.data.binnames = cell(maxDots,1);
-CC{handles.gui_number}.data.parData = cell(maxDots,1);
-
-% Images of our work
-CC{handles.gui_number}.data.convImages = cell(maxDots,1);
-CC{handles.gui_number}.data.stormImages = cell(maxDots,1);   
-CC{handles.gui_number}.data.stormImagesXZ = cell(maxDots,1);   
-CC{handles.gui_number}.data.stormImagesYZ = cell(maxDots,1);   
-CC{handles.gui_number}.data.areaMaps = cell(maxDots,1);   
-CC{handles.gui_number}.data.densityMaps = cell(maxDots,1);   
-CC{handles.gui_number}.data.timeMaps = cell(maxDots,1);   
-    
-
