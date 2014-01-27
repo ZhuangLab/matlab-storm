@@ -10,7 +10,7 @@ else
 end
 
 for n=1:numChns; 
-     disp(['creating mask for channel ',num2str(n)]);
+     % disp(['creating mask for channel ',num2str(n)]);
 
      % load variables from previous step
      if n == 1; 

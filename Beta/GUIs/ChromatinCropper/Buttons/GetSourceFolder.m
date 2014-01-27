@@ -25,6 +25,6 @@ RunRunStep(hObject, eventdata, handles)
 cleardata = input('New folder selected.  Clear current data? y/n? ','s');
 if strcmp(cleardata,'y');
      ResetCCdata(handles);
-     CC{handles.gui_number}.pars7.saveroot ='';
+     ResetCCparameterDefaults(handles);
      disp('data cleared'); 
 end

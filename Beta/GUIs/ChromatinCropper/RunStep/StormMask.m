@@ -37,7 +37,7 @@ for n=1:numChns;
      CC{handles.gui_number}.currBinfiles{n} = [folder,filesep,binfile];
      
     % Step 3: Load molecule list and bin it to create image
-    mlist =     ReadMasterMoleculeList([folder,filesep,binfile]);
+    mlist =     ReadMasterMoleculeList([folder,filesep,binfile],'verbose',false);
     mlist =     ReZeroROI([folder,filesep,binfile],mlist);
     infilt =    mlist.frame>startframe;   
     M =         hist3([mlist.yc(infilt),mlist.xc(infilt)],...

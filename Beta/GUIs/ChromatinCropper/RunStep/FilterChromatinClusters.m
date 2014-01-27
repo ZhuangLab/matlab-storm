@@ -31,7 +31,8 @@ n = round(get(handles.DotSlider,'Value'));
     [mapBW,mapIdx,props2D] = Stats2DScatter(vlist,'xBins',bins2D,'yBins',bins2D,'minLoc',minLoc,'minSize',minSize,'pixelSize',boxSize);
     flist = MaskMoleculeList(vlist,mapBW,'xBins',bins2D,'yBins',bins2D); 
  
-    zBins = linspace(-300,300,steps)/npp*zrescale;
+    % zBins = linspace(-300,300,steps)/npp*zrescale;
+    zBins = linspace(-1200,1200,steps)/npp*zrescale;
     xzlist = vlist;
     xzlist.yc = vlist.zc/npp*zrescale;
     mapXZ =  Stats2DScatter(xzlist,'xBins',bins2D,'yBins',zBins,'minLoc',minLoc,'minSize',minSize,'pixelSize',boxSize);
@@ -61,7 +62,7 @@ n = round(get(handles.DotSlider,'Value'));
         imaxes.xmax = regionSize;
         imaxes.ymax = regionSize;
     stormXYfilt = list2img(flist,imaxes);
-    areaMap = 3*stormXYfilt{1};
+    areaMap = 10*stormXYfilt{1};
   
 % Filtered versions of main images
 imaxes.ymin = zBins(1);
@@ -77,8 +78,18 @@ figure(5); clf; imagesc(regMap); colormap jet;
 qs = quantile(nonzeros(regMap(:)),[.2,.7,.85]);
 qMap = cat(3, regMap <= qs(1) , 2*(regMap > qs(1) & regMap <= qs(2)) ,...
      3*(regMap>qs(2) & regMap <= qs(3)), 4*(regMap > qs(3)) );
-figure(5); clf; Ncolor(qMap);
+figure(5); clf; subplot(1,2,1); Ncolor(qMap);
+subplot(1,2,2); imagesc(mapBW);
 
+% figure(10); clf; 
+% subplot(1,3,1); imagesc(mapBW);
+% subplot(1,3,2); imagesc(mapXZ);
+% subplot(1,3,3); imagesc(mapYZ);
+% 
+% figure(11); clf; 
+% subplot(1,3,1); imagesc(stormXYfilt{1});
+% subplot(1,3,2); imagesc(stormXZfilt{1});
+% subplot(1,3,3); imagesc(stormYZfilt{1});
 
 %%
 
@@ -93,9 +104,11 @@ CC{handles.gui_number}.tempData.mI3 = mI3;
 CC{handles.gui_number}.tempData.cvDensity = cvDensity;
 CC{handles.gui_number}.tempData.props2D = props2D;
 
+
 CC{handles.gui_number}.tempData.vlist = CC{handles.gui_number}.vlists{n};
 CC{handles.gui_number}.tempData.imaxes = CC{handles.gui_number}.imaxes{n};
 CC{handles.gui_number}.tempData.binname = CC{handles.gui_number}.currBinfiles;
+CC{handles.gui_number}.tempData.dotnum = n;
 
 % Images of our work
 CC{handles.gui_number}.tempData.convImages = CC{handles.gui_number}.Iconv{n};

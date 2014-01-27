@@ -61,7 +61,6 @@ Nclusters = length(R);
 Istorm = cell(Nclusters,1);
 Iconv = cell(Nclusters,1); 
 Itime = cell(Nclusters,1);
-Ihist = cell(Nclusters,1);
 Icell = cell(Nclusters,1); 
 ImgZ= cell(Nclusters,1); 
 cmp = cell(Nclusters,1); 
@@ -95,8 +94,8 @@ for n=1:Nclusters % n=3
        
       % Conventional Image of Spot 
         convCrop = convI(ceil(imaxes.ymin):floor(imaxes.ymax),...
-            ceil(imaxes.xmin):floor(imaxes.xmax),:);
-        Iconv{n} = convCrop; 
+            ceil(imaxes.xmin):floor(imaxes.xmax),1);
+        Iconv{n} = imadjust(convCrop,stretchlim(convCrop,0));  
         
      % STORM image of whole cell
        cellaxes = imaxes;
@@ -115,7 +114,15 @@ for n=1:Nclusters % n=3
        % Get subregion, exlude distant zs which are poorly fit
         vlist = msublist(mlist,imaxes,'filter',infilt);
         vlist.c( vlist.z>=480 | vlist.z<-480 ) = 9;    
-                  
+    
+     %  Correct z-calibration
+     zparsfile = 'Q:\2013-12-28_F12F11\Beads\647zcal_0001_zpars.xml'; 
+    % zparsfile = 'J:\2013-10-02_D09\splitdax\647pars.xml';
+   %  zparsfile = 'K:\2013-10-10_F11\splitdax\647dao_pars.xml';
+    vlist = RecalibrateZ(vlist,zparsfile); 
+        
+   % figure(13); clf; hist(vlist.zc); 
+    
      %  Indicate color as time. 
         [cmp{n},dxc,dyc] =  ColorByFrame(vlist);  
         Itime{n} = [dxc,dyc,cmp{n}];
@@ -123,8 +130,10 @@ for n=1:Nclusters % n=3
         
      % XZ and YZ plots
          figure(3); clf; 
-         [stormXZ,stormYZ,stormXY] = List2ImgXYZ(vlist,'colormap',...
-             CC{handles.gui_number}.clrmap); 
+         [stormXZ,stormYZ,stormXY] = List2ImgXYZ(vlist,...
+             'colormap',CC{handles.gui_number}.clrmap,...
+             'xrange',[0,15],'yrange',[0 15],...
+             'zrescale',1,'zrange',[-1200,1200]); 
          ImgZ{n} = {stormXZ,stormYZ,stormXY}; 
 end  % end loop over dots
    
@@ -139,10 +148,12 @@ CC{handles.gui_number}.Icell = Icell;
 CC{handles.gui_number}.Itime = Itime;
 CC{handles.gui_number}.ImgZ = ImgZ;
 CC{handles.gui_number}.cmp = cmp;
-for n=1:Nclusters
-      ChromatinPlots(handles, n);
-      pause(.5); 
-end
+% for n=1:Nclusters
+%       ChromatinPlots(handles, n);
+%       pause(.5); 
+% end
+
+ ChromatinPlots(handles, 1);
 
 if Nclusters > 1
     CC{handles.gui_number}.dotnum = 1;

@@ -52,14 +52,14 @@ CC{handles.gui_number}.parsX.local = [0 0];  % use whole image (0) or indicated 
 CC{handles.gui_number}.pars5.regionSize = 2400; % nm
 CC{handles.gui_number}.pars5.boxSize = 32; 
 CC{handles.gui_number}.pars5.showColorTime = true; % This is useful but slow
-CC{handles.gui_number}.pars5.zrescale = 4;
+CC{handles.gui_number}.pars5.zrescale = 1;
 
 % step 6 parameters
 CC{handles.gui_number}.pars6.boxSize = 32; % in nm
 CC{handles.gui_number}.pars6.startFrame= 1; % exclude localizations before this from analysis
 CC{handles.gui_number}.pars6.minLoc = 2; % min number of localization per box
 CC{handles.gui_number}.pars6.minSize = 0; % min size in number of boxes
+CC{handles.gui_number}.pars6.saveroot = '';
 
 % step 7 parameters
 CC{handles.gui_number}.pars7.saveColorTime = true; % This is useful but slow
-CC{handles.gui_number}.pars7.saveroot = '';

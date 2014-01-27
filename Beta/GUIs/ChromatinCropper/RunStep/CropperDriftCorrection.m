@@ -147,13 +147,15 @@ for n=1:numChns
             colormap(jet);
             set(gca,'color','w'); 
             colordef white;
-            set(gca,'XTick',linspace(min(x_drift*npp),max(x_drift*npp),10));
-            set(gca,'XTickLabel',linspace(min(x_drift*npp),max(x_drift*npp),10));
-            set(gca,'YTick',linspace(min(y_drift*npp),max(y_drift*npp),10));
-            set(gca,'YTickLabel',linspace(min(y_drift*npp),max(y_drift*npp),10));
+            xrange = round( linspace(min(x_drift*npp),max(x_drift*npp),10) );
+            yrange = round( linspace(min(y_drift*npp),max(y_drift*npp),10) );
+            set(gca,'XTick',xrange);
+            set(gca,'XTickLabel',xrange);
+            set(gca,'YTick',yrange);
+            set(gca,'YTickLabel',yrange);
             xlabel('nm');  ylabel('nm'); 
-            xlim([min(x_drift*npp),max(x_drift*npp)]);
-            ylim([min(y_drift*npp),max(y_drift*npp)]);
+            xlim([min(xrange),max(xrange)]);
+            ylim([min(yrange),max(yrange)]);
              text(mean(x_drift*npp),mean(y_drift*npp),driftReport);
         end
     

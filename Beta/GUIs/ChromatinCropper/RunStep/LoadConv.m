@@ -69,30 +69,39 @@ end
 
 
 %-------------------------------------------------------------------------
-% Load Conventional images 
+%% Load Conventional images 
 %--------------------------------------------------------------------------
 % searches for all channels 
 % uses only data taken in the STORM imaging plane (z=0).     
 % automatically tries to guess the file names 
 
  if isempty(CC{handles.gui_number}.pars1.overlays)
+    % Attempt to automatically detect overlays in folder splitdax
     if isempty(strfind(daxname,'647quad')) % new defaults
         fileNum = strfind(daxname,'_0_');
         fileNum = daxname(fileNum:end);
         overlays = dir([folder,'\splitdax\*','_z0',fileNum]);
         CC{handles.gui_number}.pars1.overlays = strcat([folder,'\splitdax\'],{overlays.name});
-    else
+    % Attempt to automatically detect overlays in current folder
+    else 
         fileNum = strfind(daxname,'_0_');
         fileNum = daxname(fileNum:end);
         overlays = dir([folder,'\*','_z0',fileNum]);
         CC{handles.gui_number}.pars1.overlays = strcat([folder,'\'],{overlays.name});
-        % CC{handles.gui_number}.pars1.overlays = strcat([folder,'\splitdax\'],{overlays.name});
     end
  end
   if isempty(CC{handles.gui_number}.pars1.overlays) % still empty
+      fileNum = strfind(daxname,'_0_');
+        fileNum = daxname(fileNum:end-4);
+        overlays = dir([folder,'\*','_z0',fileNum,'_c1.dax']);
+        CC{handles.gui_number}.pars1.overlays = strcat([folder,'\'],{overlays.name});
+ end
+ 
+ % Manually select overlays
+ if isempty(CC{handles.gui_number}.pars1.overlays) % still empty
       disp('automatic overlay detection failed.  Please select manually'); 
       SpecifyOverlays(handles)
-  end
+ end
  
  
  name488 = ~cellfun(@isempty,strfind(CC{handles.gui_number}.pars1.overlays,'488'));
@@ -106,6 +115,8 @@ end
  name647 = ~cellfun(@isempty,strfind(CC{handles.gui_number}.pars1.overlays,'647'));
  if sum(name647) 
     conv0Name = CC{handles.gui_number}.pars1.overlays{name647};
+ else
+     conv0Name = CC{handles.gui_number}.pars1.overlays{1};
  end
  name750 = ~cellfun(@isempty,strfind(CC{handles.gui_number}.pars1.overlays,'750'));
  if sum(name750)
@@ -159,9 +170,9 @@ end
  end
 
  if ~strcmp(BeadFolder,'skip')
-     warpedLamina = uint16(WarpImage(lamina,'488',warpfile));
-     warpedBeads = uint16(WarpImage(beads,'561',warpfile));
-     warpedConv1 = uint16(WarpImage(conv1,'750',warpfile));
+     warpedLamina = uint16(WarpImage(lamina,'488',warpfile,'verbose',false));
+     warpedBeads = uint16(WarpImage(beads,'561',warpfile,'verbose',false));
+     warpedConv1 = uint16(WarpImage(conv1,'750',warpfile,'verbose',false));
  else
      warpedLamina = lamina;
      warpedBeads = beads;

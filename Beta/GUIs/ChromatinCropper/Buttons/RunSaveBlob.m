@@ -6,7 +6,7 @@ if CC{handles.gui_number}.step == 6
 
 %--------------- Get saveroot and target folder  
     daxname = CC{handles.gui_number}.daxname;
-    saveroot = CC{handles.gui_number}.pars7.saveroot;
+    saveroot = CC{handles.gui_number}.pars6.saveroot;
     savefolder = get(handles.SaveFolder,'String');
     
     % Automatically get saveroot (whatever comes before _storm).  
@@ -19,7 +19,7 @@ if CC{handles.gui_number}.step == 6
             s1 = 1;
             saveroot = daxname(s1:s2);
         end
-        CC{handles.gui_number}.pars7.saveroot = saveroot;
+        CC{handles.gui_number}.pars6.saveroot = saveroot;
     end
     
     % Check for a target folder. 
@@ -42,6 +42,8 @@ dotnum = find(~isnan(CC{handles.gui_number}.data.mainArea),1,'last')+1;
 if (isempty(dotnum))
     dotnum = 1;
 end
+
+% CC{handles.gui_number}.data.mainArea(4:7) = NaN; 
 
 % Save current values for all parameters
 parData{1} = CC{handles.gui_number}.pars1;
@@ -109,36 +111,42 @@ save([savefolder,filesep,saveroot,'data.mat'],'data','CCguiData');
 % Side-by-side Conventional and STORM images
 saveFig = figure(10); clf; colordef white;
 set(gcf,'color','k');
-set(saveFig, 'PaperPosition', [0 0 14 5]);
+set(saveFig, 'PaperPosition', [0 0 10 5],'Position',[0 0 1000 500]);
 subplot(1,2,1); Ncolor(CC{handles.gui_number}.tempData.convImages(:,:,1)); colormap(CC{handles.gui_number}.clrmap);
 set(gca,'XTick',[],'YTick',[]); axis image;
 subplot(1,2,2); Ncolor(CC{handles.gui_number}.tempData.stormImagesXYfilt{1},CC{handles.gui_number}.clrmap);
 set(gca,'XTick',[],'YTick',[]); axis image;
 export_fig(saveFig,[savefolder,filesep,saveroot,'StormConv_',sprintf('%03d',dotnum),'.png']);
+close(saveFig); 
 
 % Side-by-side Conventional and STORM images
 saveFig = figure(10); clf; colordef white;
 set(gcf,'color','k');
-set(saveFig, 'PaperPosition', [0 0 14 5]);
+set(saveFig, 'PaperPosition', [0 0 10 5],'Position',[0 0 1000 500]);
 subplot(1,2,1); Ncolor(CC{handles.gui_number}.tempData.convImages(:,:,1)); colormap(CC{handles.gui_number}.clrmap);
 set(gca,'XTick',[],'YTick',[]); axis image;
 subplot(1,2,2); Ncolor(CC{handles.gui_number}.tempData.areaMaps,CC{handles.gui_number}.clrmap);
 set(gca,'XTick',[],'YTick',[]); axis image;
 export_fig(saveFig,[savefolder,filesep,saveroot,'AreaMap_',sprintf('%03d',dotnum),'.png']);
+close(saveFig); 
 
 % STORM projections, XY, XZ, YZ
 saveFig = figure(10); clf; colordef white;
 set(gcf,'color','k');
-set(saveFig, 'PaperPosition', [0 0 24 5]);
-    List2ImgXYZ( CC{handles.gui_number}.tempData.vlist,...
-          'colormap',CC{handles.gui_number}.clrmap,...
-          'xrange',[0,15],'yrange',[0,15]); 
+set(saveFig, 'PaperPosition', [0 0 24 5],'Position',[0 50 1200 350]);
+subplot(1,3,1); Ncolor(CC{handles.gui_number}.tempData.stormImagesXY{1},CC{handles.gui_number}.clrmap);
+set(gca,'XTick',[],'YTick',[]); axis image;
+subplot(1,3,2); Ncolor(CC{handles.gui_number}.tempData.stormImagesXZ{1},CC{handles.gui_number}.clrmap);
+set(gca,'XTick',[],'YTick',[]); axis image;
+subplot(1,3,3); Ncolor(CC{handles.gui_number}.tempData.stormImagesYZ{1},CC{handles.gui_number}.clrmap);
+set(gca,'XTick',[],'YTick',[]); axis image;
 export_fig(saveFig,[savefolder,filesep,saveroot,'Storm3D_',sprintf('%03d',dotnum),'.png']);
+close(saveFig); 
 
 % filtered STORM projections, XY, XZ, YZ
 saveFig = figure(10); clf; colordef white;
 set(gcf,'color','k');
-set(saveFig, 'PaperPosition', [0 0 24 5]);
+set(saveFig, 'PaperPosition', [0 0 24 5],'Position',[0 50 1200 350]);
 subplot(1,3,1); Ncolor(CC{handles.gui_number}.tempData.stormImagesXYfilt{1},CC{handles.gui_number}.clrmap);
 set(gca,'XTick',[],'YTick',[]); axis image;
 subplot(1,3,2); Ncolor(CC{handles.gui_number}.tempData.stormImagesXZfilt{1},CC{handles.gui_number}.clrmap);
@@ -146,7 +154,7 @@ set(gca,'XTick',[],'YTick',[]); axis image;
 subplot(1,3,3); Ncolor(CC{handles.gui_number}.tempData.stormImagesYZfilt{1},CC{handles.gui_number}.clrmap);
 set(gca,'XTick',[],'YTick',[]); axis image;
 export_fig(saveFig,[savefolder,filesep,saveroot,'Storm3Dfilt_',sprintf('%03d',dotnum),'.png']);
-
+close(saveFig); 
 
 else
    disp('Blobs can only be saved during Step 6');  
