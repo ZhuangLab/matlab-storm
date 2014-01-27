@@ -1,5 +1,5 @@
 
-function target_values = read_parameterfile(parameterfile,target_phrases,endmarker)
+function target_values = read_parameterfile(parameterfile,target_phrases,varargin)
 %--------------------------------------------------------------------------
 % target_values = read_parameterfile(parameterfile,target_phrases)
 %
@@ -11,14 +11,16 @@ function target_values = read_parameterfile(parameterfile,target_phrases,endmark
 % Inputs
 %  parameter file / string
 %                       -- full path name of file to search
+%  
+% 
+%  endmarker / string 
+%                       -- flag at which to stop reading line.  leave empty
+%                       if line ends with the target value to extract
 %--------------------------------------------------------------------------
 % Outputs
 %  target_values / cell 
 %                       -- cell array of strings, same size as the cell
 %                       array 'target_phrases'
-%  endmarker / string 
-%                       -- flag at which to stop reading line.  leave empty
-%                       if line ends with the target value to extract
 % -------------------------------------------------------------------------
 % 
 % Alistair Boettiger
@@ -30,7 +32,19 @@ function target_values = read_parameterfile(parameterfile,target_phrases,endmark
 
 verbose = false;
 
-% my preferred way to read in a text file:
+% Automatically determine the parameter value end marker from the filetype.
+if nargin > 2
+    endmarker = varargin{1};
+else
+    parsflag = parameterfile(end-3:end);
+    if strcmp(parsflag,'.xml');
+        endmarker = '<';
+    else
+        endmarker = '';
+    end
+end
+
+% lazy way to read in a text file:
 try
 T = char(textread(parameterfile,'%s','delimiter','\n','whitespace',''));
 catch er
