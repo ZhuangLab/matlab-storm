@@ -1,12 +1,11 @@
 # matlab_storm #
-This collection of matlab, c, python, and CUDA code is designed to provide a basic interface for STORM data analysis using a Matlab(R) front-end interface.  The Graphical User Interfaces (GUIs) should be usable to those with little programming experience.  Many additional STORM related data processing functions are available to the experience matlab user.  
+This collection of matlab, c, and python code is designed to provide a basic interface for STORM data analysis using a Matlab(R) front-end interface.  The Graphical User Interfaces (GUIs) should be usable to those with little programming experience.  Many additional STORM related data processing functions are available to the experience matlab user.  
 
 ### Authors ###
 Core code was contributed by Alistair Boettiger and Jeffrey Moffitt.  All core code contained here is licensed under the creative commons CC BY NC.  See individual help files for more information.
 
 Some functions are dependent upon the sister repository `storm-analysis`, written primarily by Hazen Babcock and also available through git-hub as one of Zhuang Lab's repositories.   
 
-GPU code was contributed by Fang Huang and Keith Lidke.   Please see `Code Attribution` below for information on citing this code. 
 
 ## Installation Instructions ##
 1. Clone this repository (see below) via git or copy the contents to your hard drive
