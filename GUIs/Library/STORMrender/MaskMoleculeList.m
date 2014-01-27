@@ -1,4 +1,5 @@
 function [flist,molIdx] = MaskMoleculeList(vlist,mask,varargin)
+% [flist,molIdx] = MaskMoleculeList(vlist,mask)
 
 bMin = min( [vlist.xc; vlist.yc]);
 bMax = max( [vlist.xc; vlist.yc]);

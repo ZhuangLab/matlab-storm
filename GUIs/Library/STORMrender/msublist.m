@@ -70,19 +70,27 @@ if d1==1
     infilter = infilter';
 end
 
-vlist.x = (mlist.x(inbox & infilter)-imaxes.xmin);
-vlist.y = (mlist.y(inbox & infilter)-imaxes.ymin);
-vlist.z = (mlist.z(inbox & infilter));
-vlist.xc = (mlist.xc(inbox & infilter)-imaxes.xmin);
-vlist.yc = (mlist.yc(inbox & infilter)-imaxes.ymin);
-vlist.zc = (mlist.zc(inbox & infilter));
-vlist.a= (mlist.a(inbox & infilter));
-vlist.i= (mlist.i(inbox & infilter));
-vlist.h= (mlist.h(inbox & infilter));
-vlist.frame= (mlist.frame(inbox & infilter));
-vlist.length= (mlist.length(inbox & infilter));
-vlist.w= (mlist.w(inbox & infilter));
-vlist.c= (mlist.c(inbox & infilter));
+idx = inbox & infilter;
+vlist = IndexStructure(mlist,idx);
+vlist.x = vlist.x - imaxes.xmin;
+vlist.y = vlist.y - imaxes.ymin;
+vlist.xc = vlist.xc - imaxes.xmin;
+vlist.yc = vlist.yc -imaxes.ymin; 
+vlist.imaxes = imaxes; 
+vlist.inbox = inbox; 
+% 
+% 
+% vlist.x = (mlist.x(inbox & infilter)-imaxes.xmin);
+% vlist.y = (mlist.y(inbox & infilter)-imaxes.ymin);
+% vlist.z = (mlist.z(inbox & infilter));
+% vlist.xc = (mlist.xc(inbox & infilter)-imaxes.xmin);
+% vlist.yc = (mlist.yc(inbox & infilter)-imaxes.ymin);
+% vlist.zc = (mlist.zc(inbox & infilter));
+% vlist.a= (mlist.a(inbox & infilter));
+% vlist.i= (mlist.i(inbox & infilter));
+% vlist.h= (mlist.h(inbox & infilter));
+% vlist.frame= (mlist.frame(inbox & infilter));
+% vlist.length= (mlist.length(inbox & infilter));
+% vlist.w= (mlist.w(inbox & infilter));
+% vlist.c= (mlist.c(inbox & infilter));
 
- vlist.imaxes = imaxes; 
- vlist.inbox = inbox; 
