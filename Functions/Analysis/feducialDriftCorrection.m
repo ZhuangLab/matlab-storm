@@ -127,10 +127,10 @@ if ~isempty(binname)
 end
 
 if isempty(mlist)
-    mlist = ReadMasterMoleculeList(binname);
+    mlist = ReadMasterMoleculeList(binname,'verbose',false);
 end
 if ~isempty(binname) && ~isempty(daxname)
-    daxfile = ReadDax(daxname,'startFrame',startframe,'endFrame',startframe+100);
+    daxfile = ReadDax(daxname,'startFrame',startframe,'endFrame',startframe+100,'verbose',false);
 end
 
 if isempty(spotframe)
