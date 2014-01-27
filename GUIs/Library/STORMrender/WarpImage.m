@@ -95,8 +95,8 @@ if ~isempty(chnIdx)
 else
     if verbose
         disp('Data not warped');
-        imageOut = imageIn; 
     end
+    imageOut = imageIn; 
 end
 
 
