@@ -134,8 +134,8 @@ end
 
  try 
      conv1 = uint16(mean(ReadDax(conv1Name,'verbose',false,'endFrame',100),3));
- catch er
-    disp(er.message);
+ catch   % not an 'error' since we don't necessarily expect 2 channels.  
+    % disp(er.message);
     conv1 = zeros(H,W,'uint16');  
  end
 
@@ -170,9 +170,10 @@ end
  end
 
  if ~strcmp(BeadFolder,'skip')
-     warpedLamina = uint16(WarpImage(lamina,'488',warpfile,'verbose',false));
-     warpedBeads = uint16(WarpImage(beads,'561',warpfile,'verbose',false));
-     warpedConv1 = uint16(WarpImage(conv1,'750',warpfile,'verbose',false));
+     [warpedLamina,warpError.chn488] = WarpImage(lamina,'488',warpfile,'verbose',false);
+     [warpedBeads,warpError.chn561] = WarpImage(beads,'561',warpfile,'verbose',false);
+     [warpedConv1,warpError.chn750] = WarpImage(conv1,'750',warpfile,'verbose',false);
+     CC{handles.gui_number}.data.chromeError = warpError;
  else
      warpedLamina = lamina;
      warpedBeads = beads;

@@ -116,10 +116,9 @@ for n=1:Nclusters % n=3
         vlist.c( vlist.z>=480 | vlist.z<-480 ) = 9;    
     
      %  Correct z-calibration
-     zparsfile = 'Q:\2013-12-28_F12F11\Beads\647zcal_0001_zpars.xml'; 
     % zparsfile = 'J:\2013-10-02_D09\splitdax\647pars.xml';
    %  zparsfile = 'K:\2013-10-10_F11\splitdax\647dao_pars.xml';
-    vlist = RecalibrateZ(vlist,zparsfile); 
+    vlist = RecalibrateZ(vlist, CC{handles.gui_number}.pars5.zparsfile); 
         
    % figure(13); clf; hist(vlist.zc); 
     

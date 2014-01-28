@@ -5,9 +5,11 @@ function BoxPlot2D(x,data,varargin)
 %
 %--------------------------------------------------------------------------
 % Optional Inputs
-% 'flag' /
+% 'width' / double / .03
 % 'datanames' / cell / {}
 % 'clrmap' / string or colormap
+% 'showdots' / boolean / false
+% 'MarkerSize' / double / 5
 
 %% Main Function
 
@@ -75,7 +77,7 @@ medians = zeros(numDataTypes,1);
 for i=1:numDataTypes
     quartiles(i,:) = quantile(data{i},[.25,.75]);
     quarts = quantile(data{i},[.25,.75]);
-    medians(i) = median(data{i});
+    medians(i) = nanmedian(data{i});
     h = max(1E-16,quarts(2)-quarts(1));
     boxes = [x(i)-w/2,quarts(1),w,h];  
     

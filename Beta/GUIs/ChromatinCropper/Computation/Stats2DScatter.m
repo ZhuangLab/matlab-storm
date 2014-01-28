@@ -57,6 +57,9 @@ end
 
 %% Main Function
 
+ystep = yBins(2)-yBins(1);
+xstep = xBins(2)-xBins(1);
+
 mapIdx = hist3([vlist.yc,vlist.xc],{yBins,xBins});  
 %       figure(3); clf; imagesc(M2); colorbar; caxis([0,80]); colormap hot;
 
@@ -81,10 +84,10 @@ props2D.allLocs = sum(cat(1,props.PixelValues));
 
 % 2D Moment of Inertia
 m = cat(1,props(mainIdx).PixelValues); 
-xy = cat(1,props(mainIdx).PixelList)*pixelSize;
+xy = cat(1,props(mainIdx).PixelList);
 xy(:,1) = xy(:,1) - props(mainIdx).WeightedCentroid(1);
 xy(:,2) = xy(:,2) - props(mainIdx).WeightedCentroid(2);
-mI = m'*(xy(:,1).^2+xy(:,2).^2)/sum(m);
+mI = m'*((xy(:,1)*xstep).^2+(xy(:,2)*ystep).^2)/sum(m);
 props2D.mI = mI;
 
 

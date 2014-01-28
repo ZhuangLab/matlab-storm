@@ -62,20 +62,23 @@ end
 wx = vlist.w ./ vlist.ax;   % /
 wy = vlist.w .* vlist.ax;  % *
 zdata = vlist.zc;
-z = -1000:1000;
+z = -1000:5:1000;
 
 curveWx = zpars.wx0*sqrt( zpars.Bx*((z-zpars.gx)./zpars.zrx).^4 + ...
     zpars.Ax*((z-zpars.gx)./zpars.zrx).^3 + ((z-zpars.gx)./zpars.zrx).^2 + 1 )';
 curveWy = zpars.wy0*sqrt( zpars.By*((z-zpars.gy)./zpars.zry).^4 + ...
     zpars.Ay*((z-zpars.gy)/zpars.zry).^3 + ((z-zpars.gy)./zpars.zry).^2 + 1 )';
 
-% Compute new z positions
-N = length(wx);
-new_z = zeros(N,1);
-for n=1:N
-  [~,i] = min( (wx(n).^.5 - curveWx.^.5).^2 + (wy(n).^.5 - curveWy.^.5).^2 );
-  new_z(n) = z(i); 
-end
+[~,i] = pdist2(real([curveWx,curveWy]),double([wx,wy]),'euclidean','Smallest',1);
+new_z = z(i)';
+% 
+% % Compute new z positions
+% N = length(wx);
+% new_z = zeros(N,1);
+% for n=1:N
+%   [~,i] = min( (wx(n).^.5 - curveWx.^.5).^2 + (wy(n).^.5 - curveWy.^.5).^2 );
+%   new_z(n) = z(i); 
+% end
 
 if showPlots
     figure(1); clf; plot(zdata,new_z,'k.'); axis image;

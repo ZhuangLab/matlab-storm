@@ -19,6 +19,8 @@ CC{handles.gui_number}.pars0.cmax = [1 1];
 CC{handles.gui_number}.pars1.BeadFolder = '';
 CC{handles.gui_number}.pars1.overlays = {};  
 CC{handles.gui_number}.pars1.chns = {'750','647','561','488'};
+CC{handles.gui_number}.pars1.locusname = '';
+CC{handles.gui_number}.pars1.locusColor = '';
 
 % step 2 parameters
 CC{handles.gui_number}.pars2.saturate = [0.001 0.001];
@@ -53,6 +55,7 @@ CC{handles.gui_number}.pars5.regionSize = 2400; % nm
 CC{handles.gui_number}.pars5.boxSize = 32; 
 CC{handles.gui_number}.pars5.showColorTime = true; % This is useful but slow
 CC{handles.gui_number}.pars5.zrescale = 1;
+CC{handles.gui_number}.pars5.zparsfile = 'Q:\2013-12-28_F12F11\Beads\647zcal_0001_zpars.xml'; 
 
 % step 6 parameters
 CC{handles.gui_number}.pars6.boxSize = 32; % in nm

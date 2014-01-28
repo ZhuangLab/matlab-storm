@@ -60,7 +60,7 @@ spotframe = [];
 maxdrift = 2.5; % max distance a feducial can get from its starting position and still be considered the same molecule
 integrateframes = 200; % number of frames to integrate
 fmin = .8; 
-npp = 158;
+npp = 160;
 showplots = true;
 showextraplots = false; 
 binname = '';
@@ -120,6 +120,7 @@ end
 %--------------------------------------------------------------------------
 %% Main Function
 %--------------------------------------------------------------------------
+
 
 if ~isempty(binname)
     k = regexp(binname,'_');

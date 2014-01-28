@@ -10,7 +10,7 @@ npp = CC{handles.gui_number}.pars0.npp;
 % 2D subcluster vlist image
 boxSize = CC{handles.gui_number}.pars6.boxSize;     % boxSize in nm
 regionSize = CC{handles.gui_number}.pars5.regionSize/npp;  % region size in pixels 
-zrescale = CC{handles.gui_number}.pars5.zrescale;
+zrescale = 1; % CC{handles.gui_number}.pars5.zrescale;
 
 startframe = CC{handles.gui_number}.pars6.startFrame; %  1;
 minLoc = CC{handles.gui_number}.pars6.minLoc; % 1;
@@ -62,7 +62,7 @@ n = round(get(handles.DotSlider,'Value'));
         imaxes.xmax = regionSize;
         imaxes.ymax = regionSize;
     stormXYfilt = list2img(flist,imaxes);
-    areaMap = 10*stormXYfilt{1};
+    areaMap = 15*stormXYfilt{1};
   
 % Filtered versions of main images
 imaxes.ymin = zBins(1);
@@ -129,7 +129,7 @@ CC{handles.gui_number}.tempData.densityMaps = qMap;
     
 figure(4); clf; 
 subplot(2,3,1); 
-maxX = 3E4;
+maxX = 11E4;
 hist(CC{handles.gui_number}.data.mainArea,linspace(0,maxX,50));
 hold on; plot(CC{handles.gui_number}.tempData.mainArea,9.5,'r.','MarkerSize',20); 
 title(['Area = ',num2str(CC{handles.gui_number}.tempData.mainArea,3)]); 
@@ -143,7 +143,7 @@ title(['Volume = ',num2str(CC{handles.gui_number}.tempData.mainVolume,3)]);
 xlim([0,maxX]); 
 
 subplot(2,3,3); 
-maxX = 8E6;
+maxX = 4E6;
 hist(CC{handles.gui_number}.data.mI,linspace(0,maxX,50));
 hold on; plot(CC{handles.gui_number}.tempData.mI,9.5,'r.','MarkerSize',20); 
 title(['mI = ',num2str(CC{handles.gui_number}.tempData.mI,3)]); 
