@@ -261,7 +261,7 @@ dataPaths = unique(filePaths);
 % Find _list.bin files
 %--------------------------------------------------------------------------
 for i=1:length(dataPaths)
-    existingBinFiles = dir([dataPaths{i} '*_list.bin']);
+    existingBinFiles = dir([dataPaths{i} '*.bin']);
     existingBinFileNames = {existingBinFiles.name};
     ind = ismember(binFileNames, existingBinFileNames) & strcmp(dataPaths{i}, filePaths);
     if ~isempty(existingBinFiles)
