@@ -143,7 +143,7 @@ title(['Volume = ',num2str(CC{handles.gui_number}.tempData.mainVolume,3)]);
 xlim([0,maxX]); 
 
 subplot(2,3,3); 
-maxX = 4E6;
+maxX = 30;
 hist(CC{handles.gui_number}.data.mI,linspace(0,maxX,50));
 hold on; plot(CC{handles.gui_number}.tempData.mI,9.5,'r.','MarkerSize',20); 
 title(['mI = ',num2str(CC{handles.gui_number}.tempData.mI,3)]); 

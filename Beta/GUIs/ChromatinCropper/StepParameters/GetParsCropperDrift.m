@@ -10,6 +10,7 @@ dlg_title = 'Step 4 Pars: Drift Correction';  num_lines = 1;
     'start frame (1 = auto detect)',...        3
     'show drift correction plots?',...  4
     'show extra drift correction plots?',...  5 
+    'sampling rate (data relative to beads)',...
     };   % 
 
     Opts{1} = num2str(CC{handles.gui_number}.pars4.maxDrift);
@@ -17,6 +18,7 @@ dlg_title = 'Step 4 Pars: Drift Correction';  num_lines = 1;
     Opts{3} = num2str(CC{handles.gui_number}.pars4.startFrame);
     Opts{4} = num2str(CC{handles.gui_number}.pars4.showPlots);
     Opts{5} = num2str(CC{handles.gui_number}.pars4.showExtraPlots);
+    Opts{6} = num2str(CC{handles.gui_number}.pars4.samplingRate);
     
     Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
     if isempty(Opts);
@@ -28,4 +30,5 @@ dlg_title = 'Step 4 Pars: Drift Correction';  num_lines = 1;
         CC{handles.gui_number}.pars4.startFrame= str2num(Opts{3});
         CC{handles.gui_number}.pars4.showPlots = str2num(Opts{4}); 
         CC{handles.gui_number}.pars4.showExtraPlots = str2num(Opts{5});
+        CC{handles.gui_number}.pars4.samplingRate = str2num(Opts{6});
     end

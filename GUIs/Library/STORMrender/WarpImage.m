@@ -98,6 +98,7 @@ else
         disp('Data not warped');
     end
     imageOut = imageIn; 
+    warpError = NaN; 
 end
 
 

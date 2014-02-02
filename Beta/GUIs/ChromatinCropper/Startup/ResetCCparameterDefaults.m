@@ -43,6 +43,7 @@ CC{handles.gui_number}.pars4.fmin = [.5 .5]; % fraction of frames that must be o
 CC{handles.gui_number}.pars4.startFrame = [1 1]; % 1 is auto-detect first appearance
 CC{handles.gui_number}.pars4.showPlots = [1 1];  % true / false
 CC{handles.gui_number}.pars4.showExtraPlots = [0 0];  % true / false
+CC{handles.gui_number}.pars4.samplingRate = [1 1];  % true / false
 
 % step X parameters for X-correlation drift correction
 CC{handles.gui_number}.parsX.stepFrame = [8000 8000]; % 'stepframe' / double / 10E3 -- number of frames to average

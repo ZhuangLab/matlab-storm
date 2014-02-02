@@ -44,21 +44,19 @@ for n=1:numChns
     startFrame = CC{handles.gui_number}.pars4.startFrame(n);
     showPlots = CC{handles.gui_number}.pars4.showPlots(n); 
     showExtraPlots = CC{handles.gui_number}.pars4.showExtraPlots(n); 
-    
+    samplingRate = CC{handles.gui_number}.pars4.samplingRate(n); 
     % -------------- Method 1 (Default) -----------------------------
     % Attempts to automatically detect a movie of feducial beads and use
     % this for drift correction.  
     try
         beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
         beadbin = [folder,filesep,beadname];
-         [x_drift,y_drift,~,~,drift_error] = feducialDriftCorrection(beadbin,...
+        axes(handles.axes1); cla; %#ok<*LAXES>
+         [mlist,drift_error] = FeducialDriftCorrection(beadbin,...
              'maxdrift',maxDrift,'showplots',showPlots,'fmin',fmin,...
-             'startframe',startFrame,'showextraplots',showExtraPlots);
-        missingframes = max(mlist.frame) - length(x_drift);
-        x_drift = [x_drift; zeros(missingframes,1)]; %#ok<*AGROW>
-        y_drift = [y_drift; zeros(missingframes,1)];
-        mlist.xc = mlist.x - x_drift(mlist.frame);
-        mlist.yc = mlist.y - y_drift(mlist.frame); 
+             'startframe',startFrame,'showextraplots',showExtraPlots,...
+             'target',mlist,'samplingrate',samplingRate,'fighandle',handles.axes1);
+          CC{handles.gui_number}.tempData.driftError = drift_error;
         goOn = true;
         retry = 0; 
     catch er
@@ -125,40 +123,11 @@ for n=1:numChns
         
     elseif retry == 3
         disp('skipping drift correction...')
-        x_drift = 0;
-        y_drift = 0;
         goOn = true; 
     end
     
     
     if goOn
-        driftReport = strcat('Drift Correction Uncertainty: ',num2str(drift_error,3),'nm');
-        CC{handles.gui_number}.tempData.driftError = drift_error; 
-        % plot mask in main figure window
-        axes(handles.axes1); cla; %#ok<*LAXES>
-        Nframes = length(x_drift); 
- 
-        if Nframes > 1 && retry ~= 2
-            z = zeros(size(x_drift'));
-            col = [double(1:Nframes-1),NaN];  % This is the color, vary with x in this case.
-             surface([x_drift';x_drift']*npp,[y_drift';y_drift']*npp,...
-                 [z;z],[col;col],'facecol','no','edgecol','interp',...
-                'linew',1);    
-            colormap(jet);
-            set(gca,'color','w'); 
-            colordef white;
-            xrange = round( linspace(min(x_drift*npp),max(x_drift*npp),10) );
-            yrange = round( linspace(min(y_drift*npp),max(y_drift*npp),10) );
-            set(gca,'XTick',xrange);
-            set(gca,'XTickLabel',xrange);
-            set(gca,'YTick',yrange);
-            set(gca,'YTickLabel',yrange);
-            xlabel('nm');  ylabel('nm'); 
-            xlim([min(xrange),max(xrange)]);
-            ylim([min(yrange),max(yrange)]);
-             text(mean(x_drift*npp),mean(y_drift*npp),driftReport);
-        end
-    
         if n == 1
             CC{handles.gui_number}.mlist = mlist; % update mlist; 
         else

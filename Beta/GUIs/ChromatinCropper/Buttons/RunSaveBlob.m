@@ -43,7 +43,7 @@ if (isempty(dotnum))
     dotnum = 1;
 end
 
-% CC{handles.gui_number}.data.mainArea(dotnum) = NaN; 
+% dotnum = find(~isnan(CC{handles.gui_number}.data.mainArea),1,'last');  CC{handles.gui_number}.data.mainArea(dotnum) = NaN; 
 
 % Save current values for all parameters
 parData{1} = CC{handles.gui_number}.pars1;
@@ -110,7 +110,7 @@ save([savefolder,filesep,saveroot,'data.mat'],'data','CCguiData');
 % Side-by-side Conventional and STORM images
 saveFig = figure(10); clf; colordef white;
 set(gcf,'color','k');
-set(saveFig, 'PaperPosition', [0 0 10 5],'Position',[0 0 1000 500]);
+set(saveFig, 'PaperPosition', [0 0 8 5],'Position',[0 0 800 500]);
 subplot(1,2,1); Ncolor(CC{handles.gui_number}.tempData.convImages(:,:,1)); colormap(CC{handles.gui_number}.clrmap);
 set(gca,'XTick',[],'YTick',[]); axis image;
 subplot(1,2,2); Ncolor(CC{handles.gui_number}.tempData.stormImagesXYfilt{1},CC{handles.gui_number}.clrmap);
@@ -121,7 +121,7 @@ close(saveFig);
 % Side-by-side AreaMap and STORM images
 saveFig = figure(10); clf; colordef white;
 set(gcf,'color','k');
-set(saveFig,'Position',[0 0 1000 500]);
+set(saveFig, 'PaperPosition', [0 0 8 5],'Position',[0 0 800 500]);
 % set(saveFig, 'PaperPosition', [0 0 10 5],'Position',[0 0 1000 500]);
 subplot(1,2,1); Ncolor(CC{handles.gui_number}.tempData.convImages(:,:,1)); colormap(CC{handles.gui_number}.clrmap);
 set(gca,'XTick',[],'YTick',[]); axis image;

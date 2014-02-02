@@ -1,4 +1,4 @@
-function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDriftCorrection(input1,varargin)
+function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = feducialDriftCorrection(input1,varargin)
 %--------------------------------------------------------------------------
 % [dxc,dyc] = feducialDriftCorrection(binname)
 % [dxc,dyc] =  feducialDriftCorrection(mlist)
@@ -33,38 +33,13 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 %               -- nm per pixel in camera
 % 'showplots' / boolean / true
 % 'showextraplots' / boolean / false
-% 'target' / mlist / []
-%               -- molecule list to apply drift correction to.  Note, this
-%               changes the nature of the outputs for
-%               FeducialDriftCorrection to be an mlist and drift error,
-%               instead of the relative drift away from the starting point
-%               for each frame.   
-% 'samplingrate'
-%               -- for use only with 'target', mlist.  If the STORM data
-%               were sampled at a higher rate than the feducial bead data,
-%               FeducialDriftCorrection will assume the two movies are
-%               ultimately of the same length and interpolate the bead
-%               frames out to the same number of frames as the target
-%               mlist.
 % 'clearfigs'
 % 
 %--------------------------------------------------------------------------
 % Outputs
-% dxc,dyc 
-%                -- computed drift per frame.  To correct drift, write:
+% dxc,dyc -- computed drift per frame.  To correct drift, write:
 %             mlist.xc = mlist.x - dxc(mlist.frame);
 %             mlist.yc = mlist.y - dyc(mlist.frame); 
-% correctedTrajectory 
-%               -- matrix Nframes x Nfeducials. Has trajectory of feducials
-%               after applying the drift correction
-% rawTrajectory
-%               -- matrix Nframes x Nfeducials. Has trajectory of feducials
-%               before applying the drift correction
-% drift_error
-%               -- uncertainty in drift, measured as the difference in nm
-%               of the total sum of bead movements between the two beads
-%               which moved the least.  
-%
 %--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
@@ -75,11 +50,12 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 % Creative Commons License 3.0 CC BY  
 %--------------------------------------------------------------------------
 
-global scratchPath %#ok<NUSED>
+global scratchPath
 
 %--------------------------------------------------------------------------
 %% Default Parameters
 %--------------------------------------------------------------------------
+
 daxname = [];
 startframe = 1; % frame to use to find feducials
 spotframe = [];
@@ -93,12 +69,17 @@ binname = '';
 mlist = []; 
 samplingrate = 1;
 targetmlist = [];
-fighandle = [];
 if ischar(input1)
     binname = input1;
 elseif isstruct(input1)
     mlist = input1;
 end
+
+% abinname = [daxname(1:end-4),'_alist.bin'];
+% alist = ReadMasterMoleculeList(abinname);
+% figure(10); clf; plot(alist.x,alist.y,'k.');
+% hold on; plot(alist.xc,alist.yc,'r.');
+
 
 
 %--------------------------------------------------------------------------
@@ -120,7 +101,7 @@ if nargin > 2
             case 'target'
                 targetmlist = CheckParameter(parameterValue,'struct','targetmlist');
             case 'samplingrate'
-                samplingrate = CheckParameter(parameterValue,'nonnegative','samplingrate');
+                samplingrate = CheckParameter(parameterValue,'struct','samplingrate');
             case 'spotframe'
                 spotframe  = CheckParameter(parameterValue,'positive','startframe');
             case 'startframe'
@@ -137,8 +118,6 @@ if nargin > 2
                 showplots = CheckParameter(parameterValue,'boolean','showplots');
             case 'showextraplots'
                 showextraplots = CheckParameter(parameterValue,'boolean','showextraplots');
-            case 'fighandle'
-                fighandle = CheckParameter(parameterValue,'handle','fighandle');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -150,7 +129,7 @@ end
 %% Main Function
 %--------------------------------------------------------------------------
 
-integrateframes = ceil(integrateframes/samplingrate*10); 
+integrateframes = ceil(integrateframes/samplingrate); 
 
 if ~isempty(binname)
     k = regexp(binname,'_');
@@ -211,11 +190,8 @@ for i=1:length(x1s)
 end
 feducials = Tframes > fmin*(max(mlist.frame)-startframe); 
 
-if showplots && isempty(fighandle)
-    figure(1); clf;   
-end
-
 if showplots
+    figure(1); clf; 
     if ~isempty(daxname)
         imagesc(daxfile(:,:,1));
     end
@@ -235,7 +211,7 @@ feducial_boxes = [fb(:,1),fb(:,3),...
 
 if showplots
     colormap gray;
-    hold on; 
+    figure(1); hold on; 
     plot(x1s,y1s,'k.');
 end
 
@@ -248,7 +224,7 @@ for i=1:Nfeducials
     rawTrajectory(mlist.frame(incirc),i,1) = double(mlist.x(incirc));
     rawTrajectory(mlist.frame(incirc),i,2) = double(mlist.y(incirc));
     if showplots
-        hold on; 
+        figure(1); hold on; 
         rectangle('Position',feducial_boxes(i,:),'Curvature',[1,1]);
         plot( mlist.x(incirc), mlist.y(incirc),'r.','MarkerSize',1);
     end
@@ -278,10 +254,12 @@ end
 
 [~,guide_dot] = min(abs(totMovement)); 
 drift_error = abs(min(totMovement(guide_dot) - totMovement([1:guide_dot-1,guide_dot+1:end]))*npp);
-if isempty(drift_error)
-    drift_error = NaN;
-end
+
 disp(['residual drift error = ', num2str(drift_error),' nm']); 
+if showplots
+    figure(1); hold on; colormap jet;
+    plot(xc(:,guide_dot),yc(:,guide_dot),'w.','MarkerSize',1);
+end
 
 
 % Apply moving average filter to remove frame-to-frame fit noise
@@ -291,28 +269,19 @@ x = dx(:,guide_dot); % xdrift per frame
 y = dy(:,guide_dot); % ydrift per frame
 dxc = fastsmooth(x,integrateframes,1,1);
 dyc = fastsmooth(y,integrateframes,1,1);
-dxp = dxc; % 
-dyp = dyc; % 
+dxp = dxc(integrateframes+1:end-integrateframes);
+dyp = dyc(integrateframes+1:end-integrateframes);
 if showplots
     z = zeros(size(dxp')); 
-    col = [double(1:Nframes-1),NaN];  % This is the color, vary with x in this case.
-    colordef white; 
-    surface([dxp';dxp'+.001]*npp,...
-            [dyp';dyp'+.001]*npp,...
-            [z;z],[col;col],...
+    col = [double(1:Nframes-1-2*integrateframes),NaN];  % This is the color, vary with x in this case.
+    figure(1); clf; colordef white; 
+    surface([dxp';dxp'+.001]*npp,[dyp';dyp'+.001]*npp,[z;z],[col;col],...
             'facecol','no',...
             'edgecol','interp',...
             'linew',1);    
-    set(gcf,'color','w'); 
-    xlabel('nm'); 
-    ylabel('nm'); 
-    colormap(jet(256)); 
-    xrange = round(linspace(min(dxp),max(dxp),10)*npp);
-    yrange = round(linspace(min(dyp),max(dyp),10)*npp);
-    xlim([min(xrange),max(xrange)]);
-    ylim([min(yrange),max(yrange)]);
-    set(gca,'Xtick',xrange,'XTickLabel',xrange,...
-            'Ytick',yrange,'YTickLabel',yrange); 
+        set(gcf,'color','w'); 
+        xlabel('nm'); 
+        ylabel('nm'); 
 end
 
 
@@ -327,7 +296,6 @@ for n = 1:Nfeducials;
     correctedTrajectory(:,n,2) = rawTrajectory(:,n,2)- dyc;
 end
 
-%------------------------------------------------
 %% Extra plots
 %------------------------------------------------
 if showextraplots
@@ -343,29 +311,26 @@ if showextraplots
         subplot(Nfeducials,2,i*2-1); plot(dx(startframe:end,i),'.','MarkerSize',1);
         subplot(Nfeducials,2,i*2); plot(dy(startframe:end,i),'.','MarkerSize',1);
     end
-    figure(4); clf;
-    subplot(1,2,1); plot(dx(startframe:end,:),'MarkerSize',1);
+    figure(4); clf; subplot(1,2,1); plot(dx(startframe:end,:),'MarkerSize',1);
     subplot(1,2,2); plot(dy(startframe:end,:),'MarkerSize',1);
 end
 
-%------------------------------------------------
 %%  Apply drift correction to a new mlist
-%------------------------------------------------
+
 if ~isempty(targetmlist); 
     % differential sampling
     if samplingrate > 1
         targetFrames = max(targetmlist.frame); 
-        x_drift = interp1(1:Nframes,dxc,1:targetFrames);
-        y_drift = interp1(1:Nframes,dyc,1:targetFrames);
+        x_drift = interp1(1:Nframes,xdc,1:targetFrames);
+        y_drift = interp1(1:Nframes,xdc,1:targetFrames);
     else 
-        missingframes = max(targetmlist.frame) - length(dxc);
-        x_drift = [dxc; zeros(missingframes,1)]; %#ok<*AGROW>
-        y_drift = [dyc; zeros(missingframes,1)];
+        missingframes = max(targetmlist.frame) - length(xdc);
+        x_drift = [xdc; zeros(missingframes,1)]; %#ok<*AGROW>
+        y_drift = [ydc; zeros(missingframes,1)];
     end
     targetmlist.xc = targetmlist.x - x_drift(targetmlist.frame);
     targetmlist.yc = targetmlist.y - y_drift(targetmlist.frame); 
 
-    % overload dxc and dyc outputs
-    dxc = targetmlist;
-    dyc = drift_error;
+    % overload dxc;
+    dxc = targetmlist; 
 end
