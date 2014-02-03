@@ -347,17 +347,8 @@ for s=1:Sections % loop through all dax movies in que
                 batchwait = true;
             end          
     end   
-    % Record parameter file used in the infofile notes.  
-    binparstype = regexprep(datatype,'\.bin','\_pars.txt'); 
-    binparsfile = regexprep(binfile,datatype,binparstype);
-    str = ['parameters used = ',parsfile];         
-    fid = fopen(binparsfile,'w+');
-      str = regexprep(str,'\\','\\\'); % convert \ to \\.  
-      fprintf(fid,str,''); 
-      fprintf(fid,'%s\r\n','');
-    fclose(fid);
-    
-    
+    WriteParsTxt(binfile,parsfile);
+     
     if batchwait
     Nrunning = inf; 
        while Nrunning >= batchsize
