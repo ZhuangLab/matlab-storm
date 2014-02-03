@@ -64,7 +64,7 @@ end
 %-------------------------------------------------------------------------   
 
 
-inbox = mlist.x>imaxes.xmin & mlist.x < imaxes.xmax & mlist.y>imaxes.ymin & mlist.y<imaxes.ymax;
+inbox = mlist.xc >imaxes.xmin & mlist.xc < imaxes.xmax & mlist.yc >imaxes.ymin & mlist.yc <imaxes.ymax;
 d1 = size(infilter,1);
 if d1==1
     infilter = infilter';

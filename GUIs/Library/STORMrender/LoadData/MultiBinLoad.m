@@ -27,9 +27,9 @@ try
     infofileName = [SR{handles.gui_number}.LoadOps.pathin,filesep,binnames{1}(1:k(end)-1),'.inf'];
     SR{handles.gui_number}.infofile = ReadInfoFile(infofileName);
 catch er
-    warning(['Unable to read infofile',infofileName]);
-    disp(er.message); 
-    disp(er.getReport);
+    warning(['Unable to read infofile ',infofileName]);
+   %  disp(er.message); 
+   %  disp(er.getReport);
 end
 
 % Load the binfiles 
