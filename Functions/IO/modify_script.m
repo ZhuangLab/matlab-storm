@@ -27,7 +27,7 @@ function modify_script(fname_in,fname_out,target_phrases,new_values,varargin)
 % literal / boolean / true
 %         - backslashes will be written literally.  Otherwise they indicate
 %           escape characters to fprintf
-% verbose / boolean / true   
+% verbose / boolean / false   
 %         - print more info to screen (useful for troubleshooting)
 % 
 %--------------------------------------------------------------------------
@@ -63,17 +63,24 @@ if isempty(fname_out)
     fname_out = fname_in;
 end
 
-if nargin == 5;
+varinput = {};
+if (mod(length(varargin), 2) == 1 )% if an endmarker is passed first
     endmarker = varargin{1};
+    varinput = varargin(2:end); 
 else
-    endmarker = ''; 
+    varinput = varargin; 
+     if strcmp(fname_in(end-3:end),'.xml');
+        endmarker = '<';
+    else
+        endmarker = ''; 
+    end
 end
+
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
 %--------------------------------------------------------------------------
-if nargin > 5
-    varinput = varargin(2:end); 
+if length(varinput) > 1
     if (mod(length(varinput), 2) ~= 0 ),
     error(['Extra Parameters passed to the function ''' mfilename ''' must be passed in pairs.']);
     end
@@ -112,7 +119,10 @@ T_new = T;
 % find line containing target phrase entry;
 for t=1:length(target_phrases)
     target_phrase = target_phrases{t};
-    new_value = new_values{t};    
+    new_value = new_values{t};  
+    if ~ischar(new_value)
+        new_value = num2str(new_value);
+    end
       
     ln = 1; % loop through all lines, don't go past end.
     while isempty(regexp(T(ln,:),regexptranslate('escape',target_phrase),'once')) && ln < max_lines;
