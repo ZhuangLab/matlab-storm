@@ -53,6 +53,7 @@ SR{handles.gui_number}.Io = Io;
 axes(handles.axes2);  cla;
 set(gca,'XTick',[],'YTick',[]);
 imagesc(Io);
+axis image;
 guidata(hObject, handles);
 
 shading interp;
