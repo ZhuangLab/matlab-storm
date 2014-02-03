@@ -72,13 +72,13 @@ set(handles.choosefilt,'String',molfields);
 set(handles.MaxIntSlider,'Max',1);
 set(handles.MaxIntSlider,'Min',0);
 set(handles.MaxIntSlider,'Value',1);
-set(handles.MaxIntSlider,'SliderStep',[1/2^12,1/2^4])
+set(handles.MaxIntSlider,'SliderStep',[1/2^10,1/2^6])
 set(handles.MinIntSlider,'Max',1);
 set(handles.MinIntSlider,'Min',0);
 set(handles.MinIntSlider,'Value',0); 
-set(handles.MinIntSlider,'SliderStep',[1/2^12,1/2^4])
+set(handles.MinIntSlider,'SliderStep',[1/2^10,1/2^6])
 
-
-if ~isempty(binfile)
-    handles = QuickLoad(hObject,eventdata,handles);
-end
+% 
+% if ~isempty(binfile)
+%     handles = QuickLoad(hObject,eventdata,handles);
+% end
