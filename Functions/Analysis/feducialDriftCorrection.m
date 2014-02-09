@@ -55,10 +55,10 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 %             mlist.xc = mlist.x - dxc(mlist.frame);
 %             mlist.yc = mlist.y - dyc(mlist.frame); 
 % correctedTrajectory 
-%               -- matrix Nframes x Nfeducials. Has trajectory of feducials
+%               -- matrix numFrames x numFeducials. Has trajectory of feducials
 %               after applying the drift correction
 % rawTrajectory
-%               -- matrix Nframes x Nfeducials. Has trajectory of feducials
+%               -- matrix numFrames x numFeducials. Has trajectory of feducials
 %               before applying the drift correction
 % drift_error
 %               -- uncertainty in drift, measured as the difference in nm
@@ -240,10 +240,10 @@ if showplots
 end
 
 % Record position of feducial in every frame
-Nfeducials = length(x1s);
-Nframes = double(max(mlist.frame));
-rawTrajectory = NaN*ones(Nframes,Nfeducials,2);
-for i=1:Nfeducials
+numFeducials = length(x1s);
+numFrames = double(max(mlist.frame));
+rawTrajectory = NaN*ones(numFrames,numFeducials,2);
+for i=1:numFeducials
     incirc = mlist.x > fb(i,1) & mlist.x <= fb(i,2) & mlist.y > fb(i,3) & mlist.y <= fb(i,4);
     rawTrajectory(mlist.frame(incirc),i,1) = double(mlist.x(incirc));
     rawTrajectory(mlist.frame(incirc),i,2) = double(mlist.y(incirc));
@@ -258,20 +258,20 @@ end
 % Determine best-fit feducial using median feducial for first pass
 %----------------------------------------------------
 % subtract starting position from each trajectory
-dx = rawTrajectory(:,:,1)-repmat(rawTrajectory(startframe,:,1),Nframes,1);
-dy = rawTrajectory(:,:,2)-repmat(rawTrajectory(startframe,:,2),Nframes,1);
+dx = rawTrajectory(:,:,1)-repmat(rawTrajectory(startframe,:,1),numFrames,1);
+dy = rawTrajectory(:,:,2)-repmat(rawTrajectory(startframe,:,2),numFrames,1);
 
 % compute median drift 
 dxmed = nanmedian(dx,2); % xdrift per frame
 dymed = nanmedian(dy,2); % ydrift per frame
 
-goodframes = startframe:Nframes; 
+goodframes = startframe:numFrames; 
 % correct drift in feducials;
-xc = rawTrajectory(goodframes,:,1)-repmat(dxmed(goodframes),1,Nfeducials);
-yc = rawTrajectory(goodframes,:,2)-repmat(dymed(goodframes),1,Nfeducials);
+xc = rawTrajectory(goodframes,:,1)-repmat(dxmed(goodframes),1,numFeducials);
+yc = rawTrajectory(goodframes,:,2)-repmat(dymed(goodframes),1,numFeducials);
 
-totMovement = zeros(Nfeducials,1);
-for j=1:Nfeducials
+totMovement = zeros(numFeducials,1);
+for j=1:numFeducials
     totMovement(j) = nanmedian(abs(dx(startframe:end,j)) + ...
                   abs(dy(startframe:end,j)));
 end
@@ -295,7 +295,7 @@ dxp = dxc; %
 dyp = dyc; % 
 if showplots
     z = zeros(size(dxp')); 
-    col = [double(1:Nframes-1),NaN];  % This is the color, vary with x in this case.
+    col = [double(1:numFrames-1),NaN];  % This is the color, vary with x in this case.
     colordef white; 
     surface([dxp';dxp'+.001]*npp,...
             [dyp';dyp'+.001]*npp,...
@@ -321,8 +321,8 @@ mlist.xc = mlist.x - dxc(mlist.frame);
 mlist.yc = mlist.y - dyc(mlist.frame); 
 
 % export feducial coordinates if desired
-correctedTrajectory = zeros(length(dxc),Nfeducials,2);
-for n = 1:Nfeducials;
+correctedTrajectory = zeros(length(dxc),numFeducials,2);
+for n = 1:numFeducials;
     correctedTrajectory(:,n,1) = rawTrajectory(:,n,1)- dxc;
     correctedTrajectory(:,n,2) = rawTrajectory(:,n,2)- dyc;
 end
@@ -338,10 +338,10 @@ end
 % show drift traces for all feducials
 if showextraplots
     figure(3); clf;
-    for i=1:Nfeducials
+    for i=1:numFeducials
         figure(3);
-        subplot(Nfeducials,2,i*2-1); plot(dx(startframe:end,i),'.','MarkerSize',1);
-        subplot(Nfeducials,2,i*2); plot(dy(startframe:end,i),'.','MarkerSize',1);
+        subplot(numFeducials,2,i*2-1); plot(dx(startframe:end,i),'.','MarkerSize',1);
+        subplot(numFeducials,2,i*2); plot(dy(startframe:end,i),'.','MarkerSize',1);
     end
     figure(4); clf;
     subplot(1,2,1); plot(dx(startframe:end,:),'MarkerSize',1);
@@ -354,9 +354,10 @@ end
 if ~isempty(targetmlist); 
     % differential sampling
     if samplingrate > 1
-        targetFrames = max(targetmlist.frame); 
-        x_drift = interp1(1:Nframes,dxc,1:targetFrames);
-        y_drift = interp1(1:Nframes,dyc,1:targetFrames);
+        targetFrames = double(max(targetmlist.frame)); 
+        beadFrames = linspace(1,targetFrames,length(dxc));    
+        x_drift = interp1(beadFrames,dxc,1:targetFrames,'linear' )';
+        y_drift = interp1(beadFrames,dyc,1:targetFrames,'linear' )';
     else 
         missingframes = max(targetmlist.frame) - length(dxc);
         x_drift = [dxc; zeros(missingframes,1)]; %#ok<*AGROW>
@@ -364,7 +365,7 @@ if ~isempty(targetmlist);
     end
     targetmlist.xc = targetmlist.x - x_drift(targetmlist.frame);
     targetmlist.yc = targetmlist.y - y_drift(targetmlist.frame); 
-
+    
     % overload dxc and dyc outputs
     dxc = targetmlist;
     dyc = drift_error;

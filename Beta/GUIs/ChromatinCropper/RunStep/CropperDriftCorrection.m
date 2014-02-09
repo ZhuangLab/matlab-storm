@@ -24,6 +24,7 @@ for n=1:numChns
      mlist = CC{handles.gui_number}.mlist1;
  end
     drift_error = NaN;
+    CC{handles.gui_number}.tempData.driftError = drift_error;
       
     % Load user defined parameters
     H = CC{handles.gui_number}.pars0.H;
@@ -51,14 +52,24 @@ for n=1:numChns
     try
         beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
         beadbin = [folder,filesep,beadname];
-        axes(handles.axes1); cla; %#ok<*LAXES>
-         [mlist,drift_error] = FeducialDriftCorrection(beadbin,...
-             'maxdrift',maxDrift,'showplots',showPlots,'fmin',fmin,...
-             'startframe',startFrame,'showextraplots',showExtraPlots,...
-             'target',mlist,'samplingrate',samplingRate,'fighandle',handles.axes1);
-          CC{handles.gui_number}.tempData.driftError = drift_error;
-        goOn = true;
-        retry = 0; 
+        if ~exist(beadbin,'file')
+           beadbin1 = beadbin;
+           beadbin = regexprep(beadbin1,'c1','c2');
+        end
+        if ~exist(beadbin,'file')
+            disp(['File ',beadbin1, ' does not exist']);
+            disp(['File ',beadbin, ' does not exist']);
+            disp('No feducial bead file found.'); 
+        else
+            axes(handles.axes1); cla; %#ok<*LAXES>
+             [mlist,drift_error] = FeducialDriftCorrection(beadbin,...
+                 'maxdrift',maxDrift,'showplots',showPlots,'fmin',fmin,...
+                 'startframe',startFrame,'showextraplots',showExtraPlots,...
+                 'target',mlist,'samplingrate',samplingRate,'fighandle',handles.axes1);
+              CC{handles.gui_number}.tempData.driftError = drift_error;
+            goOn = true;
+            retry = 0; 
+        end
     catch er
         disp(er.getReport);
         warning('Feducial Drift Correction Failed');

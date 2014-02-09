@@ -78,7 +78,7 @@ set(handles.MinIntSlider,'Min',0);
 set(handles.MinIntSlider,'Value',0); 
 set(handles.MinIntSlider,'SliderStep',[1/2^10,1/2^6])
 
-% 
-% if ~isempty(binfile)
-%     handles = QuickLoad(hObject,eventdata,handles);
-% end
+% Required for drag-and-drop load
+if ~isempty(binfile)
+    handles = QuickLoad(hObject,eventdata,handles);
+end
