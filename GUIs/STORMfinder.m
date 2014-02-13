@@ -702,10 +702,11 @@ global SF
         elseif FitMethod == 3
             savename = [savename,'.mat'];
             GPUmultiPars = FitPars;  %#ok<NASGU>
-            SF{handles.gui_number}.gpufile =[savepath,savename]; 
+            SF{handles.gui_number}.gpufile =[savepath,filesep,savename]; 
             save(SF{handles.gui_number}.gpufile,'GPUmultiPars');
         end
     end
+    set(handles.CurrentPars,'String',[savepath,filesep,savename]);
 
     % --------------------------------------------------------------------
 function MenuLoadPars_Callback(hObject, eventdata, handles)
