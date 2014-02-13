@@ -2,6 +2,8 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 %--------------------------------------------------------------------------
 % [dxc,dyc] = feducialDriftCorrection(binname)
 % [dxc,dyc] =  feducialDriftCorrection(mlist)
+% [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = ...
+%                                   FeducialDriftCorrection(biname)
 % feducialDriftCorrection([],'daxname',daxname,'mlist',mlist,...);
 % targetmlist = FeducialDriftCorrection(beadlist,'target',targetmlist); 
 % targetmlist = FeducialDriftCorrection(beadlist,'target',targetmlist,...
@@ -40,7 +42,7 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 %               instead of the relative drift away from the starting point
 %               for each frame.   
 % 'samplingrate'
-%               -- for use only with 'target', mlist.  If the STORM data
+%               -- If the STORM data
 %               were sampled at a higher rate than the feducial bead data,
 %               FeducialDriftCorrection will assume the two movies are
 %               ultimately of the same length and interpolate the bead
@@ -55,11 +57,11 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 %             mlist.xc = mlist.x - dxc(mlist.frame);
 %             mlist.yc = mlist.y - dyc(mlist.frame); 
 % correctedTrajectory 
-%               -- matrix numFrames x numFeducials. Has trajectory of feducials
-%               after applying the drift correction
+%               -- matrix numFrames x numFeducials x 2-dimensions. Has 
+%               trajectory of feducials after applying the drift correction
 % rawTrajectory
-%               -- matrix numFrames x numFeducials. Has trajectory of feducials
-%               before applying the drift correction
+%               -- matrix numFrames x numFeducials  x 2-dimensions. Has 
+%               trajectory of feducials before the drift correction.
 % drift_error
 %               -- uncertainty in drift, measured as the difference in nm
 %               of the total sum of bead movements between the two beads
@@ -84,7 +86,7 @@ daxname = [];
 startframe = 1; % frame to use to find feducials
 spotframe = [];
 maxdrift = 2.5; % max distance a feducial can get from its starting position and still be considered the same molecule
-integrateframes = 200; % number of frames to integrate
+integrateframes = 60; % number of frames to integrate
 fmin = .8; 
 npp = 160;
 showplots = true;
@@ -150,7 +152,7 @@ end
 %% Main Function
 %--------------------------------------------------------------------------
 
-integrateframes = ceil(integrateframes/samplingrate*10); 
+integrateframes = ceil(integrateframes/samplingrate); 
 
 if ~isempty(binname)
     k = regexp(binname,'_');

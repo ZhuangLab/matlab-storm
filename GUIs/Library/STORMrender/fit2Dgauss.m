@@ -77,7 +77,7 @@ xint = linspace(min(xdata),max(xdata),sc);
         yscale_fact = 1/max(ynorm);
         ynorm = .5+ynorm*yscale_fact*sc;
         hold on;
-        plot(xnorm,ynorm,'c.','MarkerSize',30);
+        plot(xnorm,ynorm,'c.','MarkerSize',1);
     end
     
     [X,Y] = meshgrid(xint,yint);
