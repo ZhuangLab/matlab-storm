@@ -28,7 +28,10 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 % 'maxdrift' / double / 2.5 
 %               -- max distance a feducial can get from its starting 
 %                  position and still be considered the same molecule
-% 'integrateframes' / double / 500
+% 'integrateframes' / double / 60
+%               -- average localizations together from this number of
+%               consecutive frames in the binfile to get a better estimate
+%               of the real bead trajectory.  Useful if feducials are dim.
 % 'fmin' / double / .5
 %               -- fraction of frames which must contain feducial
 % 'nm per pixel' / double / 158 
@@ -64,8 +67,8 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 %               trajectory of feducials before the drift correction.
 % drift_error
 %               -- uncertainty in drift, measured as the difference in nm
-%               of the total sum of bead movements between the two beads
-%               which moved the least.  
+%               of the total drift between the guide bead and his buddy
+%               bead.
 %
 %--------------------------------------------------------------------------
 % Alistair Boettiger
@@ -96,6 +99,7 @@ mlist = [];
 samplingrate = 1;
 targetmlist = [];
 fighandle = [];
+drift_error = [];
 if ischar(input1)
     binname = input1;
 elseif isstruct(input1)
@@ -257,8 +261,10 @@ for i=1:numFeducials
 end
 
 
-% Determine best-fit feducial using median feducial for first pass
+% Determine best-fit feducial using max Correlation for the first pass
 %----------------------------------------------------
+
+% Raw trajectories relative to  starting positions.  
 % subtract starting position from each trajectory
 dx = rawTrajectory(:,:,1)-repmat(rawTrajectory(startframe,:,1),numFrames,1);
 dy = rawTrajectory(:,:,2)-repmat(rawTrajectory(startframe,:,2),numFrames,1);
@@ -272,35 +278,64 @@ goodframes = startframe:numFrames;
 xc = rawTrajectory(goodframes,:,1)-repmat(dxmed(goodframes),1,numFeducials);
 yc = rawTrajectory(goodframes,:,2)-repmat(dymed(goodframes),1,numFeducials);
 
+
+
+
 totMovement = zeros(numFeducials,1);
 for j=1:numFeducials
     totMovement(j) = nanmedian(abs(dx(startframe:end,j)) + ...
                   abs(dy(startframe:end,j)));
 end
 
-[~,guide_dot] = min(abs(totMovement)); 
-drift_error = abs(min(totMovement(guide_dot) - totMovement([1:guide_dot-1,guide_dot+1:end]))*npp);
+
+maxCorr = zeros(numFeducials);
+for i=1:numFeducials
+    for j=1:numFeducials
+        if i~=j
+            goodDots =  ~ (isnan(dx(:,i)) | isnan(dx(:,j)));
+            maxCorr(i,j) = max(xcorr(dx(goodDots,i),dx(goodDots,j)));
+        end
+    end
+end
+% figure(7); clf; imagesc(maxCorr);
+
+
+if numFeducials > 2
+    maxCorrValues = max(maxCorr);
+    [~,guide_dot] = max(maxCorrValues);
+    maxCorrValues(guide_dot) = 0;
+    [~,buddy_dot] = max(maxCorrValues);
+else
+    [~,guide_dot] = min(abs(totMovement)); 
+    [~,buddy_dot] = min(totMovement(guide_dot) - totMovement([1:guide_dot-1,guide_dot+1:end]));
+end
+drift_error = sqrt((dx(guide_dot) - dx(buddy_dot)).^2 + (dy(guide_dot) - dy(buddy_dot)).^2)*npp;
 if isempty(drift_error)
     drift_error = NaN;
 end
 disp(['residual drift error = ', num2str(drift_error),' nm']); 
 
 
-% Apply moving average filter to remove frame-to-frame fit noise
-%----------------------------------------------------------------
+
+
 % Moving average filter
 x = dx(:,guide_dot); % xdrift per frame
 y = dy(:,guide_dot); % ydrift per frame
-dxc = fastsmooth(x,integrateframes,1,1);
-dyc = fastsmooth(y,integrateframes,1,1);
-dxp = dxc; % 
-dyp = dyc; % 
+if integrateframes > 1
+    dxc = fastsmooth(x,integrateframes,1,1);
+    dyc = fastsmooth(y,integrateframes,1,1);
+else
+     dxc = x;
+    dyc = y;
+end
+
+% Plot drift
 if showplots
-    z = zeros(size(dxp')); 
+    z = zeros(size(dxc')); 
     col = [double(1:numFrames-1),NaN];  % This is the color, vary with x in this case.
     colordef white; 
-    surface([dxp';dxp'+.001]*npp,...
-            [dyp';dyp'+.001]*npp,...
+    surface([dxc';dxc'+.001]*npp,...
+            [dyc';dyc'+.001]*npp,...
             [z;z],[col;col],...
             'facecol','no',...
             'edgecol','interp',...
@@ -309,8 +344,8 @@ if showplots
     xlabel('nm'); 
     ylabel('nm'); 
     colormap(jet(256)); 
-    xrange = round(linspace(min(dxp),max(dxp),10)*npp);
-    yrange = round(linspace(min(dyp),max(dyp),10)*npp);
+    xrange = round(linspace(min(dxc),max(dxc),10)*npp);
+    yrange = round(linspace(min(dyc),max(dyc),10)*npp);
     xlim([min(xrange),max(xrange)]);
     ylim([min(yrange),max(yrange)]);
     set(gca,'Xtick',xrange,'XTickLabel',xrange,...
@@ -318,7 +353,7 @@ if showplots
 end
 
 
-% correct drift
+% correct drift in feduicals
 mlist.xc = mlist.x - dxc(mlist.frame);
 mlist.yc = mlist.y - dyc(mlist.frame); 
 
