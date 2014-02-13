@@ -24,7 +24,7 @@ else
     SR{handles.gui_number}.mlist = mlist;
 end
 
-imaxes.scale = 15;  % upscale on display
+imaxes.scale = 2;  % upscale on display
 imaxes.zm = 1;
 imaxes.cx = imaxes.W/2;
 imaxes.cy = imaxes.H/2;
