@@ -154,12 +154,17 @@ CC{handles.gui_number}.cmp = cmp;
 
  ChromatinPlots(handles, 1);
 
-if Nclusters > 1
+
     CC{handles.gui_number}.dotnum = 1;
     set(handles.DotNum,'String',num2str(1)); 
     set(handles.DotSlider,'Value',1);
     set(handles.DotSlider,'Min',1);
     set(handles.DotSlider,'Max',Nclusters);  
+if Nclusters > 1
     set(handles.DotSlider,'SliderStep',[1/(Nclusters-1),3/(Nclusters-1)]);
+elseif Nclusters == 1
+    set(handles.DotSlider,'SliderStep',[1,1]);
+else
+    disp('no clusters found!');
 end
     

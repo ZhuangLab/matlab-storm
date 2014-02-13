@@ -59,6 +59,9 @@ parData{9} = CC{handles.gui_number}.parsX;
 
 % General information about spot
 CC{handles.gui_number}.data.clrmap = CC{handles.gui_number}.clrmap;
+CC{handles.gui_number}.data.locusname = CC{handles.gui_number}.pars1.locusname;
+[~,s,e] = ParseLocusName(CC{handles.gui_number}.pars1.locusname);
+CC{handles.gui_number}.data.locuslength = (e-s)/1E3;
 
 % Summary statistics about blobs
 CC{handles.gui_number}.data.mI3(dotnum) = CC{handles.gui_number}.tempData.mI3;
@@ -108,7 +111,7 @@ save([savefolder,filesep,saveroot,'data.mat'],'data','CCguiData');
 %-------------- Save images 
 
 % Side-by-side Conventional and STORM images
-saveFig = figure(10); clf; colordef white;
+saveFig = figure(10); clf; colordef black;
 set(gcf,'color','k');
 set(saveFig, 'PaperPosition', [0 0 8 5],'Position',[0 0 800 500]);
 subplot(1,2,1); Ncolor(CC{handles.gui_number}.tempData.convImages(:,:,1)); colormap(CC{handles.gui_number}.clrmap);
@@ -119,7 +122,7 @@ export_fig(saveFig,[savefolder,filesep,saveroot,'StormConv_',sprintf('%03d',dotn
 close(saveFig); 
 
 % Side-by-side AreaMap and STORM images
-saveFig = figure(10); clf; colordef white;
+saveFig = figure(10); clf; colordef black;
 set(gcf,'color','k');
 set(saveFig, 'PaperPosition', [0 0 8 5],'Position',[0 0 800 500]);
 % set(saveFig, 'PaperPosition', [0 0 10 5],'Position',[0 0 1000 500]);
@@ -131,7 +134,7 @@ export_fig(saveFig,[savefolder,filesep,saveroot,'AreaMap_',sprintf('%03d',dotnum
 close(saveFig); 
 
 % STORM projections, XY, XZ, YZ
-saveFig = figure(10); clf; colordef white;
+saveFig = figure(10); clf; colordef black;
 set(gcf,'color','k');
 set(saveFig, 'PaperPosition', [0 0 24 5],'Position',[0 50 1200 350]);
 subplot(1,3,1); Ncolor(CC{handles.gui_number}.tempData.stormImagesXY{1},CC{handles.gui_number}.clrmap);
@@ -144,8 +147,8 @@ export_fig(saveFig,[savefolder,filesep,saveroot,'Storm3D_',sprintf('%03d',dotnum
 close(saveFig); 
 
 % filtered STORM projections, XY, XZ, YZ
-saveFig = figure(10); clf; colordef white;
-set(gcf,'color','k');
+saveFig = figure(10); clf; colordef black;
+set(gcf,'color','k'); 
 set(saveFig, 'PaperPosition', [0 0 24 5],'Position',[0 50 1200 350]);
 subplot(1,3,1); Ncolor(CC{handles.gui_number}.tempData.stormImagesXYfilt{1},CC{handles.gui_number}.clrmap);
 set(gca,'XTick',[],'YTick',[]); axis image;
@@ -156,7 +159,7 @@ set(gca,'XTick',[],'YTick',[]); axis image;
 export_fig(saveFig,[savefolder,filesep,saveroot,'Storm3Dfilt_',sprintf('%03d',dotnum),'.png']);
 close(saveFig); 
 
-saveFig = figure(10); clf; colordef white;
+saveFig = figure(10); clf; colordef black;
 set(gcf,'color','k');
 set(saveFig, 'PaperPosition', [0 0 5 5],'Position',[0 50 500 500]);
 Ncolor(CC{handles.gui_number}.tempData.cellImages,CC{handles.gui_number}.clrmap);

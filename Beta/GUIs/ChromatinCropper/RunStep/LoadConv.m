@@ -100,7 +100,7 @@ end
  % Manually select overlays
  if isempty(CC{handles.gui_number}.pars1.overlays) % still empty
       disp('automatic overlay detection failed.  Please select manually'); 
-      SpecifyOverlays(handles)
+      SpecifyOverlays(handles);
  end
  
  
