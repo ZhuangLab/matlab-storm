@@ -40,21 +40,21 @@ dlg_title = 'Feducial Drift Correction Options';
 num_lines = 1;
 Dprompt = {
     'feducial binfile (STORM-chn or binfile string)',... 1
-    'correct STORM chn: ',... 2
-    'start frame (1 = first appearance)',...        3
-    'max drift (pixels)',...          4
-    'integrate frames (smoothing localization noise)',...   5
+    'start frame (1 = first appearance)',...        2
+    'max drift (pixels)',...          3
+    'integrate frames (smoothing localization noise)',...   4
+    'feducial averaging rate',...              5
     'min fraction of frames ',...              6
     'nm per pixel',...      7 
     'show plots',...          8
     'show extra plots',...   9
-    'frame to ID feducials (1 = first appearance)',...
-    'correct back from previous channels'};       
+    'frame to ID feducials (1 = first appearance)',... 10
+    'correct back from previous channels'};        11
 Opts{1} = '';
-Opts{2} = ''; % ['[',num2str(1:length(mlist)),']'];
-Opts{3} = num2str(1);
-Opts{4} = num2str(2.5);
-Opts{5} = num2str(500);
+Opts{2} = num2str(1);
+Opts{3} = num2str(2.5);
+Opts{4} = num2str(60);
+Opts{5} = num2str(60); 
 Opts{6} = num2str(0.7);
 Opts{7} = num2str(SR{handles.gui_number}.DisplayOps.npp);
 Opts{8} = 'true';
@@ -79,31 +79,46 @@ if length(Opts) > 1 % Do nothing if cancelled
         end
     end
     
-    %  save([scratchPath,'test.mat']); 
-    % load([scratchPath,'test.mat']); 
-    
-    [dxc,dyc] = feducialDriftCorrection(sourcename,...        
-        'startframe',eval(Opts{3}),...     3
-        'maxdrift',eval(Opts{4}),...          4
-        'integrateframes',eval(Opts{5}),...
-        'fmin',eval(Opts{6}),...
-        'nm per pixel',eval(Opts{7}),...
-        'showplots',eval(Opts{8}),...
-        'showextraplots',eval(Opts{9}),...
-        'spotframe',eval(Opts{10}) );
-       
-    % record drift in this channel.  Calc drift from previous channels
-   SR{handles.gui_number}.driftData{c}.xDrift = nonzeros(dxc);
-   SR{handles.gui_number}.driftData{c}.yDrift = nonzeros(dyc);
-   if eval(Opts{11}) && c>1
-    prevXdrift = [0,SR{handles.gui_number}.driftData{1:c-1}.xDrift(end)];
-    prevYdrift = [0,SR{handles.gui_number}.driftData{1:c-1}.yDrift(end)]; 
+
+ %   c = 1; sourcename = 'T:\2014-02-12_F05-6_F06-7\750_F05F06_storm_0001_c2_list.bin'
+ %   c = 2; sourcename = 'T:\2014-02-12_F05-6_F06-7\647_F05F06_storm_0001_c2_list.bin'
+    samplingrate = eval(Opts{5});
+   if samplingrate == 1
+        [dxc,dyc] = FeducialDriftCorrection(sourcename,...        
+            'startframe',eval(Opts{2}),...     3
+            'maxdrift',eval(Opts{3}),...          4
+            'integrateframes',eval(Opts{4}),...
+            'samplingrate',eval(Opts{5}),...
+            'fmin',eval(Opts{6}),...
+            'nm per pixel',eval(Opts{7}),...
+            'showplots',eval(Opts{8}),...
+            'showextraplots',eval(Opts{9}),...
+            'spotframe',eval(Opts{10}) );
    else
-    prevXdrift = 0; 
-    prevYdrift = 0;
-   end
-    mlist{c}.xc = mlist{c}.x - dxc(mlist{c}.frame) - sum(prevXdrift);
-    mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame) - sum(prevYdrift); 
+       [~,~,dxc,dyc] = FeducialDriftCorrection(sourcename,...        
+            'startframe',eval(Opts{2}),...     3
+            'maxdrift',eval(Opts{3}),...          4
+            'integrateframes',eval(Opts{4}),...
+            'samplingrate',eval(Opts{5}),...
+            'fmin',eval(Opts{6}),...
+            'nm per pixel',eval(Opts{7}),...
+            'showplots',eval(Opts{8}),...
+            'showextraplots',eval(Opts{9}),...
+            'spotframe',eval(Opts{10}) ,...
+            'target',mlist{c});
+   end  
+          % record drift in this channel.  Calc drift from previous channels
+       SR{handles.gui_number}.driftData{c}.xDrift = nonzeros(dxc);
+       SR{handles.gui_number}.driftData{c}.yDrift = nonzeros(dyc);
+       if eval(Opts{11}) && c>1
+        prevXdrift = [0,SR{handles.gui_number}.driftData{1:c-1}.xDrift(end)];
+        prevYdrift = [0,SR{handles.gui_number}.driftData{1:c-1}.yDrift(end)]; 
+       else
+        prevXdrift = 0; 
+        prevYdrift = 0;
+       end
+        mlist{c}.xc = mlist{c}.x - dxc(mlist{c}.frame) - sum(prevXdrift);
+        mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame) - sum(prevYdrift);   
 end  
    
 end

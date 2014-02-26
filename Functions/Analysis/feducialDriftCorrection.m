@@ -90,7 +90,7 @@ startframe = 1; % frame to use to find feducials
 spotframe = [];
 maxdrift = 2.5; % max distance a feducial can get from its starting position and still be considered the same molecule
 integrateframes = 60; % number of frames to integrate
-fmin = .8; 
+fmin = .9; 
 npp = 160;
 showplots = true;
 showextraplots = false; 
@@ -200,10 +200,11 @@ end
 
 % Reject molecules that are too close to other molecules
 if length(x1s) > 1
-    [~,dist] = knnsearch([x1s,y1s],[x1s,y1s],'K',2);
-    nottooclose = dist(:,2)>2*maxdrift;
-    x1s = x1s(nottooclose);
-    y1s = y1s(nottooclose);
+    [idx,dist] = knnsearch([x1s,y1s],[x1s,y1s],'K',2);
+    tooclose = dist(:,2)<2*maxdrift;
+    tooclose = unique(idx(tooclose,2));
+    x1s(tooclose) = [];
+    y1s(tooclose) = [];
 end    
 
 % Feducials must be ID'd in at least fmin fraction of total frames
@@ -223,7 +224,7 @@ end
 
 if showplots
     if ~isempty(daxname)
-        imagesc(daxfile(:,:,1));
+        imagesc(sum(daxfile(:,:,1:10),3));
     end
     colormap hot;
     hold on;
@@ -242,7 +243,7 @@ feducial_boxes = [fb(:,1),fb(:,3),...
 if showplots
     colormap gray;
     hold on; 
-    plot(x1s,y1s,'k.');
+    plot(x1s,y1s,'w.');
 end
 
 % Record position of feducial in every frame
@@ -273,13 +274,30 @@ dy = rawTrajectory(:,:,2)-repmat(rawTrajectory(startframe,:,2),numFrames,1);
 dxmed = nanmedian(dx,2); % xdrift per frame
 dymed = nanmedian(dy,2); % ydrift per frame
 
-goodframes = startframe:numFrames; 
+goodframes = double(startframe:numFrames); 
 % correct drift in feducials;
 xc = rawTrajectory(goodframes,:,1)-repmat(dxmed(goodframes),1,numFeducials);
 yc = rawTrajectory(goodframes,:,2)-repmat(dymed(goodframes),1,numFeducials);
 
 
+% get rid of internal NaNs via interpolation
+for i=1:numFeducials
+    X = dx(:,i); 
+    dx(isnan(X),i) = interp1(find(~isnan(X)), X(~isnan(X)), find(isnan(X)), 'linear'); 
+    X = dy(:,i); 
+    dy(isnan(X),i) = interp1(find(~isnan(X)), X(~isnan(X)), find(isnan(X)), 'linear'); 
+    if isnan(dx(end,i))
+        dx(end,i) = dx(end-1,i);
+    end
+    if isnan(dy(end,i))
+        dy(end,i) = dy(end-1,i);
+    end
+end
+missingEndFrames = isnan(sum([dx(5:end,:);dy(5:end,:)]));
+dx(:,missingEndFrames) = [];
+dy(:,missingEndFrames) = [];
 
+numFeducials = size(dx,2);
 
 totMovement = zeros(numFeducials,1);
 for j=1:numFeducials
@@ -287,36 +305,48 @@ for j=1:numFeducials
                   abs(dy(startframe:end,j)));
 end
 
-
-maxCorr = zeros(numFeducials);
+driftDiff = inf*ones(numFeducials);
 for i=1:numFeducials
     for j=1:numFeducials
         if i~=j
-            goodDots =  ~ (isnan(dx(:,i)) | isnan(dx(:,j)));
-            maxCorr(i,j) = max(xcorr(dx(goodDots,i),dx(goodDots,j)));
+            driftDiff(i,j) =  norm(dx(:,i) - dx(:,j)) +  norm(dy(:,i) - dy(:,j));     
         end
     end
 end
-% figure(7); clf; imagesc(maxCorr);
+% figure(7); clf; imagesc(driftDiff);
 
 
 if numFeducials > 2
-    maxCorrValues = max(maxCorr);
-    [~,guide_dot] = max(maxCorrValues);
-    maxCorrValues(guide_dot) = 0;
-    [~,buddy_dot] = max(maxCorrValues);
+    minDriftDiff = min(driftDiff);
+    [~,guide_dot] = min(minDriftDiff);
+    minDriftDiff(guide_dot) = inf;
+    [~,buddy_dot] = min(minDriftDiff);
 else
     [~,guide_dot] = min(abs(totMovement)); 
     [~,buddy_dot] = min(totMovement(guide_dot) - totMovement([1:guide_dot-1,guide_dot+1:end]));
 end
-drift_error = sqrt((dx(guide_dot) - dx(buddy_dot)).^2 + (dy(guide_dot) - dy(buddy_dot)).^2)*npp;
+drift_error = sqrt((dx(end,guide_dot) - dx(end,buddy_dot)).^2 + (dy(end,guide_dot) - dy(end,buddy_dot)).^2)*npp;
 if isempty(drift_error)
     drift_error = NaN;
 end
 disp(['residual drift error = ', num2str(drift_error),' nm']); 
 
+if showextraplots
+    figure;
+    colormap gray;
+    hold on; 
+    plot(x1s(guide_dot),y1s(guide_dot),'go','MarkerSize',15);
+    plot(x1s(buddy_dot),y1s(buddy_dot),'mo','MarkerSize',15);
+end
 
+if showextraplots
+    figure; plot(dx);
+    hold on; plot(dx(:,guide_dot),'LineWidth',2,'color','g');
+    hold on; plot(dx(:,buddy_dot),'LineWidth',2,'color','m');
+end
 
+save([scratchPath,'debug']);
+% load([scratchPath,'debug']);
 
 % Moving average filter
 x = dx(:,guide_dot); % xdrift per frame
@@ -328,6 +358,9 @@ else
      dxc = x;
     dyc = y;
 end
+
+   
+
 
 % Plot drift
 if showplots
@@ -406,4 +439,6 @@ if ~isempty(targetmlist);
     % overload dxc and dyc outputs
     dxc = targetmlist;
     dyc = drift_error;
+    correctedTrajectory = x_drift;
+    rawTrajectory = y_drift;
 end

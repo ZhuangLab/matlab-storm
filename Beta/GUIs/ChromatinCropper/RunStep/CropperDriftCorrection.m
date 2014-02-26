@@ -50,14 +50,23 @@ for n=1:numChns
     % Attempts to automatically detect a movie of feducial beads and use
     % this for drift correction.  
     try
+        % first look for '_ds60' tagged files post-processed downsampled by 60 
+        % (same name as 
         beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
-        beadbin = [folder,filesep,beadname];
+        beadbin0 = [folder,filesep,beadname];
+        beadbin = regexprep(beadbin0,'*_list\.bin','*_ds60_list\.bin');   
+        % Next choice,   for _c2 bead files  (These are compressed on the fly by hal)
         if ~exist(beadbin,'file')
-           beadbin1 = beadbin;
-           beadbin = regexprep(beadbin1,'c1','c2');
+           beadbin = regexprep(beadbin0,'c1','c2');  
         end
+        % Last choice look for non-downsampled bead data
         if ~exist(beadbin,'file')
-            disp(['File ',beadbin1, ' does not exist']);
+            beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
+            beadbin = [folder,filesep,beadname];
+        end
+        % Display error if we still haven't found a bead movie 
+        if ~exist(beadbin,'file')
+            disp(['File ',beadbin0, ' does not exist']);
             disp(['File ',beadbin, ' does not exist']);
             disp('No feducial bead file found.'); 
         else
