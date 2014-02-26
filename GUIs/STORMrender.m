@@ -22,7 +22,7 @@ function varargout = STORMrender(varargin)
 
 % Edit the above text to modify the response to help STORMrender
 
-% Last Modified by GUIDE v2.5 07-Jan-2014 10:54:06
+% Last Modified by GUIDE v2.5 26-Feb-2014 11:27:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -535,3 +535,17 @@ function fchn3_Callback(hObject, eventdata, handles)
 function fchn4_Callback(hObject, eventdata, handles)
 
 %========================================================================
+
+
+% --------------------------------------------------------------------
+function MenuDisplayResolution_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuDisplayResolution (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function Projections3D_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to Projections3D (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

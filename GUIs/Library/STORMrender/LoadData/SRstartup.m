@@ -27,6 +27,7 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.DisplayOps.zrange = [-500,500];
     SR{handles.gui_number}.DisplayOps.CorrDrift = true;
     SR{handles.gui_number}.DisplayOps.clrmap = 'lines';
+    SR{handles.gui_number}.DisplayOps.resolution = 512; 
 
 % Default MultiBinFile Load Options
     SR{handles.gui_number}.LoadOps.warpD = 3; % set to 0 for no chromatic warp
