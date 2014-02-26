@@ -1,6 +1,7 @@
 function TimeAverageMovie(daxfile,varargin)
 %--------------------------------------------------------------------------
-% TimeAverageMovie(daxfile
+% TimeAverageMovie(daxfile)
+% 
 %--------------------------------------------------------------------------
 % Inputs:
 % daxfile
@@ -42,7 +43,8 @@ blocksize = 10;
 downsize = 60;
 overwrite = true; 
 newDaxName = '';
-
+subregion = [];
+gain = 1; 
 %--------------------------------------------------------------------------
 %% Parse variable input
 %--------------------------------------------------------------------------
@@ -63,6 +65,10 @@ if nargin > 1
                 blocksize = CheckParameter(parameterValue,'positive','blocksize');                   
             case 'overwrite'
                 overwrite = CheckParameter(parameterValue,'boolean','overwrite'); 
+            case 'subregion'
+                subregion = parameterValue;          
+            case 'gain'
+                gain  = CheckParameter(parameterValue,'positive','gain');                   
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -115,21 +121,23 @@ v=0;
 for t=1:ceil(T/stepsize)  % t = 3
     s1 = (t-1)*stepsize + 1;
     e1 = min(t*stepsize,T); 
-%     
-%     movie = ReadDax(daxfile,'subregion',[257,512,1,256],...
-%         'startFrame',s1,'endFrame',e1,'verbose',false); 
 
-    movie = ReadDax(daxfile,...
-    'startFrame',s1,'endFrame',e1,'verbose',false); 
+    if isempty(subregion)
+        movie = ReadDax(daxfile,...
+        'startFrame',s1,'endFrame',e1,'verbose',false); 
+    else
+        movie = ReadDax(daxfile,'subregion',subregion,...
+            'startFrame',s1,'endFrame',e1,'verbose',false); 
+    end
     
     for u=1:blocksize
         s2 = (u-1)*downsize + 1;
         e2 = min(u*downsize,e1-s1+1); 
         v=v+1;
-        averagedMovie(:,:,v) = mean(movie(:,:,s2:e2),3);
+        averagedMovie(:,:,v) = mean(gain*movie(:,:,s2:e2),3);
     end
     s = (t-1)*blocksize + 1;
-    e = t*blocksize; 
+    e = min(t*blocksize,T2); 
     fwrite(fid, ipermute(averagedMovie(:,:,s:e), [2 1 3]), 'int16', 'b');
     if rem(t,2) == 0
         disp([ num2str(100*t/ceil(T/stepsize),4),'% complete'] );
