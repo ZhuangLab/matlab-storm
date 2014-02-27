@@ -148,6 +148,9 @@ end
 
  try
      beads = uint16(mean(ReadDax(beadsName,'verbose',false,'endFrame',100),3));
+     if max(beads(:)) - min(beads(:)) < 40
+    	beads = zeros(H,W,'uint16');  
+     end
  catch er
     disp(er.message);
     beads = zeros(H,W,'uint16');  
@@ -181,7 +184,6 @@ end
  end
 
 % -------- Combine into multicolor image ------------
-
 conv0 = imadjust(conv0,stretchlim(conv0,0)); 
 warpedConv1 = imadjust(warpedConv1,stretchlim(warpedConv1,0));
 warpedBeads = imadjust(warpedBeads,stretchlim(warpedBeads,0));
@@ -189,30 +191,9 @@ warpedLamina = imadjust(warpedLamina,stretchlim(warpedLamina,0));
 [H,W] = size(conv0);
 convI = zeros(H,W,4,'uint16');
 convI(:,:,1) = conv0;
-convI(:,:,2) = warpedBeads;
-convI(:,:,3) = warpedLamina; 
-convI(:,:,4) = warpedConv1;
-
-% -------- Plot results ----------
-channels = false(1,2); % Storm Channels
-for c = 1:4; 
-    channels(c) = eval(['get(','handles.oLayer',num2str(c),', ','''Value''',')']);
-end
-
-
-axes(handles.axes1);
-Ncolor(convI(:,:,channels));
-xlim([0,W]); 
-ylim([0,H]);
-axes(handles.axes1);
-set(gca,'color','k');
-set(gca,'XTick',[],'YTick',[]);
-
-axes(handles.axes2);
-Ncolor(convI); 
-set(gca,'color','k');
-set(gca,'XTick',[],'YTick',[]);
-%--------------------------------------
+convI(:,:,2) = warpedConv1;
+convI(:,:,3) = warpedBeads;
+convI(:,:,4) = warpedLamina; 
 
 % if conv1 is empty (all zero), save as empty; 
 if sum(conv1(:)) == 0
@@ -225,3 +206,8 @@ CC{handles.gui_number}.maskBeads = warpedBeads;
 CC{handles.gui_number}.convI = convI;
 CC{handles.gui_number}.pars0.H = H;
 CC{handles.gui_number}.pars0.W = W;
+
+% -------- Plot results ----------
+ UpdateConv(handles)
+ 
+

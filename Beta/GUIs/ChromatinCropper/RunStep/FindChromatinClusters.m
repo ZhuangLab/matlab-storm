@@ -29,9 +29,13 @@ convI = CC{handles.gui_number}.convI;
 
 % Update fields for 2 color data
 if isempty(CC{handles.gui_number}.mlist1)
+    numChns = 1;
+    convChns = 1;
     mlists = {mlist};
     filters = {infilt}; 
 else
+    numChns = 2;
+    convChns = [1,2]; % channels containing the conv. imaging data
     infilt1= CC{handles.gui_number}.infilt1;
     conv1 = CC{handles.gui_number}.conv1;
     mlist1 = CC{handles.gui_number}.mlist1;
@@ -94,8 +98,11 @@ for n=1:Nclusters % n=3
        
       % Conventional Image of Spot 
         convCrop = convI(ceil(imaxes.ymin):floor(imaxes.ymax),...
-            ceil(imaxes.xmin):floor(imaxes.xmax),1);
-        Iconv{n} = imadjust(convCrop,stretchlim(convCrop,0));  
+            ceil(imaxes.xmin):floor(imaxes.xmax),convChns);
+        for c=convChns
+            convCrop(:,:,c) = imadjust(convCrop(:,:,c)) ; % imadjust(convCrop(:,:,c),stretchlim(convCrop(:,:,c),0));
+        end
+        Iconv{n} = convCrop; % 
         
      % STORM image of whole cell
        cellaxes = imaxes;
@@ -108,24 +115,23 @@ for n=1:Nclusters % n=3
        cellaxes.ymax = cellaxes.cy + cellaxes.H/2/cellaxes.zm;
        Izmout = list2img(mlists,cellaxes,...
            'filter',filters,'Zsteps',1,'scalebar',500);
-       Icell{n} = sum(Izmout{1},3);
+       Icell{n} = Izmout; % sum(Izmout{1},3);
    
      % Gaussian Fitting and Cluster
        % Get subregion, exlude distant zs which are poorly fit
-        vlist = msublist(mlist,imaxes,'filter',infilt);
-        vlist.c( vlist.z>=480 | vlist.z<-480 ) = 9;    
+        vlist = msublist(mlists,imaxes,'filter',filters);
+
     
-     %  Correct z-calibration
-    % zparsfile = 'J:\2013-10-02_D09\splitdax\647pars.xml';
+   %  Correct z-calibration
+   % zparsfile = 'J:\2013-10-02_D09\splitdax\647pars.xml';
    %  zparsfile = 'K:\2013-10-10_F11\splitdax\647dao_pars.xml';
-    vlist = RecalibrateZ(vlist, CC{handles.gui_number}.pars5.zparsfile); 
-        
-   % figure(13); clf; hist(vlist.zc); 
-    
-     %  Indicate color as time. 
-        [cmp{n},dxc,dyc] =  ColorByFrame(vlist);  
-        Itime{n} = [dxc,dyc,cmp{n}];
-        vlists{n} = vlist; 
+   for i=1:length(vlist)
+    vlist{i} = RecalibrateZ(vlist{i}, CC{handles.gui_number}.pars5.zparsfile); 
+    [cmp{n,i},dxc,dyc] =  ColorByFrame(vlist{i});    %  Indicate color as time. 
+    Itime{n,i} = [dxc,dyc,cmp{n,i}];
+    % figure(13); clf; hist(vlists{i}.zc); 
+   end    
+    vlists{n} = vlist; 
         
      % XZ and YZ plots
          figure(3); clf; 

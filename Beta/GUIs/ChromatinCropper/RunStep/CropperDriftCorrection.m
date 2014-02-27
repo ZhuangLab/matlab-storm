@@ -46,6 +46,7 @@ for n=1:numChns
     showPlots = CC{handles.gui_number}.pars4.showPlots(n); 
     showExtraPlots = CC{handles.gui_number}.pars4.showExtraPlots(n); 
     samplingRate = CC{handles.gui_number}.pars4.samplingRate(n); 
+    integrateframes= CC{handles.gui_number}.pars4.integrateframes(n); 
     % -------------- Method 1 (Default) -----------------------------
     % Attempts to automatically detect a movie of feducial beads and use
     % this for drift correction.  
@@ -74,7 +75,8 @@ for n=1:numChns
              [mlist,drift_error] = FeducialDriftCorrection(beadbin,...
                  'maxdrift',maxDrift,'showplots',showPlots,'fmin',fmin,...
                  'startframe',startFrame,'showextraplots',showExtraPlots,...
-                 'target',mlist,'samplingrate',samplingRate,'fighandle',handles.axes1);
+                 'target',mlist,'samplingrate',samplingRate,...
+                 'integrateframes',integrateframes,'fighandle',handles.axes1);
               CC{handles.gui_number}.tempData.driftError = drift_error;
             goOn = true;
             retry = 0; 

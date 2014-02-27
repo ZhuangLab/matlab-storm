@@ -311,7 +311,7 @@ function oLayer1_Callback(hObject, eventdata, handles)
 % hObject    handle to oLayer1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+UpdateConv(handles)
 % Hint: get(hObject,'Value') returns toggle state of oLayer1
 
 % --- Executes on button press in oLayer2.
@@ -319,7 +319,7 @@ function oLayer2_Callback(hObject, eventdata, handles)
 % hObject    handle to oLayer2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+UpdateConv(handles)
 % Hint: get(hObject,'Value') returns toggle state of oLayer2
 
 % --- Executes on button press in oLayer3.
@@ -327,7 +327,7 @@ function oLayer3_Callback(hObject, eventdata, handles)
 % hObject    handle to oLayer3 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+UpdateConv(handles)
 % Hint: get(hObject,'Value') returns toggle state of oLayer3
 
 
@@ -336,7 +336,7 @@ function oLayer4_Callback(hObject, eventdata, handles)
 % hObject    handle to oLayer4 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+UpdateConv(handles)
 % Hint: get(hObject,'Value') returns toggle state of oLayer4
 
 

@@ -20,6 +20,8 @@ end
 
 if notCancel
     clr = Opts{1}; 
-    SetColormap(handles,clr); 
+    clrmap = GetColorMap(clr);
+    CC{handles.gui_number}.clrmap = clrmap; 
+    % SetColormap(handles,clr); 
 end
     

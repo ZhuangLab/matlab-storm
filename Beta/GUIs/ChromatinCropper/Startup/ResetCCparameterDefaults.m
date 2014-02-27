@@ -44,6 +44,7 @@ CC{handles.gui_number}.pars4.startFrame = [1 1]; % 1 is auto-detect first appear
 CC{handles.gui_number}.pars4.showPlots = [1 1];  % true / false
 CC{handles.gui_number}.pars4.showExtraPlots = [0 0];  % true / false
 CC{handles.gui_number}.pars4.samplingRate = [1 1];  % true / false
+CC{handles.gui_number}.pars4.integrateframes = [60*4, 60*4];
 
 % step X parameters for X-correlation drift correction
 CC{handles.gui_number}.parsX.stepFrame = [8000 8000]; % 'stepframe' / double / 10E3 -- number of frames to average
