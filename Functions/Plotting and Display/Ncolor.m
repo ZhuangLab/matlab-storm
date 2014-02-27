@@ -46,11 +46,11 @@ end
 
 
 if isempty(clrmap)
-    clrmap = 'hot';
+    clrmap = hot(256);
 end
 
 
-if numColors == 1;
+if numColors == 1 && size(clrmap,1) > 10;
     Io = I; 
 else
     if ischar(clrmap)

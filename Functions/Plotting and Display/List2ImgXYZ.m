@@ -62,6 +62,10 @@ end
 
 %% Main Function
 
+if ~iscell(mlist)
+    mlist = {mlist};
+end
+
 imaxes.zm = zm;
 
 if ~isempty(xrange)
@@ -71,9 +75,11 @@ if ~isempty(xrange)
     imaxes.ymax = zrange(2)/(npp)*zrescale;
 end
 xzlist = mlist;
-xzlist.yc = mlist.zc/(npp)*zrescale;
-inbox = xzlist.zc > zrange(1) & xzlist.zc < zrange(2);
-xzlist = IndexStructure(xzlist,inbox);
+for i=1:length(mlist)
+    xzlist{i}.yc = mlist{i}.zc/(npp)*zrescale;
+    inbox = xzlist{i}.zc > zrange(1) & xzlist{i}.zc < zrange(2);
+    xzlist{i} = IndexStructure(xzlist{i},inbox);
+end
 stormXZ = list2img(xzlist,imaxes);
 
 
@@ -85,11 +91,13 @@ if ~isempty(yrange)
     imaxes.ymax = zrange(2)/(npp)*zrescale;
 end
 yzlist = mlist;
-yzlist.xc = mlist.yc;
-yzlist.yc = mlist.zc/(npp)*zrescale;
-inbox = yzlist.zc > zrange(1) & yzlist.zc < zrange(2);
-yzlist = IndexStructure(yzlist,inbox);
-stormYZ = list2img(yzlist,imaxes);
+for i=1:length(mlist)
+    yzlist{i}.xc = mlist{i}.yc;
+    yzlist{i}.yc = mlist{i}.zc/(npp)*zrescale;
+    inbox = yzlist{i}.zc > zrange(1) & yzlist{i}.zc < zrange(2);
+    yzlist{i} = IndexStructure(yzlist{i},inbox);
+end
+    stormYZ = list2img(yzlist,imaxes);
 
 
 
@@ -102,8 +110,10 @@ if ~isempty(yrange)
     imaxes.ymax = yrange(2);
 end
 xylist = mlist;
-inbox = xylist.zc > zrange(1) & xylist.zc < zrange(2);
-xylist = IndexStructure(xylist,inbox);
+for i=1:length(mlist)
+    inbox = xylist{i}.zc > zrange(1) & xylist{i}.zc < zrange(2);
+    xylist{i} = IndexStructure(xylist{i},inbox);
+end
 stormXY = list2img(xylist,imaxes);
 
 
