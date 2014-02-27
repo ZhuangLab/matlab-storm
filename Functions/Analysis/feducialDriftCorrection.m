@@ -5,8 +5,9 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 % [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = ...
 %                                   FeducialDriftCorrection(biname)
 % feducialDriftCorrection([],'daxname',daxname,'mlist',mlist,...);
-% targetmlist = FeducialDriftCorrection(beadlist,'target',targetmlist); 
-% targetmlist = FeducialDriftCorrection(beadlist,'target',targetmlist,...
+% mlistOut = FeducialDriftCorrection(beadlist,'target',targetmlist); 
+% [mlistOut,error,dxc,dyc] = FeducialDriftCorrection(...; 
+% mlistOut = FeducialDriftCorrection(beadlist,'target',targetmlist,...
 %                  'samplingrate', 60); 
 %--------------------------------------------------------------------------
 % Required Inputs
@@ -55,6 +56,8 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 % 
 %--------------------------------------------------------------------------
 % Outputs
+%
+% If no 'target' is specified
 % dxc,dyc 
 %                -- computed drift per frame.  To correct drift, write:
 %             mlist.xc = mlist.x - dxc(mlist.frame);
@@ -69,6 +72,17 @@ function [dxc,dyc,correctedTrajectory,rawTrajectory,drift_error] = FeducialDrift
 %               -- uncertainty in drift, measured as the difference in nm
 %               of the total drift between the guide bead and his buddy
 %               bead.
+% 
+% If 'target' is specified
+% mlist / molecule list
+%               -- the drift corrected version of the target mlist passed
+%               to FeducialDriftCorrection
+% driftError / scalar
+%               -- the uncertainty in nm of the drift correction, computed
+%               by taking the difference in drift profiles of the maximally
+%               correlated beads.
+% dxc, dyc
+%               -- as above. 
 %
 %--------------------------------------------------------------------------
 % Alistair Boettiger
@@ -293,28 +307,38 @@ for i=1:numFeducials
         dy(end,i) = dy(end-1,i);
     end
 end
+
+% Remove Feducials that aren't detected clean through the end of the movie
 missingEndFrames = isnan(sum([dx(5:end,:);dy(5:end,:)]));
 dx(:,missingEndFrames) = [];
 dy(:,missingEndFrames) = [];
-
 numFeducials = size(dx,2);
 
+if numFeducials < 1
+    error('no feducials detected through the end of movie')
+end
+
+%------------- Chose guide feducials
+% This is done by one of two methods.  
+%     Method 1: minimum total movement. (currently not used)
+%     Method 2: maximum correlated bead-pair. (default)
+%     If there is only 1 bead, we take a gamble and trust it. 
+
+% Compute total movement
 totMovement = zeros(numFeducials,1);
 for j=1:numFeducials
     totMovement(j) = nanmedian(abs(dx(startframe:end,j)) + ...
-                  abs(dy(startframe:end,j)));
+                        abs(dy(startframe:end,j)));
 end
-
+% Compute differences in drift trajectory (for correlation method)
 driftDiff = inf*ones(numFeducials);
 for i=1:numFeducials
     for j=1:numFeducials
         if i~=j
-            driftDiff(i,j) =  norm(dx(:,i) - dx(:,j)) +  norm(dy(:,i) - dy(:,j));     
+           driftDiff(i,j)=  norm(dx(:,i)-dx(:,j))+  norm(dy(:,i)-dy(:,j));     
         end
     end
 end
-% figure(7); clf; imagesc(driftDiff);
-
 
 if numFeducials > 2
     minDriftDiff = min(driftDiff);
@@ -323,9 +347,11 @@ if numFeducials > 2
     [~,buddy_dot] = min(minDriftDiff);
 else
     [~,guide_dot] = min(abs(totMovement)); 
-    [~,buddy_dot] = min(totMovement(guide_dot) - totMovement([1:guide_dot-1,guide_dot+1:end]));
+    [~,buddy_dot] = min(totMovement(guide_dot) - ...
+                    totMovement([1:guide_dot-1,guide_dot+1:end]));
 end
-drift_error = sqrt((dx(end,guide_dot) - dx(end,buddy_dot)).^2 + (dy(end,guide_dot) - dy(end,buddy_dot)).^2)*npp;
+drift_error = sqrt((dx(end,guide_dot) - dx(end,buddy_dot)).^2 + ...
+                  (dy(end,guide_dot) - dy(end,buddy_dot)).^2)*npp;
 if isempty(drift_error)
     drift_error = NaN;
 end
@@ -345,7 +371,7 @@ if showextraplots
     hold on; plot(dx(:,buddy_dot),'LineWidth',2,'color','m');
 end
 
-save([scratchPath,'debug']);
+% save([scratchPath,'debug']);
 % load([scratchPath,'debug']);
 
 % Moving average filter
@@ -355,15 +381,13 @@ if integrateframes > 1
     dxc = fastsmooth(x,integrateframes,1,1);
     dyc = fastsmooth(y,integrateframes,1,1);
 else
-     dxc = x;
+    dxc = x;
     dyc = y;
 end
 
-   
-
-
 % Plot drift
 if showplots
+    cla;
     z = zeros(size(dxc')); 
     col = [double(1:numFrames-1),NaN];  % This is the color, vary with x in this case.
     colordef white; 
@@ -421,6 +445,7 @@ end
 %------------------------------------------------
 %%  Apply drift correction to a new mlist
 %------------------------------------------------
+% Also uses a different set of outputs.  
 if ~isempty(targetmlist); 
     % differential sampling
     if samplingrate > 1

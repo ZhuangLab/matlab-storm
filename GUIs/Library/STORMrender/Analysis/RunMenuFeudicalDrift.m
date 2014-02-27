@@ -39,17 +39,18 @@ for c = 1:length(mlist)
 dlg_title = 'Feducial Drift Correction Options';
 num_lines = 1;
 Dprompt = {
-    'feducial binfile (STORM-chn or binfile string)',... 1
-    'start frame (1 = first appearance)',...        2
-    'max drift (pixels)',...          3
-    'integrate frames (smoothing localization noise)',...   4
-    'feducial averaging rate',...              5
-    'min fraction of frames ',...              6
-    'nm per pixel',...      7 
-    'show plots',...          8
-    'show extra plots',...   9
-    'frame to ID feducials (1 = first appearance)',... 10
-    'correct back from previous channels'};        11
+    'feducial binfile (STORM-chn or binfile string)',...  1
+                'start frame (1 = first appearance)',...  2
+                                'max drift (pixels)',...  3
+   'integrate frames (smoothing localization noise)',...  4
+                           'feducial averaging rate',...  5
+                           'min fraction of frames ',...  6
+                                      'nm per pixel',...  7 
+                                        'show plots',...  8
+                                  'show extra plots',...  9
+      'frame to ID feducials (1 = first appearance)',...  10
+               'correct back from previous channels',...  11
+    };       
 Opts{1} = '';
 Opts{2} = num2str(1);
 Opts{3} = num2str(2.5);
@@ -79,9 +80,6 @@ if length(Opts) > 1 % Do nothing if cancelled
         end
     end
     
-
- %   c = 1; sourcename = 'T:\2014-02-12_F05-6_F06-7\750_F05F06_storm_0001_c2_list.bin'
- %   c = 2; sourcename = 'T:\2014-02-12_F05-6_F06-7\647_F05F06_storm_0001_c2_list.bin'
     samplingrate = eval(Opts{5});
    if samplingrate == 1
         [dxc,dyc] = FeducialDriftCorrection(sourcename,...        
@@ -107,7 +105,7 @@ if length(Opts) > 1 % Do nothing if cancelled
             'spotframe',eval(Opts{10}) ,...
             'target',mlist{c});
    end  
-          % record drift in this channel.  Calc drift from previous channels
+       % record drift in this channel.  Calc drift from previous channels
        SR{handles.gui_number}.driftData{c}.xDrift = nonzeros(dxc);
        SR{handles.gui_number}.driftData{c}.yDrift = nonzeros(dyc);
        if eval(Opts{11}) && c>1

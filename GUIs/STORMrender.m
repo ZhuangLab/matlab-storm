@@ -538,13 +538,6 @@ function fchn4_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function MenuDisplayResolution_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuDisplayResolution (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
 function Projections3D_ClickedCallback(hObject, eventdata, handles)
 % hObject    handle to Projections3D (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
