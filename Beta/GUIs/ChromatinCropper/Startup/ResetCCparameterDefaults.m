@@ -60,10 +60,10 @@ CC{handles.gui_number}.pars5.zrescale = 1;
 CC{handles.gui_number}.pars5.zparsfile = 'Q:\2013-12-28_F12F11\Beads\647zcal_0001_zpars.xml'; 
 
 % step 6 parameters
-CC{handles.gui_number}.pars6.boxSize = 32; % in nm
-CC{handles.gui_number}.pars6.startFrame= 1; % exclude localizations before this from analysis
-CC{handles.gui_number}.pars6.minLoc = 2; % min number of localization per box
-CC{handles.gui_number}.pars6.minSize = 0; % min size in number of boxes
+CC{handles.gui_number}.pars6.boxSize = [32 32]; % in nm
+CC{handles.gui_number}.pars6.startFrame= [1 1]; % exclude localizations before this from analysis
+CC{handles.gui_number}.pars6.minLoc = [2 2]; % min number of localization per box
+CC{handles.gui_number}.pars6.minSize = [0 0]; % min size in number of boxes
 CC{handles.gui_number}.pars6.saveroot = '';
 
 % step 7 parameters

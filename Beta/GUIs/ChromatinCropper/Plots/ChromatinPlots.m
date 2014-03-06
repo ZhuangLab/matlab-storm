@@ -19,22 +19,7 @@ ShowDotTime(handles,n);
 axes(handles.subaxis4); cla; %#ok<*LAXES>
 ShowHist(handles,n);
     
-
 figure(3); clf; 
-subplot(1,3,1); STORMcell2img(CC{handles.gui_number}.ImgZ{n}{3},'colormap',CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
-subplot(1,3,2); STORMcell2img(CC{handles.gui_number}.ImgZ{n}{1},'colormap',CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
-subplot(1,3,3); STORMcell2img(CC{handles.gui_number}.ImgZ{n}{2},'colormap',CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
-   
+Show3DProj(handles,n); 
 
-%        List2ImgXYZ(CC{handles.gui_number}.vlists{n},...
-%              'colormap',CC{handles.gui_number}.clrmap,...
-%              'xrange',[0,15],'yrange',[0 15],...
-%              'zrescale',1,'zrange',[-1200,1200]); 
-      
-%       List2ImgXYZ(CC{handles.gui_number}.vlists{n},...
-%           'colormap',CC{handles.gui_number}.clrmap,...
-%           'xrange',[0,15],'yrange',[0,15]); 
          

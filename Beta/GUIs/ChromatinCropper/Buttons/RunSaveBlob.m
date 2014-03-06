@@ -38,12 +38,13 @@ if CC{handles.gui_number}.step == 6
     
     
 %--------------- Sort and Save Data
-dotnum = find(~isnan(CC{handles.gui_number}.data.mainArea),1,'last')+1;
+dotnum = find(~isnan(CC{handles.gui_number}.data.mainArea(:,1)),1,'last')+1;
 if (isempty(dotnum))
     dotnum = 1;
 end
 
-% dotnum = find(~isnan(CC{handles.gui_number}.data.mainArea),1,'last');  CC{handles.gui_number}.data.mainArea(dotnum) = NaN; 
+% dotnum = find(~isnan(CC{handles.gui_number}.data.mainArea),1,'last'); CC{handles.gui_number}.data.mainArea(dotnum,:) = NaN;   <-- backup 1   
+% dotnum = find(~isnan(CC{handles.gui_number}.data.mainArea),1,'last');  CC{handles.gui_number}.data.mainArea(dotnum,:) = NaN; 
 
 % Save current values for all parameters
 parData{1} = CC{handles.gui_number}.pars1;
@@ -64,16 +65,38 @@ CC{handles.gui_number}.data.locusname = CC{handles.gui_number}.pars1.locusname;
 CC{handles.gui_number}.data.locuslength = (e-s)/1E3;
 
 % Summary statistics about blobs
-CC{handles.gui_number}.data.mI3(dotnum) = CC{handles.gui_number}.tempData.mI3;
-CC{handles.gui_number}.data.mainVolume(dotnum) = CC{handles.gui_number}.tempData.mainVolume;
-CC{handles.gui_number}.data.mI(dotnum) = CC{handles.gui_number}.tempData.mI;
-CC{handles.gui_number}.data.mainLocs(dotnum) = CC{handles.gui_number}.tempData.mainLocs;
-CC{handles.gui_number}.data.allArea(dotnum) = CC{handles.gui_number}.tempData.allArea;
-CC{handles.gui_number}.data.allLocs(dotnum) = CC{handles.gui_number}.tempData.allLocs;
-CC{handles.gui_number}.data.cvDensity(dotnum) = CC{handles.gui_number}.tempData.cvDensity; 
-CC{handles.gui_number}.data.driftError(dotnum) = CC{handles.gui_number}.tempData.driftError;
-CC{handles.gui_number}.data.mainArea(dotnum) = CC{handles.gui_number}.tempData.mainArea;
+maxDots = 200; % 
+numChns = size(CC{handles.gui_number}.tempData.mI3,2);
+if size(CC{handles.gui_number}.data.mI3,2) == 1 && numChns == 2;
+     ResetScalarData(handles,maxDots,numChns);
+end
+
+% --- Scalar data
+
+% Two channel only scalar data
+if numChns > 1
+    CC{handles.gui_number}.data.area1only(dotnum) = CC{handles.gui_number}.tempData.area1only;
+    CC{handles.gui_number}.data.area2only(dotnum) = CC{handles.gui_number}.tempData.area2only;
+    CC{handles.gui_number}.data.area1or2(dotnum) = CC{handles.gui_number}.tempData.area1or2;
+    CC{handles.gui_number}.data.area1and2(dotnum) = CC{handles.gui_number}.tempData.area1and2;
+    CC{handles.gui_number}.data.overlapMap{dotnum} = CC{handles.gui_number}.tempData.overlapMap;
+end
+
+
+% universal scalar data
+CC{handles.gui_number}.data.mI3(dotnum,:) = CC{handles.gui_number}.tempData.mI3;
+CC{handles.gui_number}.data.mainVolume(dotnum,:) = CC{handles.gui_number}.tempData.mainVolume;
+CC{handles.gui_number}.data.mI(dotnum,:) = CC{handles.gui_number}.tempData.mI;
+CC{handles.gui_number}.data.mainLocs(dotnum,:) = CC{handles.gui_number}.tempData.mainLocs;
+CC{handles.gui_number}.data.allArea(dotnum,:) = CC{handles.gui_number}.tempData.allArea;
+CC{handles.gui_number}.data.allLocs(dotnum,:) = CC{handles.gui_number}.tempData.allLocs;
+CC{handles.gui_number}.data.cvDensity(dotnum,:) = CC{handles.gui_number}.tempData.cvDensity; 
+CC{handles.gui_number}.data.driftError(dotnum,:) = CC{handles.gui_number}.tempData.driftError;
+CC{handles.gui_number}.data.mainArea(dotnum,:) = CC{handles.gui_number}.tempData.mainArea;
+
 CC{handles.gui_number}.data.props2D{dotnum} = CC{handles.gui_number}.tempData.props2D;
+
+
 
 % Raw data about blobs
 CC{handles.gui_number}.data.vlists{dotnum} = CC{handles.gui_number}.tempData.vlist;
@@ -113,36 +136,33 @@ save([savefolder,filesep,saveroot,'data.mat'],'data','CCguiData');
 % Side-by-side Conventional and STORM images
 saveFig = figure(10); clf; colordef black;
 set(gcf,'color','k');
-set(saveFig, 'PaperPosition', [0 0 8 5],'Position',[0 0 800 500]);
-subplot(1,2,1); Ncolor(CC{handles.gui_number}.tempData.convImages(:,:,1)); colormap(CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
-subplot(1,2,2); Ncolor(CC{handles.gui_number}.tempData.stormImagesXYfilt{1},CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
+set(saveFig, 'PaperPosition', [0 0 9 5],'Position',[0 0 800 600]);
+subplot(1,2,1); Ncolor(CC{handles.gui_number}.tempData.convImages,CC{handles.gui_number}.clrmap);
+subplot(1,2,2); STORMcell2img(CC{handles.gui_number}.tempData.stormImagesXYfilt,'colormap',CC{handles.gui_number}.clrmap);
+spaceplots(saveFig,[.0 .0 .0 .0], [.0 .0]);
+subplot(1,2,1); set(gca,'XTick',[],'YTick',[]); axis image;
+subplot(1,2,2); set(gca,'XTick',[],'YTick',[]); axis image;
 export_fig(saveFig,[savefolder,filesep,saveroot,'StormConv_',sprintf('%03d',dotnum),'.png']);
 close(saveFig); 
 
 % Side-by-side AreaMap and STORM images
 saveFig = figure(10); clf; colordef black;
 set(gcf,'color','k');
-set(saveFig, 'PaperPosition', [0 0 8 5],'Position',[0 0 800 500]);
-% set(saveFig, 'PaperPosition', [0 0 10 5],'Position',[0 0 1000 500]);
-subplot(1,2,1); Ncolor(CC{handles.gui_number}.tempData.convImages(:,:,1)); colormap(CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
-subplot(1,2,2); Ncolor(CC{handles.gui_number}.tempData.areaMaps,CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
+set(saveFig, 'PaperPosition', [0 0 9 5],'Position',[0 0 800 600]);
+subplot(1,2,1); Ncolor(CC{handles.gui_number}.tempData.convImages,CC{handles.gui_number}.clrmap);
+subplot(1,2,2); STORMcell2img(CC{handles.gui_number}.tempData.areaMaps,'colormap',CC{handles.gui_number}.clrmap);
+spaceplots(saveFig,[.0 .0 .0 .0], [.0 .0]);
+subplot(1,2,1); set(gca,'XTick',[],'YTick',[]); axis image;
+subplot(1,2,2); set(gca,'XTick',[],'YTick',[]); axis image;
 export_fig(saveFig,[savefolder,filesep,saveroot,'AreaMap_',sprintf('%03d',dotnum),'.png']);
 close(saveFig); 
+
 
 % STORM projections, XY, XZ, YZ
 saveFig = figure(10); clf; colordef black;
 set(gcf,'color','k');
 set(saveFig, 'PaperPosition', [0 0 24 5],'Position',[0 50 1200 350]);
-subplot(1,3,1); Ncolor(CC{handles.gui_number}.tempData.stormImagesXY{1},CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
-subplot(1,3,2); Ncolor(CC{handles.gui_number}.tempData.stormImagesXZ{1},CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
-subplot(1,3,3); Ncolor(CC{handles.gui_number}.tempData.stormImagesYZ{1},CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
+Show3DProj(handles,[]);
 export_fig(saveFig,[savefolder,filesep,saveroot,'Storm3D_',sprintf('%03d',dotnum),'.png']);
 close(saveFig); 
 
@@ -150,20 +170,16 @@ close(saveFig);
 saveFig = figure(10); clf; colordef black;
 set(gcf,'color','k'); 
 set(saveFig, 'PaperPosition', [0 0 24 5],'Position',[0 50 1200 350]);
-subplot(1,3,1); Ncolor(CC{handles.gui_number}.tempData.stormImagesXYfilt{1},CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
-subplot(1,3,2); Ncolor(CC{handles.gui_number}.tempData.stormImagesXZfilt{1},CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
-subplot(1,3,3); Ncolor(CC{handles.gui_number}.tempData.stormImagesYZfilt{1},CC{handles.gui_number}.clrmap);
-set(gca,'XTick',[],'YTick',[]); axis image;
+Show3DProjFilt(handles);
 export_fig(saveFig,[savefolder,filesep,saveroot,'Storm3Dfilt_',sprintf('%03d',dotnum),'.png']);
 close(saveFig); 
 
+% Image of cell
 saveFig = figure(10); clf; colordef black;
 set(gcf,'color','k');
 set(saveFig, 'PaperPosition', [0 0 5 5],'Position',[0 50 500 500]);
-Ncolor(CC{handles.gui_number}.tempData.cellImages,CC{handles.gui_number}.clrmap);
-axis image;
+STORMcell2img(CC{handles.gui_number}.tempData.cellImages,'colormap',CC{handles.gui_number}.clrmap);
+set(gca,'XTick',[],'YTick',[]); axis image;
 export_fig(saveFig,[savefolder,filesep,saveroot,'CellIm_',sprintf('%03d',dotnum),'.png']);
 close(saveFig); 
 

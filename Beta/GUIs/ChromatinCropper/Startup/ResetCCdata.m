@@ -9,17 +9,9 @@ CC{handles.gui_number}.data.locusname = '';
 CC{handles.gui_number}.data.chromeError = NaN;
 
 % Summary statistics about blobs
-CC{handles.gui_number}.data.mI3 = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.mainVolume = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.mI = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.mainArea = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.mainLocs = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.allArea = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.allLocs = NaN*zeros(maxDots,1);
-CC{handles.gui_number}.data.cvDensity = NaN*zeros(maxDots,1); 
+numChns = 1; 
+ResetScalarData(handles,maxDots,numChns);
 CC{handles.gui_number}.data.props2D = cell(maxDots,1);
-CC{handles.gui_number}.data.driftError = NaN*zeros(maxDots,1);
-
 
 % Raw data about blobs
 CC{handles.gui_number}.data.vlists = cell(maxDots,1);
