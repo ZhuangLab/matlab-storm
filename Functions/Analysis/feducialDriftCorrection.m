@@ -308,8 +308,9 @@ for i=1:numFeducials
     end
 end
 
-% Remove Feducials that aren't detected clean through the end of the movie
-missingEndFrames = isnan(sum([dx(5:end,:);dy(5:end,:)]));
+%% Remove Feducials that aren't detected clean through the end of the movie
+missingEndFrames = isnan(sum([dx(startframe+1:end,:);dy(startframe+1:end,:)]));
+
 dx(:,missingEndFrames) = [];
 dy(:,missingEndFrames) = [];
 numFeducials = size(dx,2);
