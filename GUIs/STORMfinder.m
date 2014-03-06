@@ -370,6 +370,8 @@ function UpdateFrame(hObject,handles)
      axis off; 
     set(handles.title1,'String',SF{handles.gui_number}.daxfile);
     set(handles.FrameSlider,'Value',SF{handles.gui_number}.impars.cframe); % update slider
+    axis image;
+    
     
     % If a binfile has been loaded, plot the localizations in this frame; 
     if ~isempty(SF{handles.gui_number}.fullmlist)
