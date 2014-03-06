@@ -45,8 +45,10 @@ end
 [h,w,numColors] = size(I);
 
 
-if isempty(clrmap)
+if isempty(clrmap) && numColors ==1
     clrmap = hot(256);
+else
+    clrmap = hsv(numColors); 
 end
 
 
