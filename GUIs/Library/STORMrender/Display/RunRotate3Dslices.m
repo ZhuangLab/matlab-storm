@@ -39,7 +39,7 @@ ylim([0,(imaxes.ymax-imaxes.ymin)*npp])
 
 else
     disp('must set Display Ops color Z to true for 3D rendering'); 
-    dips('Go to "More Display Ops" and set first field as "true"');
+    disp('Go to "More Display Ops" and set first field as "true"');
 end
 
 % make coloroffset larger than largest intensity of previous image to have
