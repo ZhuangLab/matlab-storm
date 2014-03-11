@@ -276,7 +276,7 @@ function MenuLoadDax_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global SF
 if ~isempty(SF{handles.gui_number}.daxfile)
-    startfolder = extractpath(SF{handles.gui_number}.daxfile); 
+    startfolder = ExtractPath(SF{handles.gui_number}.daxfile); 
 else
      startfolder = pwd;
 end
@@ -291,7 +291,7 @@ end
 function MenuLoadBin_Callback(hObject, eventdata, handles)
 global SF
 if ~isempty(SF{handles.gui_number}.daxfile)
-    startfolder = extractpath(SF{handles.gui_number}.daxfile); 
+    startfolder = ExtractPath(SF{handles.gui_number}.daxfile); 
 else
      startfolder = pwd;
 end
@@ -538,7 +538,7 @@ end
     
 function parfile = scratch_parameters(parfile,temp,parflag)
 global scratchPath
- [currpath,currpar] = extractpath(parfile);
+ [currpath,currpar] = ExtractPath(parfile);
     if isempty(strfind(currpar,temp)) || isempty(strfind(scratchPath,currpath))
         parfile = [scratchPath,currpar(1:end-4),'_',temp,parflag];
     else
@@ -675,7 +675,7 @@ global SF
  % setup starting folder for uigetfile
 
     if ~isempty(SF{handles.gui_number}.daxfile)
-        startfolder = extractpath(SF{handles.gui_number}.daxfile); 
+        startfolder = ExtractPath(SF{handles.gui_number}.daxfile); 
     else
          startfolder = pwd;
     end
@@ -719,7 +719,7 @@ function MenuLoadPars_Callback(hObject, eventdata, handles)
     
     % setup starting folder for uigetfile
     if ~isempty(SF{handles.gui_number}.daxfile)
-        startfolder = extractpath(SF{handles.gui_number}.daxfile);
+        startfolder = ExtractPath(SF{handles.gui_number}.daxfile);
     else
         startfolder = pwd;
     end
@@ -970,7 +970,7 @@ if ~isempty(Zopts)  % If Options was canceled, do nothing
     Zpars = SF{handles.gui_number}.Zpars;
 
     if strcmp(Zopts{2},'open')
-        startfolder = extractpath(daxfile);
+        startfolder = ExtractPath(daxfile);
         [filename,pathname,okay] = uigetfile({'*.xml','DaoSTORM pars (*.xml)';...
         '*.ini','Insight pars (*.ini)'},'Select parameter file',startfolder);
         if okay~=0
@@ -1030,7 +1030,7 @@ elseif FitMethod == 3
 end
 
 chromeWarpPars.OK = false; 
-pathin = extractpath(SF{handles.gui_number}.daxfile);
+pathin = ExtractPath(SF{handles.gui_number}.daxfile);
 f = ChromeWarpParameters; 
 waitfor(f);
 SF{handles.gui_number}.chromeWarpPars = chromeWarpPars;   
@@ -1069,9 +1069,9 @@ SF{handles.gui_number}.inifile = char(SF{handles.gui_number}.inifile);
 SF{handles.gui_number}.xmlfile = char(SF{handles.gui_number}.xmlfile);
 
 if ~isempty(SF{handles.gui_number}.daxfile)
-    [dpath,filename] = extractpath(SF{handles.gui_number}.daxfile);
+    [dpath,filename] = ExtractPath(SF{handles.gui_number}.daxfile);
 else
-    [dpath,filename] = extractpath(SF{handles.gui_number}.inifile);
+    [dpath,filename] = ExtractPath(SF{handles.gui_number}.inifile);
 end
 
 if isempty(SF{handles.gui_number}.xmlfile);
