@@ -145,7 +145,7 @@ if nargin > 1
         parameterValue = varargin{parameterIndex*2};
         switch parameterName
             case 'path'
-                dpath = CheckParameter(parameterValue, 'positive', 'path');
+                dpath = CheckParameter(parameterValue, 'string', 'path');
             case 'batchsize'
                 batchsize = CheckParameter(parameterValue, 'positive', 'batchsize');
             case 'parsroot'

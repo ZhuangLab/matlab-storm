@@ -402,12 +402,13 @@ if showplots
     xlabel('nm'); 
     ylabel('nm'); 
     colormap(jet(256)); 
-    xrange = round(linspace(min(dxc),max(dxc),10)*npp);
-    yrange = round(linspace(min(dyc),max(dyc),10)*npp);
+    xrange = round(linspace(min(dxc)-20/npp,max(dxc),10)*npp);
+    yrange = round(linspace(min(dyc)-20/npp,max(dyc),10)*npp);
     xlim([min(xrange),max(xrange)]);
     ylim([min(yrange),max(yrange)]);
     set(gca,'Xtick',xrange,'XTickLabel',xrange,...
             'Ytick',yrange,'YTickLabel',yrange); 
+    title(['drift error = ',num2str(drift_error,3),' nm']);
 end
 
 
