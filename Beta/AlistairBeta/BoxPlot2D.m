@@ -19,8 +19,8 @@ clrmap = [];
 datanames = {};
 showdots = false;
 MarkerSize = 5;
-
-
+wisker = 0;
+wiskerSD = 0;
 %--------------------------------------------------------------------------
 %% Parse Variable Input Parameters
 %--------------------------------------------------------------------------
@@ -44,6 +44,10 @@ if nargin > 1
                 showdots = CheckParameter(parameterValue,'boolean','showdots');
             case 'MarkerSize'
                 MarkerSize = CheckParameter(parameterValue,'positive','dotsize'); 
+            case 'wisker'
+                wisker = CheckParameter(parameterValue,'nonnegative','wisker');
+            case 'wiskerSD'
+                wiskerSD = CheckParameter(parameterValue,'nonnegative','wiskerSD');
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -91,6 +95,27 @@ for i=1:numDataTypes
         numPts = length(data{i}); 
         plot( x(i) + xRange*w*.001*(.5-rand(numPts,1)),data{i},'.',...
             'color',clrmap(i,:),'MarkerSize',MarkerSize);
+    end
+    if wisker > 0;  
+       wisk = quantile(data{i},[1-wisker,wisker]);
+       plot([x(i),x(i)],[wisk(1) quarts(1)],'k-');
+       plot([x(i)-w/2,x(i)+w/2],[wisk(1) wisk(1)],'k-');
+       plot([x(i),x(i)],[quarts(2) wisk(2)],'k-');
+       plot([x(i)-w/2,x(i)+w/2],[wisk(2) wisk(2)],'k-');
+    end
+     if wiskerSD > 0;  
+       wisk(2) = min([max(data{i}), median(i)+wiskerSD*std(data{i})]) ;
+       wisk(2) = data{i}(find(data{i} >= wisk(2),1,'first')); 
+       wisk(1) =max([min(data{i}), median(i)-wiskerSD*std(data{i}) ]);
+       wisk(1) = data{i}(find(data{i} <= wisk(1),1,'first'));
+       if wisk(1) < quarts(1)
+       plot([x(i),x(i)],[wisk(1) quarts(1)],'k-');
+       plot([x(i)-w/2,x(i)+w/2],[wisk(1) wisk(1)],'k-');
+       end
+       if wisk(2) > quarts(2); 
+        plot([x(i),x(i)],[quarts(2) wisk(2)],'k-');
+        plot([x(i)-w/2,x(i)+w/2],[wisk(2) wisk(2)],'k-');
+       end
     end
     
 end
