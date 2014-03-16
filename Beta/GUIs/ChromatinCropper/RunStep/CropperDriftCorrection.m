@@ -55,7 +55,11 @@ for n=1:numChns
         % (same name as 
         beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
         beadbin0 = [folder,filesep,beadname];
-        beadbin = regexprep(beadbin0,'*_list\.bin','*_ds60_list\.bin');   
+        beadbin = regexprep(beadbin0,'_list\.bin','_ds60_list\.bin');   
+        if ~exist(beadbin,'file') && isempty(strfind(beadbin,'561'))
+           beadname = ['561quad_',regexprep(daxname,{'.dax'},{'_ds60_list.bin'})];
+           beadbin = [folder,filesep,beadname];
+        end
         % Next choice,   for _c2 bead files  (These are compressed on the fly by hal)
         if ~exist(beadbin,'file')
            beadbin = regexprep(beadbin0,'c1','c2');  
