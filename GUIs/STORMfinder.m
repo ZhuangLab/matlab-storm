@@ -708,9 +708,18 @@ global SF
             save(SF{handles.gui_number}.gpufile,'GPUmultiPars');
         end
     end
-    set(handles.CurrentPars,'String',[savepath,filesep,savename]);
+    
+    parsfile = [savepath,savename];  
+    if FitMethod == 1
+        SF{handles.gui_number}.inifile = parsfile;
+    elseif FitMethod == 2
+        SF{handles.gui_number}.xmlfile = parsfile; % remove temp flag.  
+    end
+    set(handles.CurrentPars,'String',parsfile);
+    
+    
 
-    % --------------------------------------------------------------------
+% --------------------------------------------------------------------
 function MenuLoadPars_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuLoadPars (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
