@@ -23,11 +23,13 @@ function GetParsLoadConv(handles)
          CC{handles.gui_number}.pars1.locusname = Opts{2};
          CC{handles.gui_number}.pars1.locusColor = Opts{3};
          try
-            SetColormap(handles,Opts{3});
+            clrmap = GetColorMap(Opts{3});
+            CC{handles.gui_number}.clrmap = clrmap;
             CC{handles.gui_number}.clrmapName = Opts{3}; 
          catch er
              disp(er.message);
-             SetColormap(handles,'hot')
+             CC{handles.gui_number}.clrmapName = 'hot';
+             CC{handles.gui_number}.clrmap = hot(256);
              disp('using default colormap'); 
          end
     end
