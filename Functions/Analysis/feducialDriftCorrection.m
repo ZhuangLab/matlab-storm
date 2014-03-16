@@ -181,7 +181,12 @@ if isempty(mlist)
     mlist = ReadMasterMoleculeList(binname,'verbose',false);
 end
 if ~isempty(binname) && ~isempty(daxname)
-    daxfile = ReadDax(daxname,'startFrame',startframe,'endFrame',startframe+100,'verbose',false);
+    try
+        daxfile = ReadDax(daxname,'startFrame',startframe,'endFrame',startframe+100,'verbose',false);
+    catch er
+        disp(er.getReport); 
+        daxname = '';
+    end
 end
 
 if isempty(spotframe)
