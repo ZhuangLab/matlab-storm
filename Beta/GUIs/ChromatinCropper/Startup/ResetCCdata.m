@@ -14,6 +14,7 @@ ResetScalarData(handles,maxDots,numChns);
 CC{handles.gui_number}.data.props2D = cell(maxDots,1);
 
 % Raw data about blobs
+CC{handles.gui_number}.data.flists = cell(maxDots,1);
 CC{handles.gui_number}.data.vlists = cell(maxDots,1);
 CC{handles.gui_number}.data.imaxes = cell(maxDots,1);
 CC{handles.gui_number}.data.binnames = cell(maxDots,1);

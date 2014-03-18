@@ -50,6 +50,7 @@ for n=1:numChns
     % -------------- Method 1 (Default) -----------------------------
     % Attempts to automatically detect a movie of feducial beads and use
     % this for drift correction.  
+    retry = 2;
     try
         % first look for '_ds60' tagged files post-processed downsampled by 60 
         % (same name as 
@@ -110,38 +111,42 @@ for n=1:numChns
         Opts{4} = num2str(CC{handles.gui_number}.parsX.local);
         Opts = inputdlg(Dprompt,dlg_title,num_lines,Opts);
         
-        stepframe = str2num(Opts{1});   %#ok<ST2NM>
-        scale = str2num(Opts{2});       %#ok<ST2NM>
-        showplots = str2num(Opts{3});   %#ok<ST2NM>
-        localRegion = str2num(Opts{4}); %#ok<ST2NM>
-        
-        if localRegion(n) == 0
-           [x_drift,y_drift] = XcorrDriftCorrect(mlist,...
-                'stepframe',stepframe(n),...
-                'scale',scale(n),'showplots',showplots(n),...    
-                'imagesize',[H,W],'nm per pixel',npp);
+        if isempty(Opts)
+            goOn = false; 
         else
-            disp(['This option requires local regions to be detected first ',...
-              'Run step 4 once without drift correction, then chose a dot ',...
-              'and rerun step 4 using your preferred dot for calibration']); 
-            vlist = CC{handles.gui_number}.vlists{ localRegion(n) };
-            imaxes = CC{handles.gui_number}.imaxes{ localRegion(n) };
-            H = imaxes.ymax - imaxes.ymin + 1;
-            W = imaxes.xmax - imaxes.xmin + 1; 
-            [x_drift,y_drift] = XcorrDriftCorrect(vlist,...
-             'stepframe',stepframe(n),...
-            'scale',scale(n),'showplots',showplots(n),...    
-            'imagesize',[H,W],'nm per pixel',npp);  
-                % local area may not have dots localized up through the last frame
-            % of the movie.  Just assume no drift for these final frames if
-            % doing local region based correction.  (They should only be a
-            % couple to couple dozen of frames = a few seconds of drift at most).
-            x_drift = [x_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
-            y_drift = [y_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
+            stepframe = str2num(Opts{1});   %#ok<ST2NM>
+            scale = str2num(Opts{2});       %#ok<ST2NM>
+            showplots = str2num(Opts{3});   %#ok<ST2NM>
+            localRegion = str2num(Opts{4}); %#ok<ST2NM>
+
+            if localRegion(n) == 0
+               [x_drift,y_drift] = XcorrDriftCorrect(mlist,...
+                    'stepframe',stepframe(n),...
+                    'scale',scale(n),'showplots',showplots(n),...    
+                    'imagesize',[H,W],'nm per pixel',npp);
+            else
+                disp(['This option requires local regions to be detected first ',...
+                  'Run step 4 once without drift correction, then chose a dot ',...
+                  'and rerun step 4 using your preferred dot for calibration']); 
+                vlist = CC{handles.gui_number}.vlists{ localRegion(n) }{n};
+                imaxes = CC{handles.gui_number}.imaxes{ localRegion(n) };
+                H = imaxes.ymax - imaxes.ymin + 1;
+                W = imaxes.xmax - imaxes.xmin + 1; 
+                [x_drift,y_drift] = XcorrDriftCorrect(vlist,...
+                 'stepframe',stepframe(n),...
+                'scale',scale(n),'showplots',showplots(n),...    
+                'imagesize',[H,W],'nm per pixel',npp);  
+                    % local area may not have dots localized up through the last frame
+                % of the movie.  Just assume no drift for these final frames if
+                % doing local region based correction.  (They should only be a
+                % couple to couple dozen of frames = a few seconds of drift at most).
+                x_drift = [x_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
+                y_drift = [y_drift,zeros(1,max(mlist.frame)-max(vlist.frame))];
+            end
+            mlist.xc = mlist.x - x_drift(mlist.frame)';
+            mlist.yc = mlist.y - y_drift(mlist.frame)';
+            goOn = true;
         end
-        mlist.xc = mlist.x - x_drift(mlist.frame)';
-        mlist.yc = mlist.y - y_drift(mlist.frame)';
-        goOn = true;
         %-----------------------------------------------------------------%
         
     elseif retry == 1;

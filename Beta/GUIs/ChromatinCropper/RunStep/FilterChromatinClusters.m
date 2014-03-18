@@ -130,6 +130,7 @@ CC{handles.gui_number}.tempData.cvDensity(i) = cvDensity(i);
 CC{handles.gui_number}.tempData.props2D{i} = props2D{i};
 
 CC{handles.gui_number}.tempData.vlist = CC{handles.gui_number}.vlists{n};
+CC{handles.gui_number}.tempData.flists = {flist,flistXZ,flistYZ};
 CC{handles.gui_number}.tempData.imaxes = CC{handles.gui_number}.imaxes{n};
 CC{handles.gui_number}.tempData.binname = CC{handles.gui_number}.currBinfiles;
 CC{handles.gui_number}.tempData.dotnum = n;

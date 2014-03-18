@@ -14,11 +14,11 @@ npp = CC{handles.gui_number}.pars0.npp;
 cluster_scale= npp/CC{handles.gui_number}.pars3.boxSize(1); 
 regionSize = CC{handles.gui_number}.pars5.regionSize/npp;  
 zm = npp/CC{handles.gui_number}.pars5.boxSize;
+showColorTime = CC{handles.gui_number}.pars5.showColorTime; 
 
 % Load data from previous steps
 mlist = CC{handles.gui_number}.mlist; 
 infilt = CC{handles.gui_number}.infilt;
-R = CC{handles.gui_number}.R;
 conv0 = CC{handles.gui_number}.conv;
 convI = CC{handles.gui_number}.convI;      
 
@@ -33,6 +33,7 @@ if isempty(CC{handles.gui_number}.mlist1)
     convChns = 1;
     mlists = {mlist};
     filters = {infilt}; 
+    R = CC{handles.gui_number}.R;
 else
     numChns = 2;
     convChns = [1,2]; % channels containing the conv. imaging data
@@ -44,7 +45,8 @@ else
   % Update M with drift correction
   M1 = hist3([mlist1.yc(infilt1),mlist1.xc(infilt1)],...
          {0:1/cluster_scale:H,0:1/cluster_scale:W});
-  CC{handles.gui_number}.M1 = M1;    
+  CC{handles.gui_number}.M1 = M1; 
+  R = cat(1,CC{handles.gui_number}.R , CC{handles.gui_number}.R1);
 end
 
 %%  
@@ -127,8 +129,10 @@ for n=1:Nclusters % n=3
    %  zparsfile = 'K:\2013-10-10_F11\splitdax\647dao_pars.xml';
    for i=1:length(vlist)
     vlist{i} = RecalibrateZ(vlist{i}, CC{handles.gui_number}.pars5.zparsfile); 
+    if showColorTime
     [cmp{n,i},dxc,dyc] =  ColorByFrame(vlist{i});    %  Indicate color as time. 
     Itime{n,i} = [dxc,dyc,cmp{n,i}];
+    end
     % figure(13); clf; hist(vlists{i}.zc); 
    end    
     vlists{n} = vlist; 

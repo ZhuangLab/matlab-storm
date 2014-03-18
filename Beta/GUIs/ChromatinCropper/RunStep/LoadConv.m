@@ -83,18 +83,20 @@ end
         overlays = dir([folder,'\splitdax\*','_z0',fileNum]);
         CC{handles.gui_number}.pars1.overlays = strcat([folder,'\splitdax\'],{overlays.name});
     % Attempt to automatically detect overlays in current folder
-    else 
+    end
+    if isempty(overlays)
+      fileNum = strfind(daxname,'_0_');
+      fileNum = daxname(fileNum:end-4);  
+      fileNum = regexprep(fileNum,'_c1','');
+      overlays = dir([folder,'\splitdax\*','_z0',fileNum,'.dax']);
+      CC{handles.gui_number}.pars1.overlays = strcat([folder,'\splitdax\'],{overlays.name})';
+    end
+    if isempty(overlays)
         fileNum = strfind(daxname,'_0_');
         fileNum = daxname(fileNum:end);
         overlays = dir([folder,'\*','_z0',fileNum]);
         CC{handles.gui_number}.pars1.overlays = strcat([folder,'\'],{overlays.name});
     end
- end
-  if isempty(CC{handles.gui_number}.pars1.overlays) % still empty
-      fileNum = strfind(daxname,'_0_');
-        fileNum = daxname(fileNum:end-4);
-        overlays = dir([folder,'\*','_z0',fileNum,'_c1.dax']);
-        CC{handles.gui_number}.pars1.overlays = strcat([folder,'\'],{overlays.name});
  end
  
  % Manually select overlays

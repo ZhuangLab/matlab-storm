@@ -28,11 +28,12 @@ else
     clrmap = hsv(2);
 end
 
+
 axes(handles.subaxis2);
 STORMcell2img(Istorm,...
 'active channels',active_channels,...
 'cmin',cmin,'cmax',cmax,...
-'colormap',clrmap);
+'colormap',clrmap);  
 
 set(gca,'color','k'); set(gca,'XTick',[],'YTick',[]);
 text(1.2*cluster_scale,2*cluster_scale,...

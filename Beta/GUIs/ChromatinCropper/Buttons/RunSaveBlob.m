@@ -99,6 +99,7 @@ CC{handles.gui_number}.data.props2D{dotnum} = CC{handles.gui_number}.tempData.pr
 
 
 % Raw data about blobs
+CC{handles.gui_number}.data.flists{dotnum} = CC{handles.gui_number}.tempData.flists;
 CC{handles.gui_number}.data.vlists{dotnum} = CC{handles.gui_number}.tempData.vlist;
 CC{handles.gui_number}.data.imaxes{dotnum} = CC{handles.gui_number}.tempData.imaxes;
 CC{handles.gui_number}.data.binnames{dotnum} = CC{handles.gui_number}.tempData.binname;

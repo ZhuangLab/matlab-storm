@@ -11,7 +11,7 @@ axes(handles.subaxis1); cla; %#ok<*LAXES>
 ShowConv(handles,n);
 
 axes(handles.subaxis2); cla; %#ok<*LAXES>
-ShowSTORM(handles,n);
+ShowSTORM(handles,n);  
 
 axes(handles.subaxis3); hold off; cla; %#ok<*LAXES>
 ShowDotTime(handles,n);
