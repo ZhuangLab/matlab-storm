@@ -43,8 +43,10 @@ if (isempty(dotnum))
     dotnum = 1;
 end
 
-% dotnum = find(~isnan(CC{handles.gui_number}.data.mainArea),1,'last'); CC{handles.gui_number}.data.mainArea(dotnum,:) = NaN;   <-- backup 1   
-% dotnum = find(~isnan(CC{handles.gui_number}.data.mainArea),1,'last');  CC{handles.gui_number}.data.mainArea(dotnum,:) = NaN; 
+
+% dotnum = find(~isnan(CC{handles.gui_number}.data.mainArea(:,1)),1,'last'); CC{handles.gui_number}.data.mainArea(dotnum,:) = NaN; %   <-- backup 1   
+% CC{handles.gui_number}.data.mainArea(20:end,:) = NaN; 
+% CC{handles.gui_number}.data.mainArea(dotnum,:) = []; 
 
 % Save current values for all parameters
 parData{1} = CC{handles.gui_number}.pars1;
@@ -118,6 +120,7 @@ CC{handles.gui_number}.data.stormImagesYZfilt{dotnum} = CC{handles.gui_number}.t
 CC{handles.gui_number}.data.stormImagesXYfilt{dotnum} = CC{handles.gui_number}.tempData.stormImagesXYfilt;
 CC{handles.gui_number}.data.areaMaps{dotnum} = CC{handles.gui_number}.tempData.areaMaps;   
 CC{handles.gui_number}.data.densityMaps{dotnum} = CC{handles.gui_number}.tempData.densityMaps;   
+
 
 
 % save data for this spot to disk in target folder
