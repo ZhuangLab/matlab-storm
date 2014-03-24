@@ -100,11 +100,11 @@ for i=1:length(type)
             end
         case 'cell'
             if ~iscell(value)
-                error([name 'is not a cell']);
+                error([name ' is not a cell']);
             end
         case 'colormap'
             if ~(ischar(value) || size(value,2) == 3)
-                error([name 'is not a valid colormap']); 
+                error([name ' is not a valid colormap']); 
             end
         case 'fraction'
             if ~(value >= 0 && value <= 1)
@@ -112,7 +112,7 @@ for i=1:length(type)
             end
         case 'handle'
             if ~ishandle(value)
-               error([name 'is not a handle']);  
+               error([name ' is not a handle']);  
             end
         otherwise
             error('Not a valid type');
