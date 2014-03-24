@@ -33,8 +33,7 @@ CC{handles.gui_number}.Dirs = ...
     'Step 3: load STORM image and filter on cluster properties';
     'Step 4: Perform drift correction';
     'Step 5: Crop and plot STORM-image';
-    'Step 6: Quantify structural features';
-    'Step 7: Save data'};
+    'Step 6: Quantify structural features and save locus data'};
 
 ResetCCparameterDefaults(handles); 
 ResetCCdata(handles);
