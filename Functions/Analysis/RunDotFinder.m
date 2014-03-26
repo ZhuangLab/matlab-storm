@@ -193,7 +193,7 @@ time_run = tic;
 if isempty(daxnames)
     if isempty(daxfile)
         % Get all dax files in folder        
-        alldax = dir([dpath,filesep,'*',daxroot,'*.dax']);
+        alldax = dir([dpath,'*',daxroot,'*.dax']);
         daxnames = {alldax(:).name};
         % remove all short dax files from list
         daxsizes = [alldax(:).bytes];
@@ -223,7 +223,7 @@ end
 
 % ~~~~~~~~~~~~ check for parameter files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if isempty(parsfile)
-    parsname = dir([dpath,filesep,'*',parsroot, '*',parstype]);
+    parsname = dir([dpath,'*',parsroot, '*',parstype]);
     if length(parsname) > 1 || isempty(parsname)
         disp(['Too many or no ',parstype,...
             ' files in directory.  Please chose a parameters file for']);
@@ -246,7 +246,7 @@ end
 
 %% ~~~~ Decide if existing data files should be skipped or overwritten ~~~~~%    
 % structure containing names of all bin files in folder 
-    all_prev_bin = dir([dpath,filesep,'*',daxroot,'*',datatype]);
+    all_prev_bin = dir([dpath,'*',daxroot,'*',datatype]);
     binnames = {all_prev_bin(:).name};
     binroots = regexprep(binnames,datatype,''); % strip off file endings
 
@@ -279,11 +279,11 @@ if sum(hasbin) ~= 0
         if strcmp(method,'DaoSTORM')
             disp('overwritefiles = 1');
             for a = find(logical(hasbin));
-                disp(['deleting ',dpath,filesep,strcat(daxroots{a},'_alist.bin')]);          
-                delete([dpath,filesep,strcat(daxroots{a},datatype)]);
-                alist = dir([dpath,filesep,strcat(daxroots{a},'_alist.bin')]);     
+                disp(['deleting ',dpath,strcat(daxroots{a},'_alist.bin')]);          
+                delete([dpath,strcat(daxroots{a},datatype)]);
+                alist = dir([dpath,strcat(daxroots{a},'_alist.bin')]);     
                 if length(alist)>1
-                    delete([dpath,filesep,strcat(daxroots{a},'_alist.bin')]);
+                    delete([dpath,strcat(daxroots{a},'_alist.bin')]);
                 end
             end
         end
@@ -304,7 +304,7 @@ end
 Sections = length(daxnames);
 prc = cell(Sections,1); % cell array to store system process structures for each process launched
 for s=1:Sections % loop through all dax movies in que
-    daxfile = [dpath,filesep,daxnames{s}];  
+    daxfile = [dpath,daxnames{s}];  
     
     if ~isempty(maxCPU)
         waitforfreecpu('MaxLoad',maxCPU,'RefreshTime',10,'verbose',verbose);
@@ -318,13 +318,13 @@ for s=1:Sections % loop through all dax movies in que
    end 
     
    if isempty(binname)
-        binfile = [dpath,filesep,daxroots{s},datatype];
+        binfile = [dpath,daxroots{s},datatype];
    else
         binnumber = ['_',sprintf('%04d',s)];
         newBinName = binname;
         newBinName = regexprep(newBinName,'#',binnumber);
         newBinName = regexprep(newBinName,'DAX',daxroots{s});
-        binfile = [dpath,filesep,newBinName,datatype];
+        binfile = [dpath,newBinName,datatype];
    end
    
    
