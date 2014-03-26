@@ -47,7 +47,7 @@ end
 
 if isempty(clrmap) && numColors ==1
     clrmap = hot(256);
-else
+elseif isempty(clrmap) && numColors < 10;
     clrmap = hsv(numColors); 
 end
 

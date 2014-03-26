@@ -140,8 +140,8 @@ if warpD ~= 0 && ~isempty(warpfile)  % No Chromewarp
     end
     catch er
         if verbose
-            disp(er.message);
-            disp('failed to apply chromatic warp');
+            warning('failed to apply chromatic warp');
+            disp(er.getReport);
         end
     end
 end

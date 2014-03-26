@@ -53,7 +53,7 @@ end
        clear h2;
        h2 = findobj('type','patch'); 
    end
-    ylim([0,1.2*max(hi1)]);
+    ylim([0,1.2*max([hi1,1])]);
    set(h2(2),'FaceColor','b','EdgeColor','b');
    set(h2(1),'FaceColor','r','EdgeColor','r');
    set(gca,'XTick',[],'YTick',[]);
