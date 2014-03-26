@@ -9,6 +9,7 @@ function [In, imaxes] = list2img(mlist,varargin)
 %
 %  I = list2img(mlist,imaxes)
 %  I = list2img(mlist,'ParameterName',value,...)
+%  [I,imaxes] = list2img(mlist,'ParameterName',value,...)
 %  I = list2img(mlist,imaxes,'ParameterName',value,...)
 %--------------------------------------------------------------------------
 %  Inputs   
