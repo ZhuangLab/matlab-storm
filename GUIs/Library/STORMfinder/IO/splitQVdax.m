@@ -57,7 +57,8 @@ step = 2500;
 verbose = true; 
 promptoverwrite = true;
 delFile = false;
-maxsize = 1E3;
+maxsize = inf; % 1E3;
+minsize = 0; 
 % pathin = 'K:\2013-10-26_D12\QVDax\';
 
 QVc{1,1} = 1:256;  QVc{1,2} = 1:256;
@@ -75,7 +76,9 @@ if nargin > 1
         parameterValue = varargin{parameterIndex*2};
         switch parameterName  
             case 'maxsize'
-                maxsize = CheckParameter(parameterValue,'positive','maxsize'); 
+                maxsize = CheckParameter(parameterValue,'positive','maxsize');                 
+            case 'minsize'
+                minsize = CheckParameter(parameterValue,'nonnegative','minsize'); 
             case 'alldax'
                 alldax= CheckParameter(parameterValue,'struct','alldax');
             case 'QVorder'
@@ -101,7 +104,7 @@ if isempty(alldax)
     alldax = dir([pathin,filesep,'*.dax']); 
 end
 
-inrange = ([alldax.bytes] < maxsize*1E6); 
+inrange = ([alldax.bytes] < maxsize*1E6 & [alldax.bytes] > minsize*1E6); 
 alldax = alldax(inrange); 
 
 if isempty(savepath)
@@ -204,6 +207,8 @@ for d=1:D  % Main loop over daxfiles
             % write movie 'step' frames at a time;
             try
                 movie = ReadDax(dax,'startFrame',n,'endFrame',n+step-1,'verbose',false);
+%                 movie = ReadDax(dax,'startFrame',n,'endFrame',n+step-1,'verbose',false,...
+%                     'subregion',[0,0,0,0]);
   %             figure(1); clf; subplot(1,2,1); imagesc( int16(movie(QVc{c,1},QVc{c,2},1)) );
   %             subplot(1,2,2); imagesc( int16(movie(QVc{c,1},QVc{c,2},2)) );
                 fwrite(fid, ipermute(movie(QVc{c,1},QVc{c,2},:), [2 1 3]), 'int16', 'b');

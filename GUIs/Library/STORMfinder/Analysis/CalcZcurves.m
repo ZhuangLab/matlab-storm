@@ -71,7 +71,7 @@ global defaultXmlFile defaultIniFile;
 %--------------------------------------------------------------------------
 %% Default Parameters
 %--------------------------------------------------------------------------
-showExtraPlots = false;
+showExtraPlots = true;
 showPlots = true;
 verbose = true;
 parstype = '.xml';
@@ -80,14 +80,14 @@ newFile = '';
 
 % for clustering of localizations
 startframe = 1; % 290;
-maxdrift = 1;
-fmin = .8;
+maxdrift = 2.5;
+fmin = .6;
 
 % For z-curve fitting
-maxOutlier = 300;
-endTrim = .1;
+maxOutlier = 200;
+endTrim = .05;
 maxWidth = 1500; 
-w0Range = [100,600];
+w0Range = [100,400];
 zrRange = [100,700];
 gRange = [-600,600];
 
@@ -164,9 +164,14 @@ end
 
 % Load molecule list
 [bead_path,daxname] = extractpath(daxfile);
-binfile = regexprep(daxfile,'.dax','_list.bin');
-froot = regexprep(daxname,'.dax','');
-mlist = ReadMasterMoleculeList(binfile);
+try
+    binfile = regexprep(daxfile,'.dax','_list.bin');
+    froot = regexprep(daxname,'.dax','');
+    mlist = ReadMasterMoleculeList(binfile);
+catch
+    binfile = regexprep(daxfile,'_list.bin','_mlist.bin');
+    mlist = ReadMasterMoleculeList(binfile);
+end
 
 % Some short-hand
 x = mlist.x;
@@ -319,7 +324,7 @@ wX = cell(Nfeducials,1);
 wY = cell(Nfeducials,1); 
 % err = inf*ones(Nfeducials,1); 
 if showExtraPlots
-    figure(2); clf; figure(3); clf;
+    figure(4); clf; figure(5); clf;
 end
 for  i=1:Nfeducials  
     [m,k] = min(abs( Wx{i} -Wy{i}));
@@ -337,11 +342,11 @@ for  i=1:Nfeducials
         wy = NaN; 
     end
     
-    if isnan(wx) | isnan(wy) %#ok<OR2>
-        zz = 0; 
-        wx = NaN; 
-        wy = NaN;        
-    end
+%     if isnan(wx) | isnan(wy) %#ok<OR2>
+%         zz = 0; 
+%         wx = NaN; 
+%         wy = NaN;        
+%     end
     off(i) = stagepos{i}(k);
     ZZ{i} = zz;
     Z{i} = zz(zz>-600 & zz<600); 
@@ -358,11 +363,11 @@ for  i=1:Nfeducials
 %     end
    
     if showExtraPlots
-        figure(2); hold on; 
+        figure(4); hold on; 
             plot( zz,wx,'+','color',Cmap(i,:));
             plot( zz,wy,'.','color',Cmap(i,:));
             ylim([0,1300]); xlim([-600,600]);
-        figure(3); hold on;
+        figure(5); hold on;
         if sum(zz) ~= 0
             plot(zz,Wx{i} ,'+','color',Cmap(i,:),'MarkerSize',5);
             plot(zz,Wy{i} ,'.','color',Cmap(i,:),'MarkerSize',5);
@@ -372,17 +377,42 @@ for  i=1:Nfeducials
 end
 
 if showExtraPlots
-    figure(2); set(gcf,'color','w'); set(gca,'FontSize',16);
+    figure(4); set(gcf,'color','w'); set(gca,'FontSize',16);
     xlabel('Z-position'), ylabel('dot-width'); legend('wx','wy');
     title('curve fits');
-    figure(3); set(gcf,'color','w'); set(gca,'FontSize',16);
+    figure(5); set(gcf,'color','w'); set(gca,'FontSize',16);
     xlabel('Z-position'), ylabel('dot-width'); legend('wx','wy');
     title('raw data');
 end
 
-[~,i] = max(cellfun(@(x) max(x)-min(x),Z));  % i= 37
-wx_fit = Wxf{i};
-wy_fit = Wyf{i};
+% choose best bead as guidedata.
+commonZ = linspace(-600,600,100);
+fitWx = zeros(Nfeducials,100);
+fitWy = zeros(Nfeducials,100);
+for i=1:Nfeducials;
+    if ~isempty(Wxf{i});
+        fitWx(i,:) = feval(Wxf{i},commonZ);
+        fitWy(i,:) = feval(Wyf{i},commonZ);
+    end
+end
+fitDiff = inf*ones(Nfeducials); 
+for i=1:Nfeducials
+    for j=1:Nfeducials
+        if i~=j
+           fitDiff(i,j) = norm(fitWx(i,:) - fitWx(j,:)) + norm(fitWy(i,:)-fitWy(j,:));
+        end
+    end
+end
+fitDiff(fitDiff==0) = inf; 
+
+if guideMethod == 1
+    [~,guide_dot] = max(cellfun(@(x) max(x)-min(x),Z));  % i= 37
+else 
+    [~,guide_dot] = min(min(fitDiff));
+end
+    
+wx_fit = Wxf{guide_dot};
+wy_fit = Wyf{guide_dot};
 if verbose
     disp(wx_fit);
     disp(wy_fit);
@@ -390,10 +420,10 @@ end
 
 if showPlots
     zcurvePlot = figure(1); clf; 
-    plot( ZZ{i},Wx{i},'+','color',Cmap(i,:),'MarkerSize',1); hold on;
-    plot( ZZ{i},Wy{i},'.','color',Cmap(i,:),'MarkerSize',1);
-    plot( Z{i},wX{i},'-','color',Cmap(i,:),'lineWidth',3); hold on;
-    plot( Z{i},wY{i},'-','color',Cmap(i,:),'lineWidth',3);
+    plot( ZZ{guide_dot},Wx{guide_dot},'+','color',Cmap(guide_dot,:),'MarkerSize',5); hold on;
+    plot( ZZ{guide_dot},Wy{guide_dot},'.','color',Cmap(guide_dot,:),'MarkerSize',5);
+    plot( commonZ,fitWx(guide_dot,:),'-','color',Cmap(guide_dot,:),'lineWidth',1); hold on;
+    plot( commonZ,fitWy(guide_dot,:),'-','color',Cmap(guide_dot,:),'lineWidth',1);
     for i=1:Nfeducials
         if sum(ZZ{i}) ~= 0
         plot( ZZ{i},Wx{i},'+','color',Cmap(i,:),'MarkerSize',1); hold on;

@@ -1,10 +1,10 @@
-function imageOut = WarpImage(imageIn,chnName,warpfile,varargin)
+function [imageOut, warpError] = WarpImage(imageIn,chnName,warpfile,varargin)
 %  WarpImage(imageIn,chnName,warpfile)
 % applies chromatic warp to 2D image
 %--------------------------------------------------------------------------
 % Outputs
 % imageOut / matrix        -- warped 2D image  
-%
+% warpError / scalar      -- 75% of beads aligned to within this distance
 %--------------------------------------------------------------------------
 % Inputs
 % imageIn / matrix
@@ -86,17 +86,19 @@ if ~isempty(chnIdx)
                 'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<*DIMTRNS,USENS>
     imageOut = imtransform(imageOut,tform2D_inv{chnIdx},...
                 'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<USENS>
+    warpError = cdf2D_thresh(chnIdx);
     if verbose
         disp(['Data mapped using ',...
             chn_warp_names{chnIdx,1},' to ',chn_warp_names{chnIdx,2},...
             ' bead warp map.']);
-        disp(['Warp accuracy: ',num2str(cdf2D_thresh(chnIdx),2),' nm']);
+        disp(['Warp accuracy: ',num2str(warpError,2),' nm']);
     end
 else
     if verbose
         disp('Data not warped');
-        imageOut = imageIn; 
     end
+    imageOut = imageIn; 
+    warpError = NaN; 
 end
 
 

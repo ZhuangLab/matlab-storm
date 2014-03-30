@@ -22,7 +22,7 @@ function varargout = ChromatinCropper(varargin)
 
 % Edit the above text to modify the response to help ChromatinCropper
 
-% Last Modified by GUIDE v2.5 15-Jan-2014 22:35:25
+% Last Modified by GUIDE v2.5 23-Jan-2014 14:19:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -143,6 +143,14 @@ function DotSlider_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 GetDotSlider(hObject, eventdata, handles);
+
+
+% --- Executes on button press in SaveBlob.
+function SaveBlob_Callback(hObject, eventdata, handles)
+% hObject    handle to SaveBlob (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+RunSaveBlob(hObject,eventdata,handles);
 
 
 function ImageBox_Callback(hObject, eventdata, handles)
@@ -286,6 +294,12 @@ function MenuSpecifyOverlays_Callback(hObject, eventdata, handles)
 SpecifyOverlays(handles); 
 
 
+% --------------------------------------------------------------------
+function MenuSelectColormap_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuSelectColormap (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+SelectColormap(handles)
 
 
 %% Set these to update display 
@@ -297,7 +311,7 @@ function oLayer1_Callback(hObject, eventdata, handles)
 % hObject    handle to oLayer1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+UpdateConv(handles)
 % Hint: get(hObject,'Value') returns toggle state of oLayer1
 
 % --- Executes on button press in oLayer2.
@@ -305,7 +319,7 @@ function oLayer2_Callback(hObject, eventdata, handles)
 % hObject    handle to oLayer2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+UpdateConv(handles)
 % Hint: get(hObject,'Value') returns toggle state of oLayer2
 
 % --- Executes on button press in oLayer3.
@@ -313,7 +327,7 @@ function oLayer3_Callback(hObject, eventdata, handles)
 % hObject    handle to oLayer3 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+UpdateConv(handles)
 % Hint: get(hObject,'Value') returns toggle state of oLayer3
 
 
@@ -322,7 +336,7 @@ function oLayer4_Callback(hObject, eventdata, handles)
 % hObject    handle to oLayer4 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+UpdateConv(handles)
 % Hint: get(hObject,'Value') returns toggle state of oLayer4
 
 
@@ -342,3 +356,5 @@ function AdjustChn1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of AdjustChn1
+
+

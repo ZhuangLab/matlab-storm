@@ -14,4 +14,4 @@ set(handles.MaxIntSlider,'Value',minin);
 set(handles.MaxIntBox,'String',num2str(minin));
 set(handles.MaxIntSlider,'Value',maxin);
 set(handles.MaxIntBox,'String',num2str(maxin));
- 
+ScaleColor(hObject,handles); 

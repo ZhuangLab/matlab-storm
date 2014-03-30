@@ -37,4 +37,5 @@ if FilterIndex ~=0
         end
         handles = MultiBinLoad(hObject,eventdata,handles,binnames);
     end    
+    RunLevelsChannel(hObject,eventdata,handles);
 end

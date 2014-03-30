@@ -5,7 +5,7 @@ function GetDotNum(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 global CC
-CC{handles.gui_number}.dotnum = str2double(get(hObject,'String'));
+CC{handles.gui_number}.dotnum = str2double(get(handles.DotNum,'String'));
 try
     set(handles.DotSlider,'Value',CC{handles.gui_number}.dotnum);
     guidata(hObject,handles); 

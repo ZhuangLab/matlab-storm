@@ -4,7 +4,7 @@ function vlist = msublist(mlist,imaxes,varargin)
 %-------------------------------------------------------------------------
 %% inputs
 %-------------------------------------------------------------------------
-% mlist        -- molecule list
+% mlist        -- molecule list or cell array of molecule lists.
 % imaxes        -- structure containing subregion data.  Required fields:
 %               imaxes.xmin
 %               imaxes.ymin
@@ -20,6 +20,8 @@ function vlist = msublist(mlist,imaxes,varargin)
 %-------------------------------------------------------------------------
 % 'filter' / logical / all true
 %               -- logical vector specifying which molecules to keep.
+%               Or cell array of logical vectors (if mlist is a cell array
+%               of molecule lists). 
 %--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
@@ -37,7 +39,7 @@ function vlist = msublist(mlist,imaxes,varargin)
 %-------------------------------------------------------------------------
 % default inputs
 %-------------------------------------------------------------------------
-infilter = true(length(mlist.x),1); 
+infilter = []; 
 %
 %--------------------------------------------------------------------------
 %% Parse variable input
@@ -52,7 +54,7 @@ if nargin > 3
         parameterValue = varargin{parameterIndex*2};
         switch parameterName
             case 'filter'
-                infilter = CheckParameter(parameterValue,'boolean','filter');
+                infilter = parameterValue; % boolean or cell array of booleans 
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -63,26 +65,45 @@ end
 %% Main function
 %-------------------------------------------------------------------------   
 
+outputList = false; % 
 
-inbox = mlist.x>imaxes.xmin & mlist.x < imaxes.xmax & mlist.y>imaxes.ymin & mlist.y<imaxes.ymax;
-d1 = size(infilter,1);
-if d1==1
-    infilter = infilter';
+if ~iscell(mlist)
+    outputList = true;
+    mlist = {mlist};
+    if ~isempty(infilter)
+        infilter = {infilter};
+    end
+end
+   
+if isempty(infilter)
+    infilter = cell(length(mlist),1);
 end
 
-vlist.x = (mlist.x(inbox & infilter)-imaxes.xmin);
-vlist.y = (mlist.y(inbox & infilter)-imaxes.ymin);
-vlist.z = (mlist.z(inbox & infilter));
-vlist.xc = (mlist.xc(inbox & infilter)-imaxes.xmin);
-vlist.yc = (mlist.yc(inbox & infilter)-imaxes.ymin);
-vlist.zc = (mlist.zc(inbox & infilter));
-vlist.a= (mlist.a(inbox & infilter));
-vlist.i= (mlist.i(inbox & infilter));
-vlist.h= (mlist.h(inbox & infilter));
-vlist.frame= (mlist.frame(inbox & infilter));
-vlist.length= (mlist.length(inbox & infilter));
-vlist.w= (mlist.w(inbox & infilter));
-vlist.c= (mlist.c(inbox & infilter));
+vlist = cell(length(mlist),1); 
 
- vlist.imaxes = imaxes; 
- vlist.inbox = inbox; 
+for i = 1:length(mlist); 
+   if isempty(infilter{i})
+      infilter{i} =  true(length(mlist{i}.x),1); %#ok<*AGROW>
+   end
+   
+    inbox = mlist{i}.xc >imaxes.xmin & mlist{i}.xc < imaxes.xmax & ...
+            mlist{i}.yc >imaxes.ymin & mlist{i}.yc <imaxes.ymax;
+    d1 = size(infilter{i},1);
+    if d1==1
+        infilter{i} = infilter{i}';
+    end
+
+    idx = inbox & infilter{i};
+    vlist{i} = IndexStructure(mlist{i},idx);
+    vlist{i}.x = vlist{i}.x - imaxes.xmin;
+    vlist{i}.y = vlist{i}.y - imaxes.ymin;
+    vlist{i}.xc = vlist{i}.xc - imaxes.xmin;
+    vlist{i}.yc = vlist{i}.yc -imaxes.ymin; 
+    vlist{i}.imaxes = imaxes; 
+    vlist{i}.inbox = inbox; 
+end
+    
+if outputList
+    vlist = vlist{1};
+end
+

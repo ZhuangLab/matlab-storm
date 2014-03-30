@@ -46,7 +46,7 @@ if nargin > 1
             case 'numClrs'
                  numClrs = CheckParameter(parameterValue,'nonnegative','numClrs');
             case 'colormap'
-                clrmap = CheckParameter(parameterValue,'string','colormap');
+                clrmap = CheckParameter(parameterValue,'colormap','colormap');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -81,8 +81,10 @@ if isempty(clrmap)
 else
     if length(numClrs) <= 1
         cMap = clrmap;
-    else
+    elseif ischar(clrmap)
         cMap = eval([clrmap,'(',num2str(numClrs),')']);
+    else
+        cMap = clrmap; 
     end
 end
 

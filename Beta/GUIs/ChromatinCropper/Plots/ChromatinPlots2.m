@@ -1,6 +1,7 @@
 function ChromatinPlots2(handles, n)
 % plot data for cluster n in main figure window 
 % called during cluster stat computation
+
 axes(handles.subaxis1); cla; %#ok<*LAXES>    
 ShowConv(handles,n);
 
@@ -13,3 +14,6 @@ ShowAreaPlot(handles,n);
 axes(handles.subaxis4); cla; %#ok<*LAXES>
 ShowHist(handles,n);
     
+figure(3); clf;
+Show3DProjFilt(handles);
+            

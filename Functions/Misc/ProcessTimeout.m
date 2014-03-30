@@ -5,9 +5,10 @@ function ProcessTimeout(processName,varargin)
 
 %% default parameters
 % processName = 'blastall.exe'
-maxTime = 60*60; % max run time in seconds
+% processName = 'java.exe'
+maxTime = 60*30; % max run time in seconds
 verbose = false;
-
+veryverbose = false;
 
 %--------------------------------------------------------------------------
 % Parse Variable Input Arguments
@@ -26,6 +27,8 @@ if nargin > 1
                 maxTime = CheckParameter(parameterValue, 'positive', 'maxTime');
             case 'verbose'
                 verbose = CheckParameter(parameterValue,'boolean','verbose');
+            case 'veryverbose'
+                veryverbose = CheckParameter(parameterValue,'boolean','veryverbose');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.' '  See help ' mfilename]);
         end
@@ -57,9 +60,12 @@ if isempty(strfind(A,'No Instance(s) Available'))
         minS  = dateString(11:12);
         secS = dateString(13:14);
         startTime = str2double(hourS)*60*60+str2double(minS)*60+str2double(secS);
+        if veryverbose
+            disp([idString 'has been running for ',num2str((currTime-startTime)/60),' min']); 
+        end
         if currTime - startTime > maxTime;
             stopProcess = ['wmic process ',idString,' delete '];
-            disp(['aborting process ',idString]); 
+            disp(['Analysis exceeded ',num2str(maxTime/60), ' min. ' 'Aborting process ',idString]); 
             dos(stopProcess);
         end
     end

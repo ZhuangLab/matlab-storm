@@ -309,8 +309,7 @@ for m=1:Nmovies
  % build list of binfiles
     beadmovie(m).binname = cell(Nchns,Nfields);   
     for c=1:Nchns
-        for n=1:Nfields
-            
+        for n=1:Nfields 
                 if beadmovie(m).quadview
                 daxfile = [newpath,filesep,beadmovie(m).chns{c},'_',alldax(n).name];
                     if veryverbose
@@ -323,9 +322,7 @@ for m=1:Nmovies
             beadmovie(m).binname{c,n} = [daxfile(1:end-4),datatype]; 
         end
     end
-    
-
-        expectedMovies = beadmovie(m).Nfields*length(beadmovie(m).chns);
+    expectedMovies = beadmovie(m).Nfields*length(beadmovie(m).chns);
   
        
     allbin = dir([newpath, beadmovie(m).daxroot,'*','.bin']);
@@ -462,11 +459,12 @@ for m=1:Nmovies
                 
                 catch er
                     disp(er.message); 
-                    % save([scratchPath, filesep, 'troubleshoot.mat']); 
-                    % load([scratchPath, filesep, 'troubleshoot.mat']); 
+                     save([scratchPath, filesep, 'troubleshoot.mat']); 
+                     disp(['saved data as, ',scratchPath, filesep, 'troubleshoot.mat']);
+                     % load([scratchPath, filesep, 'troubleshoot.mat']); 
                     disp(['failed to load ',pathin,filesep, beadmovie(m).binname{c,n}]);
                     disp(['skipping field: ',num2str(n)]); 
-                   %  disp(['saved data as ,'scratchPath, filesep, 'troubleshoot.mat']);
+                   
                 end 
           end  
     end

@@ -1,0 +1,40 @@
+function parameters = DaoParameterNames 
+
+parameters = {
+        '<model type="string">',...    method
+        '<threshold type="float">'...  threshold
+        '<iterations type="int">',...  maxits
+        '<baseline type="float">',...   bkd
+        '<pixel_size type="float">',... ppnm
+        '<sigma type="float">',...      initwidth
+        '<descriptor type="string">',... descriptor
+        '<radius type="float">',...  displacement
+        '<start_frame type="int">',... startFrame
+        '<max_frame type="int">',... endFrame
+        '<drift_correction type="int">',... %  CorDrift
+        '<frame_step type="int">',... dframes
+        '<d_scale type="int">',...dscales
+        '<do_zfit type="int">',... Fit3D
+        '<cutoff type="float">',... zcutoff
+        '<min_z type="float">',...  zstart 
+        '<max_z type="float">',...  zend
+        '<wx_wo type="float">',...  wx0
+        '<wx_c type="float">',...  gx
+        '<wx_d type="float">',...  zrx
+        '<wxA type="float">',...  Ax
+        '<wxB type="float">',... Bx
+        '<wxC type="float">',...  Cx
+        '<wxD type="float">',...  Dx
+        '<wy_wo type="float">',...  wy0
+        '<wy_c type="float">',...  gy
+        '<wy_d type="float">',...  zry
+        '<wyA type="float">',...  Ay
+        '<wyB type="float">',...  By
+        '<wyC type="float">',...  Cy
+        '<wyD type="float">',...  Dy
+        '<x_start type="int">',... xmin
+        '<x_stop type="int">',... xmax
+        '<y_start type="int">',... ymin
+        '<y_stop type="int">',... ymax
+         };
+     

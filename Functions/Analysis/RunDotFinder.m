@@ -25,6 +25,9 @@ function RunDotFinder(varargin)
 %               files.  
 % daxfile / string / ''
 %               - full name and path of .dax file to analyze
+% daxnames / cell / {}
+%               - cell array of daxnames to analyze.  Also requires the
+%               'path' flag to specify the folder containing these files.
 % binname / string / ''
 %               - alternate name for the _mlist.bin (only in DaoSTORM).
 %                 myname# will replace # with _0001 (where 0001 increases
@@ -39,7 +42,7 @@ function RunDotFinder(varargin)
 %               - Skip files for which bin files already exist (0),
 %               Overwrite any existing bin files without asking (1), Ask
 %               the user what to do if file exists (2). 
-% method / string / insightM
+% method / string / DaoSTORM
 %               - method to use for dotfinding analysis.  
 %               Options: insight, DaoSTORM, GPUmultifit
 % minsize / double / 1E6 
@@ -117,6 +120,7 @@ daxroot = '';
 parsroot = '';
 method = 'DaoSTORM';
 daxfile = '';
+daxnames = {};
 parsfile = '';
 dpath = ''; 
 verbose = true; 
@@ -148,6 +152,8 @@ if nargin > 1
                 parsroot = CheckParameter(parameterValue, 'string', 'parsroot');
             case 'daxroot'
                 daxroot = CheckParameter(parameterValue, 'string', 'daxroot');
+            case 'daxnames'
+                daxnames = CheckParameter(parameterValue, 'cell', 'daxnames');
             case 'method'
                 method = CheckParameter(parameterValue, 'string', 'method');
             case 'minsize'
@@ -184,21 +190,24 @@ end
 time_run = tic;
 
 %~~~~~~~~~~~~~~~~~~~~~~~ Find all dax files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-if isempty(daxfile)
-    % Get all dax files in folder        
-    alldax = dir([dpath,filesep,'*',daxroot,'*.dax']);
-    daxnames = {alldax(:).name};
-    % remove all short dax files from list
-    daxsizes = [alldax(:).bytes];
-    daxnames(daxsizes < minsize) = [];
+if isempty(daxnames)
+    if isempty(daxfile)
+        % Get all dax files in folder        
+        alldax = dir([dpath,filesep,'*',daxroot,'*.dax']);
+        daxnames = {alldax(:).name};
+        % remove all short dax files from list
+        daxsizes = [alldax(:).bytes];
+        daxnames(daxsizes < minsize) = [];
+        daxroots = regexprep(daxnames,'.dax',''); % strip off file endings
+    else  % parse out file path and daxfile name
+        k = strfind(daxfile,filesep);
+        dpath = daxfile(1:k(end));
+        daxnames = {daxfile(k(end)+1:end)};
+        daxroots = {regexprep(daxfile(k(end)+1:end),'.dax','')};
+    end
+else
     daxroots = regexprep(daxnames,'.dax',''); % strip off file endings
-else  % parse out file path and daxfile name
-    k = strfind(daxfile,filesep);
-    dpath = daxfile(1:k(end));
-    daxnames = {daxfile(k(end)+1:end)};
-    daxroots = {regexprep(daxfile(k(end)+1:end),'.dax','')};
 end
-
 %% ~~~~~~~~~~~~~~~ Set method specific flags ~~~~~~~~~~~~~~~~~~~~~~~
 switch method
     case 'insight'
@@ -347,17 +356,8 @@ for s=1:Sections % loop through all dax movies in que
                 batchwait = true;
             end          
     end   
-    % Record parameter file used in the infofile notes.  
-    binparstype = regexprep(datatype,'\.bin','\_pars.txt'); 
-    binparsfile = regexprep(binfile,datatype,binparstype);
-    str = ['parameters used = ',parsfile];         
-    fid = fopen(binparsfile,'w+');
-      str = regexprep(str,'\\','\\\'); % convert \ to \\.  
-      fprintf(fid,str,''); 
-      fprintf(fid,'%s\r\n','');
-    fclose(fid);
-    
-    
+    WriteParsTxt(binfile,parsfile);
+     
     if batchwait
     Nrunning = inf; 
        while Nrunning >= batchsize

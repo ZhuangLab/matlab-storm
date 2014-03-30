@@ -1,6 +1,6 @@
-
-
 function [xshift,yshift] = CorrAlign(Im1,Im2)
+% Compute xshift and yshift to align two images based on maximizing
+% cross-correlation.  
 
  [H,W] = size(Im1);
  corrM = xcorr2(single(Im1),single(Im2)); % The correlation map

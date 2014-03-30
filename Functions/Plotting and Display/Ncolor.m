@@ -45,14 +45,15 @@ end
 [h,w,numColors] = size(I);
 
 
-if isempty(clrmap)
-    clrmap = 'hot';
+if isempty(clrmap) && numColors ==1
+    clrmap = hot(256);
+else
+    clrmap = hsv(numColors); 
 end
 
 
-if numColors == 1;
-    imax = double( max(I(:)));
-    Io = makeuint( ind2rgb(I, hot(imax) ),16);
+if numColors == 1 && size(clrmap,1) > 10;
+    Io = I; 
 else
     if ischar(clrmap)
         try
@@ -81,8 +82,10 @@ end
 if nargout == 0
     try
         imagesc(Io);
+        colormap(clrmap);
     catch
         imagesc(makeuint(Io,8));
+        colormap(clrmap);
     end
 end
 

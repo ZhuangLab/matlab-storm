@@ -27,6 +27,7 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.DisplayOps.zrange = [-500,500];
     SR{handles.gui_number}.DisplayOps.CorrDrift = true;
     SR{handles.gui_number}.DisplayOps.clrmap = 'lines';
+    SR{handles.gui_number}.DisplayOps.resolution = 512; 
 
 % Default MultiBinFile Load Options
     SR{handles.gui_number}.LoadOps.warpD = 3; % set to 0 for no chromatic warp
@@ -72,13 +73,13 @@ set(handles.choosefilt,'String',molfields);
 set(handles.MaxIntSlider,'Max',1);
 set(handles.MaxIntSlider,'Min',0);
 set(handles.MaxIntSlider,'Value',1);
-set(handles.MaxIntSlider,'SliderStep',[1/2^12,1/2^4])
+set(handles.MaxIntSlider,'SliderStep',[1/2^10,1/2^6])
 set(handles.MinIntSlider,'Max',1);
 set(handles.MinIntSlider,'Min',0);
 set(handles.MinIntSlider,'Value',0); 
-set(handles.MinIntSlider,'SliderStep',[1/2^12,1/2^4])
+set(handles.MinIntSlider,'SliderStep',[1/2^10,1/2^6])
 
-
+% Required for drag-and-drop load
 if ~isempty(binfile)
     handles = QuickLoad(hObject,eventdata,handles);
 end

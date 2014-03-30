@@ -69,30 +69,39 @@ end
 
 
 %-------------------------------------------------------------------------
-% Load Conventional images 
+%% Load Conventional images 
 %--------------------------------------------------------------------------
 % searches for all channels 
 % uses only data taken in the STORM imaging plane (z=0).     
 % automatically tries to guess the file names 
 
  if isempty(CC{handles.gui_number}.pars1.overlays)
+    % Attempt to automatically detect overlays in folder splitdax
     if isempty(strfind(daxname,'647quad')) % new defaults
         fileNum = strfind(daxname,'_0_');
         fileNum = daxname(fileNum:end);
         overlays = dir([folder,'\splitdax\*','_z0',fileNum]);
         CC{handles.gui_number}.pars1.overlays = strcat([folder,'\splitdax\'],{overlays.name});
-    else
+    % Attempt to automatically detect overlays in current folder
+    else 
         fileNum = strfind(daxname,'_0_');
         fileNum = daxname(fileNum:end);
         overlays = dir([folder,'\*','_z0',fileNum]);
         CC{handles.gui_number}.pars1.overlays = strcat([folder,'\'],{overlays.name});
-        % CC{handles.gui_number}.pars1.overlays = strcat([folder,'\splitdax\'],{overlays.name});
     end
  end
   if isempty(CC{handles.gui_number}.pars1.overlays) % still empty
+      fileNum = strfind(daxname,'_0_');
+        fileNum = daxname(fileNum:end-4);
+        overlays = dir([folder,'\*','_z0',fileNum,'_c1.dax']);
+        CC{handles.gui_number}.pars1.overlays = strcat([folder,'\'],{overlays.name});
+ end
+ 
+ % Manually select overlays
+ if isempty(CC{handles.gui_number}.pars1.overlays) % still empty
       disp('automatic overlay detection failed.  Please select manually'); 
-      SpecifyOverlays(handles)
-  end
+      SpecifyOverlays(handles);
+ end
  
  
  name488 = ~cellfun(@isempty,strfind(CC{handles.gui_number}.pars1.overlays,'488'));
@@ -106,6 +115,8 @@ end
  name647 = ~cellfun(@isempty,strfind(CC{handles.gui_number}.pars1.overlays,'647'));
  if sum(name647) 
     conv0Name = CC{handles.gui_number}.pars1.overlays{name647};
+ else
+     conv0Name = CC{handles.gui_number}.pars1.overlays{1};
  end
  name750 = ~cellfun(@isempty,strfind(CC{handles.gui_number}.pars1.overlays,'750'));
  if sum(name750)
@@ -123,8 +134,8 @@ end
 
  try 
      conv1 = uint16(mean(ReadDax(conv1Name,'verbose',false,'endFrame',100),3));
- catch er
-    disp(er.message);
+ catch   % not an 'error' since we don't necessarily expect 2 channels.  
+    % disp(er.message);
     conv1 = zeros(H,W,'uint16');  
  end
 
@@ -137,6 +148,9 @@ end
 
  try
      beads = uint16(mean(ReadDax(beadsName,'verbose',false,'endFrame',100),3));
+     if max(beads(:)) - min(beads(:)) < 40
+    	beads = zeros(H,W,'uint16');  
+     end
  catch er
     disp(er.message);
     beads = zeros(H,W,'uint16');  
@@ -148,7 +162,7 @@ end
  % If the file does not exist and the value is not set to  skip,
  % open a dialogue box to find the chromewarps file.
  if isempty(dir(warpfile)) && ~strcmp(BeadFolder,'skip')
-     [~,BeadFolder,loadCanceled] = uigetdir('chromewarps.mat','Find chromewarps',folder);
+     [~,BeadFolder,loadCanceled] = uigetfile('chromewarps.mat','Find chromewarps',folder);
  % If the warpfile load is aborted, set value to skip.  
      if loadCanceled == 0
         BeadFolder = 'skip';
@@ -159,9 +173,10 @@ end
  end
 
  if ~strcmp(BeadFolder,'skip')
-     warpedLamina = uint16(WarpImage(lamina,'488',warpfile));
-     warpedBeads = uint16(WarpImage(beads,'561',warpfile));
-     warpedConv1 = uint16(WarpImage(conv1,'750',warpfile));
+     [warpedLamina,warpError.chn488] = WarpImage(lamina,'488',warpfile,'verbose',false);
+     [warpedBeads,warpError.chn561] = WarpImage(beads,'561',warpfile,'verbose',false);
+     [warpedConv1,warpError.chn750] = WarpImage(conv1,'750',warpfile,'verbose',false);
+     CC{handles.gui_number}.data.chromeError = warpError;
  else
      warpedLamina = lamina;
      warpedBeads = beads;
@@ -169,7 +184,6 @@ end
  end
 
 % -------- Combine into multicolor image ------------
-
 conv0 = imadjust(conv0,stretchlim(conv0,0)); 
 warpedConv1 = imadjust(warpedConv1,stretchlim(warpedConv1,0));
 warpedBeads = imadjust(warpedBeads,stretchlim(warpedBeads,0));
@@ -177,30 +191,9 @@ warpedLamina = imadjust(warpedLamina,stretchlim(warpedLamina,0));
 [H,W] = size(conv0);
 convI = zeros(H,W,4,'uint16');
 convI(:,:,1) = conv0;
-convI(:,:,2) = warpedBeads;
-convI(:,:,3) = warpedLamina; 
-convI(:,:,4) = warpedConv1;
-
-% -------- Plot results ----------
-channels = false(1,2); % Storm Channels
-for c = 1:4; 
-    channels(c) = eval(['get(','handles.oLayer',num2str(c),', ','''Value''',')']);
-end
-
-
-axes(handles.axes1);
-Ncolor(convI(:,:,channels));
-xlim([0,W]); 
-ylim([0,H]);
-axes(handles.axes1);
-set(gca,'color','k');
-set(gca,'XTick',[],'YTick',[]);
-
-axes(handles.axes2);
-Ncolor(convI); 
-set(gca,'color','k');
-set(gca,'XTick',[],'YTick',[]);
-%--------------------------------------
+convI(:,:,2) = warpedConv1;
+convI(:,:,3) = warpedBeads;
+convI(:,:,4) = warpedLamina; 
 
 % if conv1 is empty (all zero), save as empty; 
 if sum(conv1(:)) == 0
@@ -213,3 +206,8 @@ CC{handles.gui_number}.maskBeads = warpedBeads;
 CC{handles.gui_number}.convI = convI;
 CC{handles.gui_number}.pars0.H = H;
 CC{handles.gui_number}.pars0.W = W;
+
+% -------- Plot results ----------
+ UpdateConv(handles)
+ 
+

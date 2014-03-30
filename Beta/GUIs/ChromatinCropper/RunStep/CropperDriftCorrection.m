@@ -23,7 +23,8 @@ for n=1:numChns
  else
      mlist = CC{handles.gui_number}.mlist1;
  end
-    drift_error = '';
+    drift_error = NaN;
+    CC{handles.gui_number}.tempData.driftError = drift_error;
       
     % Load user defined parameters
     H = CC{handles.gui_number}.pars0.H;
@@ -44,23 +45,42 @@ for n=1:numChns
     startFrame = CC{handles.gui_number}.pars4.startFrame(n);
     showPlots = CC{handles.gui_number}.pars4.showPlots(n); 
     showExtraPlots = CC{handles.gui_number}.pars4.showExtraPlots(n); 
-    
+    samplingRate = CC{handles.gui_number}.pars4.samplingRate(n); 
+    integrateframes= CC{handles.gui_number}.pars4.integrateframes(n); 
     % -------------- Method 1 (Default) -----------------------------
     % Attempts to automatically detect a movie of feducial beads and use
     % this for drift correction.  
     try
+        % first look for '_ds60' tagged files post-processed downsampled by 60 
+        % (same name as 
         beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
-        beadbin = [folder,filesep,beadname];
-         [x_drift,y_drift,~,~,drift_error] = feducialDriftCorrection(beadbin,...
-             'maxdrift',maxDrift,'showplots',showPlots,'fmin',fmin,...
-             'startframe',startFrame,'showextraplots',showExtraPlots);
-        missingframes = max(mlist.frame) - length(x_drift);
-        x_drift = [x_drift; zeros(missingframes,1)]; %#ok<*AGROW>
-        y_drift = [y_drift; zeros(missingframes,1)];
-        mlist.xc = mlist.x - x_drift(mlist.frame);
-        mlist.yc = mlist.y - y_drift(mlist.frame); 
-        goOn = true;
-        retry = 0; 
+        beadbin0 = [folder,filesep,beadname];
+        beadbin = regexprep(beadbin0,'*_list\.bin','*_ds60_list\.bin');   
+        % Next choice,   for _c2 bead files  (These are compressed on the fly by hal)
+        if ~exist(beadbin,'file')
+           beadbin = regexprep(beadbin0,'c1','c2');  
+        end
+        % Last choice look for non-downsampled bead data
+        if ~exist(beadbin,'file')
+            beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
+            beadbin = [folder,filesep,beadname];
+        end
+        % Display error if we still haven't found a bead movie 
+        if ~exist(beadbin,'file')
+            disp(['File ',beadbin0, ' does not exist']);
+            disp(['File ',beadbin, ' does not exist']);
+            disp('No feducial bead file found.'); 
+        else
+            axes(handles.axes1); cla; %#ok<*LAXES>
+             [mlist,drift_error] = FeducialDriftCorrection(beadbin,...
+                 'maxdrift',maxDrift,'showplots',showPlots,'fmin',fmin,...
+                 'startframe',startFrame,'showextraplots',showExtraPlots,...
+                 'target',mlist,'samplingrate',samplingRate,...
+                 'integrateframes',integrateframes,'fighandle',handles.axes1);
+              CC{handles.gui_number}.tempData.driftError = drift_error;
+            goOn = true;
+            retry = 0; 
+        end
     catch er
         disp(er.getReport);
         warning('Feducial Drift Correction Failed');
@@ -125,37 +145,11 @@ for n=1:numChns
         
     elseif retry == 3
         disp('skipping drift correction...')
-        x_drift = 0;
-        y_drift = 0;
         goOn = true; 
     end
     
     
     if goOn
-        driftReport = strcat('Drift Correction Uncertainty: ',num2str(drift_error,3),'nm');
-        % plot mask in main figure window
-        axes(handles.axes1); cla; %#ok<*LAXES>
-        Nframes = length(x_drift); 
- 
-        if Nframes > 1 && retry ~= 2
-            z = zeros(size(x_drift'));
-            col = [double(1:Nframes-1),NaN];  % This is the color, vary with x in this case.
-             surface([x_drift';x_drift']*npp,[y_drift';y_drift']*npp,...
-                 [z;z],[col;col],'facecol','no','edgecol','interp',...
-                'linew',1);    
-            colormap(jet);
-            set(gca,'color','w'); 
-            colordef white;
-            set(gca,'XTick',linspace(min(x_drift*npp),max(x_drift*npp),10));
-            set(gca,'XTickLabel',linspace(min(x_drift*npp),max(x_drift*npp),10));
-            set(gca,'YTick',linspace(min(y_drift*npp),max(y_drift*npp),10));
-            set(gca,'YTickLabel',linspace(min(y_drift*npp),max(y_drift*npp),10));
-            xlabel('nm');  ylabel('nm'); 
-            xlim([min(x_drift*npp),max(x_drift*npp)]);
-            ylim([min(y_drift*npp),max(y_drift*npp)]);
-             text(mean(x_drift*npp),mean(y_drift*npp),driftReport);
-        end
-    
         if n == 1
             CC{handles.gui_number}.mlist = mlist; % update mlist; 
         else

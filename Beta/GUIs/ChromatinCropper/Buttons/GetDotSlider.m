@@ -6,15 +6,15 @@ function GetDotSlider(hObject, eventdata, handles)
 
 global CC
 if CC{handles.gui_number}.step == 5
-    n = round(get(hObject,'Value'));
+    n = round(get(handles.DotSlider,'Value'));
     set(handles.DotNum,'String',num2str(n));
     CC{handles.gui_number}.dotnum = n;
     ChromatinPlots(handles, n);
 end
-if CC{handles.gui_number}.step >= 6
-    n = round(get(hObject,'Value'));
+if CC{handles.gui_number}.step == 6
+    n = round(get(handles.DotSlider,'Value'));
     set(handles.DotNum,'String',num2str(n));
     CC{handles.gui_number}.dotnum = n;
-    ChromatinPlots2(handles, n);
+    FilterChromatinClusters(handles); 
 end
 guidata(hObject,handles); 

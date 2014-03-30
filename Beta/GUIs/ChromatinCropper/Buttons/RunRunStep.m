@@ -20,7 +20,7 @@ elseif step == 4
 elseif step == 5
     handles = FindChromatinClusters(handles);
 elseif step == 6
-    handles = FliterChromatinClusters(handles);
+    handles = FilterChromatinClusters(handles);
 elseif step == 7
     handles = SaveChromatinClusters(handles); 
 end 

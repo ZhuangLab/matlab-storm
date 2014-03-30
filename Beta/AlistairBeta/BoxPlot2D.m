@@ -5,17 +5,20 @@ function BoxPlot2D(x,data,varargin)
 %
 %--------------------------------------------------------------------------
 % Optional Inputs
-% 'flag' /
+% 'width' / double / .03
 % 'datanames' / cell / {}
 % 'clrmap' / string or colormap
+% 'showdots' / boolean / false
+% 'MarkerSize' / double / 5
 
 %% Main Function
 
 %% Default parameters
 width = .03;
 clrmap = [];
-datanames = {}; 
-
+datanames = {};
+showdots = false;
+MarkerSize = 5;
 
 
 %--------------------------------------------------------------------------
@@ -37,6 +40,10 @@ if nargin > 1
                 datanames = CheckParameter(parameterValue, 'cell', 'datanames');
             case 'colormap'
                 clrmap = CheckParameter(parameterValue,'colormap','colormap') ; % string name of colormap or a colormap matrix.
+            case 'showdots'
+                showdots = CheckParameter(parameterValue,'boolean','showdots');
+            case 'MarkerSize'
+                MarkerSize = CheckParameter(parameterValue,'positive','dotsize'); 
             otherwise
                 error(['The parameter ''', parameterName,...
                     ''' is not recognized by the function, ''',...
@@ -70,7 +77,7 @@ medians = zeros(numDataTypes,1);
 for i=1:numDataTypes
     quartiles(i,:) = quantile(data{i},[.25,.75]);
     quarts = quantile(data{i},[.25,.75]);
-    medians(i) = median(data{i});
+    medians(i) = nanmedian(data{i});
     h = max(1E-16,quarts(2)-quarts(1));
     boxes = [x(i)-w/2,quarts(1),w,h];  
     
@@ -80,5 +87,11 @@ for i=1:numDataTypes
     if ~isempty(datanames)
         text(x(i)+w,medians(i),datanames{i});
     end
+    if showdots
+        numPts = length(data{i}); 
+        plot( x(i) + xRange*w*.001*(.5-rand(numPts,1)),data{i},'.',...
+            'color',clrmap(i,:),'MarkerSize',MarkerSize);
+    end
+    
 end
 

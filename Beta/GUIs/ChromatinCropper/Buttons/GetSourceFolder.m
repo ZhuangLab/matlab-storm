@@ -18,13 +18,13 @@ end
 binfile = CC{handles.gui_number}.binfiles(CC{handles.gui_number}.imnum);    
 set(handles.ImageBox,'String',binfile.name);
 
-RunStepParameters(hObject, eventdata, handles)
-RunRunStep(hObject, eventdata, handles)
-
 % Clear current data
 cleardata = input('New folder selected.  Clear current data? y/n? ','s');
 if strcmp(cleardata,'y');
-     CC{handles.gui_number}.data = [];
-     CC{handles.gui_number}.pars7.saveroot ='';
+     ResetCCdata(handles);
+     ResetCCparameterDefaults(handles);
      disp('data cleared'); 
 end
+
+RunStepParameters(hObject, eventdata, handles);
+RunRunStep(hObject, eventdata, handles);
