@@ -57,7 +57,7 @@ if nargin >= 2
             case 'AxisWidth'
                 axisWidth = CheckParameter(parameterValue, 'nonnegative', parameterName);
             case 'MarkerWidth'
-                markerWidth = CheckParameter(parameterValue, 'positive', parameterName);
+                markerWidth = CheckParameter(parameterValue, 'nonnegative', parameterName);
             case 'FigureHandle'
                 figHandle = CheckParameter(parameterValue, 'positive', parameterName);
             case 'Background'
@@ -123,7 +123,7 @@ for i=1:length(ax)
                     set(line_handles(j), 'LineWidth', lineWidth);
                 end
             end
-            if ismember('MarkerSize', fieldnames(get(line_handles(j))))
+            if ismember('MarkerSize', fieldnames(get(line_handles(j)))) && markerWidth > 0
                 set(line_handles(j), 'MarkerSize', markerWidth);
             end
         end
