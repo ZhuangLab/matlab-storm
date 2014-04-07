@@ -26,7 +26,10 @@ function [MList, memoryMap] = ReadMasterMoleculeList(varargin)
 % 'verbose'/boolean (true): Display or hide function progress
 %
 % 'compact'/boolean (false): Toggles between a array of structures or a
-%   structure of arrays.  The later is much more memory efficient.  
+%   structure of arrays.  The later is much more memory efficient. 
+%
+% 'ZScale'/positive (1): The value by which the Z data will be rescaled. 
+%    Useful for converting nm to pixels.   
 %--------------------------------------------------------------------------
 % Jeffrey Moffitt
 % jeffmoffitt@gmail.com
@@ -70,6 +73,7 @@ global defaultDataPath;
 %--------------------------------------------------------------------------
 verbose = true;
 compact = true;
+ZScale = 1;
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -110,6 +114,8 @@ if length(varargin)>1
                 verbose = CheckParameter(parameterValue, 'boolean', parameterName);
             case 'compact'
                 compact = CheckParameter(parameterValue, 'boolean', parameterName);
+            case 'ZScale'
+                ZScale = CheckParameter(parameterValue, 'positive', parameterName);
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -151,39 +157,49 @@ if numMoleculesFrame0 >  20E6
     if strcmp(userChoice,'y')
         DoThis = true;
     else
-        DoThis = false;
+        error('User aborted loading mlist due to memory considerations ');
     end
 end
 
-if DoThis
 %--------------------------------------------------------------------------
 % Create memory map
 %--------------------------------------------------------------------------
-    if ~compact
-        memoryMap = memmapfile(fileName, ...
-                'Format', format, ...
-                'Writable', false, ...
-                'Offset', headerSize, ...
-                'Repeat', numMoleculesFrame0);
+if ~compact
+    memoryMap = memmapfile(fileName, ...
+            'Format', format, ...
+            'Writable', false, ...
+            'Offset', headerSize, ...
+            'Repeat', numMoleculesFrame0);
 
-        MList = memoryMap.Data;
-    else %compact
-        MList = CreateMoleculeList(numMoleculesFrame0, 'compact', true); %Allocate memory
-        memoryMap = memmapfile(fileName, ...
-                'Format', 'int32', ...
-                'Writable', false, ...
-                'Offset', headerSize, ...
-                'Repeat', inf);
+    MList = memoryMap.Data;
+else %compact
+    MList = CreateMoleculeList(numMoleculesFrame0, 'compact', true); %Allocate memory
+    memoryMap = memmapfile(fileName, ...
+            'Format', 'int32', ...
+            'Writable', false, ...
+            'Offset', headerSize, ...
+            'Repeat', inf);
 
-        for i=1:length(format)
-            memoryMap.Format = format{i,1};
-            memoryMap.Offset = headerSize + (i-1)*entrySize;
-            MList.(format{i,3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
-        end
+    for i=1:length(format)
+        memoryMap.Format = format{i,1};
+        memoryMap.Offset = headerSize + (i-1)*entrySize;
+        MList.(format{i,3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
     end
-    
-else
-    error('User aborted loading mlist due to memory considerations '); 
+end
+
+%--------------------------------------------------------------------------
+% Rescale Z if necessary
+%--------------------------------------------------------------------------
+if ~(ZScale == 1)
+    if compact
+        MList.z = MList.z/ZScale;
+        MList.zc = MList.zc/ZScale;
+    else
+        tempZ = num2cell([MList(:).z]/ZScale);
+        [MList.z] = deal(tempZ{:});
+        tempZc = num2cell([MList(:).zc]/ZScale);
+        [MList.zc] = deal(tempZc{:});
+    end
 end
 
 %--------------------------------------------------------------------------
