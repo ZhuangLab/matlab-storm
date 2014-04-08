@@ -89,7 +89,9 @@ infoFile = [];
 subregion = [];
 verbose = true;
 orientation = 'normal';
-maxMemory = 2E9; % 2 Gb
+
+maxMemory = 10E9; % 1 Gb
+
 
 %--------------------------------------------------------------------------
 % Parse Required Input
