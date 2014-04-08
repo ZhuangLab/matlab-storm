@@ -20,6 +20,7 @@ function [apiSP, hFig] = CreateSizeableImage(varargin)
 name = [];
 pos = [];
 toolbar = false;
+image = [];
 
 % ------------------------------------------------------------------------
 % Parse variable arguments
@@ -31,24 +32,26 @@ if nargin >= 1
     parametercount = length(varargin)/2;
 
     for parameterindex = 1:parametercount,
-        parametername = varargin{parameterindex*2 - 1};
-        parametervalue = varargin{parameterindex*2};
-        switch parametername
+        parameterName = varargin{parameterindex*2 - 1};
+        parameterValue = varargin{parameterindex*2};
+        switch parameterName
             case 'Name'
-                name = parametervalue;
-                if ~ischar(parametervalue)
-                    error(['Not a valid option for ' parametername]);
+                name = parameterValue;
+                if ~ischar(parameterValue)
+                    error(['Not a valid option for ' parameterName]);
                 end
             case 'OuterPosition'
-                pos = parametervalue;
+                pos = parameterValue;
                 if length(pos) ~= 4
-                    error(['Not a valid option for ' parametername]);
+                    error(['Not a valid option for ' parameterName]);
                 end
             case 'toolbar'
-                toolbar = parametervalue;
+                toolbar = parameterValue;
                 if ~islogical(toolbar)
-                    error(['Not a valid option for ' parametername]);
+                    error(['Not a valid option for ' parameterName]);
                 end
+            case 'image'
+                image = CheckParameter(parameterValue, 'array', parameterName);
             otherwise
                 error(['the parameter ''' parametername ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -74,4 +77,9 @@ set(hSP,'Units','normalized','Position',[0 .1 1 .9])
 hMagBox = immagbox(hFig,hIm);
 apiSP = iptgetapi(hSP);
 set(hFig, 'Toolbar', 'figure');
+
+if ~isempty(image)
+    apiSP.replaceImage(image, []);
+    apiSP.setMagnification(apiSP.findFitMag());
+end
 
