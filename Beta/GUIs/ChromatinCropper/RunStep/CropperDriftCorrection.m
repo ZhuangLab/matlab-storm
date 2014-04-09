@@ -55,6 +55,7 @@ for n=1:numChns
         % first look for '_ds60' tagged files post-processed downsampled by 60 
         % (same name as 
         beadname = regexprep(daxname,{'647quad','.dax'},{'561quad','_list.bin'});
+        
         beadbin0 = [folder,filesep,beadname];
         beadbin = regexprep(beadbin0,'_list\.bin','_ds60_list\.bin');   
         if ~exist(beadbin,'file') && isempty(strfind(beadbin,'561'))
