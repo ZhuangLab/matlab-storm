@@ -48,13 +48,10 @@ numFlags = length(parameterNames);
 % provided
 % -------------------------------------------------------------------------
 defaultParameters = CreateDefaultParameters(defaults);
+parameters = defaultParameters;
 if isempty(variableArgs)
     return
 end
-% -------------------------------------------------------------------------
-% Initialize parameters
-% -------------------------------------------------------------------------
-defaultFields = fieldnames(defaultParameters);
 
 % -------------------------------------------------------------------------
 % Overwrite with provided parameters
@@ -72,17 +69,17 @@ if ~isempty(parametersInd)
         [1:(parametersInd-1) (parametersInd+1):numFlags]);
     parameterValues = parameterValues(...
         [1:(parametersInd-1) (parametersInd+1):numFlags]);
-
-    % ---------------------------------------------------------------------
-    % Fill in default parameters fields if missing
-    % ---------------------------------------------------------------------
-    foundFields = fieldnames(parameters);
-    missingFields = setdiff(defaultFields, foundFields);
-    for i=1:length(missingFields)
-        parameters.(missingFields{i}) = defaultParameters.(missingFields{i});
-    end
 end
 
+% ---------------------------------------------------------------------
+% Fill in default parameters fields if missing
+% ---------------------------------------------------------------------
+defaultFields = fieldnames(defaultParameters);
+foundFields = fieldnames(parameters);
+missingFields = setdiff(defaultFields, foundFields);
+for i=1:length(missingFields)
+    parameters.(missingFields{i}) = defaultParameters.(missingFields{i});
+end
 % -------------------------------------------------------------------------
 % Check validity of provided values
 % -------------------------------------------------------------------------
