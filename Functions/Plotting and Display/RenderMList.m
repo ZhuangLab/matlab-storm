@@ -1,6 +1,6 @@
-function [renderedImage, parameters] = RenderMList(MList, varargin)
+function [renderedImage, edges, parameters] = RenderMList(MList, varargin)
 % ------------------------------------------------------------------------
-% [renderedImage, parameters] = RenderMList(MList, varargin)
+% [renderedImage, edges, parameters] = RenderMList(MList, varargin)
 % This function renders an MList into a high resolution image.  
 %--------------------------------------------------------------------------
 % Necessary Inputs
@@ -26,13 +26,14 @@ function [renderedImage, parameters] = RenderMList(MList, varargin)
 % -------------------------------------------------------------------------
 defaults = cell(0,3);
 defaults(end+1,:) = {'renderMode', {'molecules', 'photons'}, 'molecules'};
-defaults(end+1,:) = {'gaussianWidth', 'nonnegative', .1};
+defaults(end+1,:) = {'gaussianWidth', 'nonnegative', .2};
 defaults(end+1,:) = {'index', 'array', []};
 defaults(end+1,:) = {'mlistType', {'compact', 'noncompact'}, 'compact'};
 defaults(end+1,:) = {'ROI', 'array', [1 256; 1 256]};
 defaults(end+1,:) = {'imageScale', 'positive', 10};
 defaults(end+1,:) = {'view', 'cell', {'x', 'y'}};
 defaults(end+1,:) = {'photonsField', 'string', 'a'};
+defaults(end+1,:) = {'matSizeScale', 'positive', 5};
 
 % -------------------------------------------------------------------------
 % Parse necessary input
@@ -97,8 +98,12 @@ end
 % Blur image
 % -------------------------------------------------------------------------
 if parameters.gaussianWidth ~= 0
+    % -------------------------------------------------------------------------
+    % Determine sigma and filter matrix size
+    % -------------------------------------------------------------------------
     sigma = parameters.gaussianWidth*parameters.imageScale;
-    matSize = max(3, 10*floor(sigma/2) + 1); %Force to nearest odd
+    matSize = max(parameters.matSizeScale, ...
+        2*round(parameters.matSizeScale*sigma/2) + 1); % Always odd
     filterMat = fspecial('gaussian', matSize, sigma);
     renderedImage = imfilter(renderedImage, filterMat);
 end
