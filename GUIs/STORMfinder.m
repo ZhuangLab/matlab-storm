@@ -69,7 +69,14 @@ gui_number = length(SF);
 set(handles.SFinstance,'String',['inst id',num2str(gui_number)]);
 handles.gui_number = gui_number;
 
-SF{handles.gui_number}.daxfile = daxfile; 
+if length(varargin) > 1
+    daxfile = varargin{2}; 
+    SF{handles.gui_number}.daxfile = daxfile;
+else
+    SF{handles.gui_number}.daxfile = daxfile; 
+end
+   
+
 % initialize other variables as empty
 SF{handles.gui_number}.inifile = ''; 
 SF{handles.gui_number}.xmlfile = ''; 

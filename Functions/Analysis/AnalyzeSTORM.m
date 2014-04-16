@@ -76,7 +76,7 @@ numFrames = 10;
 method = 'insight';
 verbose = true;
 overwrite = true;
-numParallel = 6;
+numParallel = 4;
 includeSubdir = false;
 hideterminal = false;
 verbalize = false;
@@ -241,14 +241,14 @@ filePaths = {};
 prefix = [];
 switch method
     case 'insight'
-        prefix = [];
+        fileExt = '_list.bin';
     case {'multifit', 'daoSTORM'}
-        prefix = '_dao';
+        fileExt = '_mlist.bin';
 end
 
 for i=1:length(infoFiles)
     fileNames{i} =  [infoFiles(i).localName(1:(end-4)) '.dax'];
-    binFileNames{i} = [infoFiles(i).localName(1:(end-4)) prefix '_list.bin'];
+    binFileNames{i} = [infoFiles(i).localName(1:(end-4)) fileExt ];
     filePaths{i} = infoFiles(i).localPath;
 end
 
@@ -261,7 +261,7 @@ dataPaths = unique(filePaths);
 % Find _list.bin files
 %--------------------------------------------------------------------------
 for i=1:length(dataPaths)
-    existingBinFiles = dir([dataPaths{i} '*_list.bin']);
+    existingBinFiles = dir([dataPaths{i} '*.bin']);
     existingBinFileNames = {existingBinFiles.name};
     ind = ismember(binFileNames, existingBinFileNames) & strcmp(dataPaths{i}, filePaths);
     if ~isempty(existingBinFiles)
