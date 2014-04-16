@@ -1,11 +1,14 @@
 # matlab_storm #
-This collection of matlab, c, and python code is designed to provide a basic interface for STORM data analysis using a Matlab(R) front-end interface.  The Graphical User Interfaces (GUIs) should be usable to those with little programming experience.  Many additional STORM related data processing functions are available to the experience matlab user.  
+This collection of matlab, c, and python code is designed to provide a basic interface for STORM data analysis using a Matlab(R) front-end interface.  
+The Graphical User Interfaces (GUIs) should be usable to those with little programming experience.  
+Many additional STORM related data processing functions are available to the experience matlab user.  
 
 ### Authors ###
-Core code was contributed by Alistair Boettiger and Jeffrey Moffitt.  All core code contained here is licensed under the creative commons CC BY NC.  See individual help files for more information.
+Core code was contributed by Alistair Boettiger and Jeffrey Moffitt.  
+All core code contained here is licensed under the creative commons CC BY NC.  See individual help files for more information.
 
-Some functions are dependent upon the sister repository `storm-analysis`, written primarily by Hazen Babcock and also available through git-hub as one of Zhuang Lab's repositories.   
-
+Some functions are dependent upon the sister repository `storm-analysis`, written primarily by Hazen Babcock.
+This repository is available here: https://github.com/ZhuangLab/storm-analysis
 
 ## Installation Instructions ##
 1. Clone this repository (see below) via git or copy the contents to your hard drive
@@ -14,7 +17,8 @@ Some functions are dependent upon the sister repository `storm-analysis`, writte
     * Sign into to Windows Github on your local machine and clone the github project.
 2. Clone the storm-analysis repository via git or copy the contents to your hard drive. 
 2. Copy `startup_demo.m` into your default matlab working directory. Typically this directory is "/My Documents/MATLAB"
-3. Change the paths within startup\_demo.m to specify the locations of the `matlab-storm` and `storm-analysis` repositories, and set up a scratch folder.  Then change the name of `startup_demo.m` to `startup.m` (or name it something else and instruct your existing `startup.m` script to call it).  
+3. Change the paths within startup_demo.m to specify the locations of the `matlab-storm` and `storm-analysis` repositories and set up a scratch folder.  
+Then change the name of `startup_demo.m` to `startup.m` (or name it something else and instruct your existing `startup.m` script to call it).  
 5. Launch matlab.
 
 ## Instructions for Contributing to matlab-storm
@@ -30,8 +34,8 @@ Everyone is welcome to contribute to matlab-storm but any code contributed must 
 
      `version = {git commit ce8094b603}`  
 
-	`authors = {Alistair Boettiger and Jeff Moffitt}`
-
+	`authors = {Alistair Boettiger and Jeffrey Moffitt}`
 
 ## Additional Software for Analysis
-Some aspects of this analysis package depend on the Insight3 which can be provided by request (contact Matt Kilroy kilroy at chem.harvard.edu). For instructions on integrating this software with `matlab-storm`, contact Alistair or Jeff. 
+Some aspects of this analysis package depend on the Insight3 which can be provided by request (contact Matt Kilroy kilroy at chem.harvard.edu). 
+For instructions on integrating this software with `matlab-storm`, contact Alistair or Jeff. 
