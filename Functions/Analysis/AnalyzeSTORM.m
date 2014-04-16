@@ -28,8 +28,11 @@ function infoFiles = AnalyzeSTORM(varargin)
 % 'numParallel'/integer/(4): Determine the number of parallel jobs to start
 %
 % 'includeSubdir'/boolean(false): Determine if STORM analysis is run on
-% all folders within the default directory
+%   all folders within the default directory
 % 
+% 'recursionDepth'/integer/(1): The number of folders deep to look if
+%   includeSubdir is true
+%
 % 'outputInMatlab'/boolean(false): Determine if the process is run in the
 % matlab command line or in an extrernal dos line'
 %--------------------------------------------------------------------------
@@ -81,6 +84,7 @@ includeSubdir = false;
 hideterminal = false;
 verbalize = false;
 outputInMatlab = false;
+recursionDepth = 1;
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -174,17 +178,18 @@ if verbose
 end
 
 %--------------------------------------------------------------------------
+% Check filesep on analysisPath
+%--------------------------------------------------------------------------
+if analysisPath(end) ~= filesep
+    analysisPath(end+1) = filesep;
+end
+
+%--------------------------------------------------------------------------
 % Find subdirectories
 %--------------------------------------------------------------------------
 dataPaths = {};
 if includeSubdir
-    dirContents = dir(analysisPath);
-    dataPaths = {dirContents([dirContents.isdir]).name};
-    dataPaths = dataPaths(~ismember(dataPaths, {'.', '..'}));
-    % Build full path
-    for i=1:length(dataPaths)
-        dataPaths{i} = [analysisPath dataPaths{i} '\'];
-    end
+    dataPaths = FindAllDirectories(analysisPath);
 end
 dataPaths{end+1} = analysisPath; % Append analysisPath
 
@@ -214,7 +219,7 @@ if isempty(infoFiles)
     end
 end
 if isempty(infoFiles)
-    error('No .inf files were found');
+    warning('matlabSTORM:invalidINF', 'No .inf files were found in any of the directories');
 end
 
 %--------------------------------------------------------------------------
