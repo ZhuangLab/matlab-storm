@@ -28,7 +28,7 @@ function defaultParameters = CreateDefaultParameters(defaults)
 % -------------------------------------------------------------------------
 % Create default parameters structure
 % -------------------------------------------------------------------------
-for i=1:size(defaults, 1)
+for i=1:length(defaults)
     defaultParameters.(defaults{i,1}) = defaults{i,3};
 end
 
