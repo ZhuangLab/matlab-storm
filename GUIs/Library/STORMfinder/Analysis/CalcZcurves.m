@@ -77,6 +77,7 @@ verbose = true;
 parstype = '.xml';
 templateFile = '';
 newFile = ''; 
+guideMethod = 0;
 
 % for clustering of localizations
 startframe = 1; % 290;
