@@ -77,6 +77,7 @@ verbose = true;
 parstype = '.xml';
 templateFile = '';
 newFile = ''; 
+guideMethod = 0;
 
 % for clustering of localizations
 startframe = 1; % 290;
@@ -177,8 +178,8 @@ end
 x = mlist.x;
 y = mlist.y;
 frame = mlist.frame;
-wx = mlist.w ./ mlist.ax;   % /
-wy = mlist.w .* mlist.ax;  % *
+wx = mlist.w ./ sqrt(mlist.ax);   % /
+wy = mlist.w .* sqrt(mlist.ax);  % *
 z = mlist.z;
 
 % Get the stage file 
