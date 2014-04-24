@@ -130,6 +130,7 @@ printprogress = false;
 batchwait = false;
 maxCPU = 95;
 binname = ''; 
+binnames = {};
 
 %--------------------------------------------------------------------------
 %% Parse Variable Input Arguments
@@ -154,6 +155,8 @@ if nargin > 1
                 daxroot = CheckParameter(parameterValue, 'string', 'daxroot');
             case 'daxnames'
                 daxnames = CheckParameter(parameterValue, 'cell', 'daxnames');
+            case 'binnames'
+                binnames = CheckParameter(parameterValue, 'cell', 'binnames');
             case 'method'
                 method = CheckParameter(parameterValue, 'string', 'method');
             case 'minsize'
@@ -206,9 +209,28 @@ if isempty(daxnames)
         daxroots = {regexprep(daxfile(k(end)+1:end),'.dax','')};
     end
 else
-    daxroots = regexprep(daxnames,'.dax',''); % strip off file endings
+    [~,daxroots,~] = cellfun(@(x) fileparts(x),daxnames,'UniformOutput',false);
 end
+
+
+% make sure daxroots and daxnames don't contain extra copies of filepath
+[~,daxroots,~] = cellfun(@(x) fileparts(x),daxroots,'UniformOutput',false);
+[folders,daxnames,filetype] = cellfun(@(x) fileparts(x),daxnames,'UniformOutput',false);
+daxnames = strcat(daxnames,filetype);
+if ~isempty(folders{1})
+    dpath = [folders{1},filesep];
+end
+
 %% ~~~~~~~~~~~~~~~ Set method specific flags ~~~~~~~~~~~~~~~~~~~~~~~
+if ~isempty(parsfile)
+    parstype = parsfile(end-3:end);
+    if strcmp(parstype,'.ini')
+        method = 'insight';
+    elseif strcmp(parstype,'.xml')
+        method = 'DaoSTORM';
+    end
+end
+
 switch method
     case 'insight'
         datatype = '_list.bin'; 
@@ -220,6 +242,28 @@ switch method
         error(['method ',method,' not recognized.  Available methods:',...
             ' insight, DaoSTORM']);
 end
+
+
+%% ~~~~~~~~~~~~~~~~~~~ Find binfiles ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if isempty(binnames) % a cell array of binnames passed (equal to length daxnames)
+     binnames = strcat(dpath,daxroots,datatype);
+
+   if ~isempty(binname) && strcmp(method,'DaoSTORM') % insight does not allow changing the binname
+        binNumbers = cellfun(@(x) ['_',sprintf('%04d',x) ], num2cell(1:length(daxroots)),'UniformOutput',false)' ;
+        binnames = cellfun(@(x,y) regexprep(x,'#',y),binnames,binNumbers,'UniformOutput',false);
+        binnames = cellfun(@(x,y) regexprep(x,'DAX',y),binnames,daxroots,'UniformOutput',false);
+   end
+
+elseif length(binnames) ~= length(daxnames)
+    error('length binnames must equal length daxnames');
+end
+
+[binfolder,binfilenames,~] = cellfun(@(x) fileparts(x),binnames,'UniformOutput',false);
+if isempty(binfolder(1))
+    binnames = strcat(dpath,binfilenames);
+end
+
+
 
 % ~~~~~~~~~~~~ check for parameter files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if isempty(parsfile)
@@ -245,14 +289,9 @@ if isempty(strfind(parsfile,parstype))
 end
 
 %% ~~~~ Decide if existing data files should be skipped or overwritten ~~~~~%    
-% structure containing names of all bin files in folder 
-    all_prev_bin = dir([dpath,'*',daxroot,'*',datatype]);
-    binnames = {all_prev_bin(:).name};
-    binroots = regexprep(binnames,datatype,''); % strip off file endings
-
+    hasbin = cellfun(@(x) exist(x,'file'), binnames);
+  
 % index of all dax files which have bin files associated 
-    hasbin = sum(cell2mat(cellfun(@(x) strcmp(x,daxroots),...
-        binroots,'UniformOutput',false)'));
     txtout = ['warning: found existing ',datatype,' data files for ',...
         daxnames(logical(hasbin))];
     
@@ -304,7 +343,8 @@ end
 Sections = length(daxnames);
 prc = cell(Sections,1); % cell array to store system process structures for each process launched
 for s=1:Sections % loop through all dax movies in que
-    daxfile = [dpath,daxnames{s}];  
+    daxfile = [dpath,daxnames{s}]; 
+    binfile = binnames{s}; 
     
     if ~isempty(maxCPU)
         waitforfreecpu('MaxLoad',maxCPU,'RefreshTime',10,'verbose',verbose);
@@ -317,16 +357,6 @@ for s=1:Sections % loop through all dax movies in que
         disp('...');
    end 
     
-   if isempty(binname)
-        binfile = [dpath,daxroots{s},datatype];
-   else
-        binnumber = ['_',sprintf('%04d',s)];
-        newBinName = binname;
-        newBinName = regexprep(newBinName,'#',binnumber);
-        newBinName = regexprep(newBinName,'DAX',daxroots{s});
-        binfile = [dpath,newBinName,datatype];
-   end
-   
    
     switch method
         case 'insight'
@@ -351,6 +381,7 @@ for s=1:Sections % loop through all dax movies in que
                     system([daoSTORMexe,' "',daxfile,'" "',binfile,'" "',parsfile,'" >' dpath,'\newlog',num2str(s),'.txt']); 
                 end
             else  % Launch silently in the background
+                % binfile
                 system_command = [daoSTORMexe,' "',daxfile,'" "',binfile,'" "',parsfile, '" && exit &']; 
                 prc{s} = SystemRun(system_command,'Hidden',hideterminal); 
                 batchwait = true;

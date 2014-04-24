@@ -346,12 +346,10 @@ for m=1:Nmovies
                 
                 if   notsplit
                     daxfile = [pathin,filesep,alldax(n).name];
-                    [movies,info] = ReadDaxBeta(daxfile,'Quadviewsplit',true);
-                    
+                    [movies,info] = ReadDaxBeta(daxfile,'Quadviewsplit',true); 
                     if veryverbose
                         disp('splitting dax');
-                    end
-                    
+                    end          
                 end
                 for c=1:Nchns
                     if notsplit

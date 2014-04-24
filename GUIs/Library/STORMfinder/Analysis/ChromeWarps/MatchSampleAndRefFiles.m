@@ -1,6 +1,6 @@
 function data = MatchSampleAndRefFiles(beadmovie)
 
-
+%%
 global scratchPath
 excludePoorZfit = false;
 
@@ -15,6 +15,7 @@ for m=1:numMovies
     
     % Nsamples is number of channels minus 1 reference channel for every movie 
     [~,numFields] = size(beadmovie(m).binname);
+    
     data(numSamples).sample(numFields).x = [];
     data(numSamples).sample(numFields).y = [];
     data(numSamples).sample(numFields).z = [];
