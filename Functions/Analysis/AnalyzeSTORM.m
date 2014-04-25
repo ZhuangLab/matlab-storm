@@ -220,6 +220,7 @@ if isempty(infoFiles)
 end
 if isempty(infoFiles)
     warning('matlabSTORM:invalidINF', 'No .inf files were found in any of the directories');
+    return;
 end
 
 %--------------------------------------------------------------------------
