@@ -64,7 +64,7 @@ frameInds = double(min(MList.frame):parameters.frameBin:max(MList.frame));
 ctrs{1} = [frameInds (frameInds(end) + parameters.frameBin)];
 movieData.frameInds = frameInds;
 n = hist(single(MList.frame), ctrs{1});
-n = n(1:(end-1));
+n = n(1:(end-1))/parameters.frameBin;
 
 % -------------------------------------------------------------------------
 % Add plots to figure
