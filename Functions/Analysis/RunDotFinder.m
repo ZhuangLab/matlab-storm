@@ -247,13 +247,15 @@ end
 %% ~~~~~~~~~~~~~~~~~~~ Find binfiles ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if isempty(binnames) % a cell array of binnames passed (equal to length daxnames)
      binnames = strcat(dpath,daxroots,datatype);
-
+binname
    if ~isempty(binname) && strcmp(method,'DaoSTORM') % insight does not allow changing the binname
         binNumbers = cellfun(@(x) ['_',sprintf('%04d',x) ], num2cell(1:length(daxroots)),'UniformOutput',false)' ;
+        binnames  = strcat(cell(length(daxroots),1),binname);
         binnames = cellfun(@(x,y) regexprep(x,'#',y),binnames,binNumbers,'UniformOutput',false);
         binnames = cellfun(@(x,y) regexprep(x,'DAX',y),binnames,daxroots,'UniformOutput',false);
+        binnames = strcat(dpath,binnames,datatype);
    end
-
+   
 elseif length(binnames) ~= length(daxnames)
     error('length binnames must equal length daxnames');
 end
@@ -289,25 +291,27 @@ if isempty(strfind(parsfile,parstype))
 end
 
 %% ~~~~ Decide if existing data files should be skipped or overwritten ~~~~~%    
-    hasbin = cellfun(@(x) exist(x,'file'), binnames);
-  
+    hasbin = cellfun(@(x) exist(x,'file'), binnames) > 0;
+    
 % index of all dax files which have bin files associated 
-    txtout = ['warning: found existing ',datatype,' data files for ',...
-        daxnames(logical(hasbin))];
+    txtout = {['warning: found existing ',datatype,' data files for '],...
+        daxnames(logical(hasbin))};
     
 % don't analyze movies which have _list.bin files
 if sum(hasbin) ~= 0 
     if overwrite == 2   
-        disp(char(txtout));
-        overwritefiles = input('Please select: 2=skip, 1=overwrite, 0=cancel:  ');
+        disp(txtout);
+        overwritefiles = input('Please select: 3=resume, 2=skip, 1=overwrite, 0=cancel:  ');
     elseif overwrite == 1
         overwritefiles = 1;
         if verbose
-        disp(char(txtout));
+        disp(txtout);
         disp('these files will be overwritten.  ');
         end
     elseif overwrite == 0
         overwritefiles = 2; 
+              disp(txtout);
+        disp('these files will be skipped.  ');
     else
         disp(overwrite)
         disp('is not a valid value for overwrite'); 
@@ -318,25 +322,28 @@ if sum(hasbin) ~= 0
         if strcmp(method,'DaoSTORM')
             disp('overwritefiles = 1');
             for a = find(logical(hasbin));
-                disp(['deleting ',dpath,strcat(daxroots{a},'_alist.bin')]);          
-                delete([dpath,strcat(daxroots{a},datatype)]);
-                alist = dir([dpath,strcat(daxroots{a},'_alist.bin')]);     
-                if length(alist)>1
-                    delete([dpath,strcat(daxroots{a},'_alist.bin')]);
+                disp(['deleting ',binnames{a}]);          
+                delete(binnames{a});
+                alistname = regexprep(binnames{a},'_mlist.bin','_alist.bin');
+                if exist(alistname,'file')>0
+                    delete(alistname);
                 end
             end
         end
-    elseif overwritefiles == 2
-        if ~strcmp(method,'DaoSTORM');
+    elseif overwritefiles == 2 || (overwritefiles == 3 && strcmp(method,'insight'))
             disp('skipping these movies...'); 
             % DaoSTORM defaults to 'pick up where it left off' analysis
-        daxnames(logical(hasbin))=[]; % actually removes from que     
-        end
+        daxnames(logical(hasbin))=[]; % actually removes from que      
+    elseif overwritefiles == 3
+        disp('DaoSTORM will attempt to resume from where it left off');
     elseif overwritefiles == 0
         disp('RunDaoSTORM canceled');
         return
     end
 end
+
+daxnames
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
 %% ~~~~~~~~~~~~~~~~~ Call analysis commands in batch ~~~~~~~~~~~~~~~~~~~~~~~%

@@ -1,15 +1,28 @@
-function [tform_1,tform_1_inv,data2,dat2] = ShiftRotateMatch(dat,data,match_radius)
+function [tform_1,tform_1_inv,data2,dat2,parameters] = ShiftRotateMatch(dat,data,match_radius)
 %% Compute and apply x-y translation warp (transform 1) 
 
 %% Default Parameters
 
 
-[~,numFields] = size(data.sample);
+% -------------------------------------------------------------------------
+% Default variables
+% -------------------------------------------------------------------------
+defaults = cell(0,3);
+defaults(end+1,:) = {'verbose', 'boolean', true};
+defaults(end+1,:) = {'remove_crosstalk', 'boolean', true};
+% -------------------------------------------------------------------------
+% Parse variable input
+% -------------------------------------------------------------------------
+parameters = ParseVariableArguments(varargin, defaults, mfilename);
+
+
+verbose = parameters.verbose;
+remove_crosstalk = parameters.remove_crosstalk;
+
+[~,numFields] = size(data(1).sample);
 numSamples = length(dat); 
-remove_crosstalk = false;
 cmap = hsv(numSamples);
 mark = {'o','o','.'};
-verbose = true;
 
 
 %% Main Function

@@ -1,7 +1,7 @@
 function [tform,tform2D,tform_inv,tform2D_inv,dat2] = ComputePolyWarp(dat2)
 % returns tform tform2D and the inverse functions tform_inv and tform2D_inv
 
-numSamples = length(dat2.sample);
+numSamples = length(dat2);
 
 poly_order = 2;
 poly_order2 = 2;

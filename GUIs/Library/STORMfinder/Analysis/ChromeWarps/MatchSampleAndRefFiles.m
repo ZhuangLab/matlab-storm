@@ -29,7 +29,7 @@ for m=1:numMovies
     
     
     for c=1:length(beadmovie(m).chns)  
-        if c ~= beadmovie(m).refchni
+        if c ~= beadmovie(m).refchn
             sampleset = sampleset + 1; 
             issample = true;
         else
@@ -38,9 +38,9 @@ for m=1:numMovies
         end
             
           for n = 1:numFields; 
-                try % keep going even if a movie is missing
+%                try % keep going even if a movie is missing
                     mol_list = ReadMasterMoleculeList( beadmovie(m).binname{c,n},'verbose',false); 
-
+                    mol_list = ReZeroROI(beadmovie(m).binname{c,n},mol_list);
                     % only keep beads that are detected in all frames
                     frames_per_field = max(mol_list.length);
                     mols_on_allframes = mol_list.length >= .9*frames_per_field;
@@ -71,15 +71,14 @@ for m=1:numMovies
                         end
                     end
                 
-                catch er
-                    disp(er.message); 
-                     save([scratchPath, filesep, 'troubleshoot.mat']); 
-                     disp(['saved data as, ',scratchPath, filesep, 'troubleshoot.mat']);
-                     % load([scratchPath, filesep, 'troubleshoot.mat']); 
-                    disp(['failed to load ', beadmovie(m).binname{c,n}]);
-                    disp(['skipping field: ',num2str(n)]); 
-                   
-                end 
+%                 catch er
+%                     disp(er.message); 
+%                      save([scratchPath, filesep, 'troubleshoot.mat']); 
+%                      disp(['saved data as, ',scratchPath, filesep, 'troubleshoot.mat']);
+%                      % load([scratchPath, filesep, 'troubleshoot.mat']); 
+%                     disp(['failed to load ', beadmovie(m).binname{c,n}]);
+%                     disp(['skipping field: ',num2str(n)]); 
+%                 end 
           end  
     end
 end

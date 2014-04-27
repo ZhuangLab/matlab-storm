@@ -188,7 +188,7 @@ try
         end
     end
 catch % Handle corrupt file
-    warning('matlabSTORM:corruptMlist', 'Could not map mlist. The file is likely corrupt');
+    warning(['matlabSTORM:corruptMlist', 'Could not map mlist. The file ',fileName,' is likely corrupt']);
     memoryMap = [];
     MList = CreateMoleculeList(0, 'compact', compact);
 end

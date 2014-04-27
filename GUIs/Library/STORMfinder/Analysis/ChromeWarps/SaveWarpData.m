@@ -9,8 +9,9 @@ dataIs3D = false;
 %% Main function
 
 
-[numSamples,~] = size(data.sample);
-                    
+[~,numFields] = size(data(1).sample);
+numSamples = length(data); 
+
 % SAVE transforms
 chn_warp_names = cell(numSamples,2);
 for s=1:numSamples

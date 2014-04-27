@@ -9,7 +9,8 @@ thr = .75;
 fit3D = false;
 mark = {'o','o','.'};
 
-[numSamples,numFields] = size(data.sample);
+[~,numFields] = size(data(1).sample);
+numSamples = length(dat); 
 cmap = hsv(numSamples);
 
 %% Main Function

@@ -5,7 +5,7 @@ xys = (nm_per_pix)^2;
 thr = .75;
 
 
-numSamples = length(dat2.sample);
+numSamples = length(dat2);
 
 %% 2D XY average warp error
 
