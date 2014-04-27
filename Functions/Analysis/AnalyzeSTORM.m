@@ -57,7 +57,6 @@ function infoFiles = AnalyzeSTORM(varargin)
 % Hardcoded Variables
 %--------------------------------------------------------------------------
 quiet = 0;
-waitTime = 15; % Determines the wait between pooling jobs to see if they are done in seconds
 maxTime = 60; % Determines the maximum duration of analysis in minutes
 methodList = {'insight', 'multifit', 'L1H', 'daoSTORM'};
 
@@ -85,6 +84,7 @@ hideterminal = false;
 verbalize = false;
 outputInMatlab = false;
 recursionDepth = 1;
+waitTime = 15; % Determines the wait between pooling jobs to see if they are done in seconds
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -125,6 +125,8 @@ if nargin > 1
                 numFrames = CheckParameter(parameterValue, 'positive', 'numFrames');
             case 'outputInMatlab'
                 outputInMatlab = CheckParameter(parameterValue, 'boolean', 'outputInMatlab');
+            case 'waitTime'
+                waitTime = CheckParameter(parameterValue, 'positive', 'waitTime');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
