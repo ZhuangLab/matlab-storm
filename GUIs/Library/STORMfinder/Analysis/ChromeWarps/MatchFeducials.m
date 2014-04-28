@@ -27,6 +27,8 @@ end
 % -------------------------------------------------------------------------
 parameters = ParseVariableArguments(varargin, defaults, mfilename);
 
+% parameters = ParseVariableArguments('', defaults, mfilename);
+
 
 
 %--------------------------------------------------------------------------

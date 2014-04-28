@@ -321,7 +321,7 @@ if sum(hasbin) ~= 0
         % analysis.  
         if strcmp(method,'DaoSTORM')
             disp('overwritefiles = 1');
-            for a = find(logical(hasbin));
+            for a = find(logical(hasbin))';
                 disp(['deleting ',binnames{a}]);          
                 delete(binnames{a});
                 alistname = regexprep(binnames{a},'_mlist.bin','_alist.bin');
@@ -341,8 +341,6 @@ if sum(hasbin) ~= 0
         return
     end
 end
-
-daxnames
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 

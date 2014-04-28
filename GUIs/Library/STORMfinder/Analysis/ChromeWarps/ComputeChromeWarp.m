@@ -4,22 +4,15 @@ global matlabStormPath
 
 
 %%
-folder = 'Q:\2014-03-27_L3C08\Beads\';
-
-m1=1;
-beadmovie(m1).chns = {'750','647'};       
-m2=1;
-beadmovie(m2).chns =  {'647','561'}; %  {'647','561','488'}; %
-
-
-
+% folder = 'Q:\2014-03-27_L3C08\Beads\';
  % folder = 'Q:\2014-03-28_Beads\'
 
 % -------------------------------------------------------------------------
 % Default variables
 % -------------------------------------------------------------------------
 defaults = cell(0,3);
-defaults(end+1,:) = {'channels', 'cell', {{'750','647'},{'647','561','488'}} };
+defaults(end+1,:) = {'vischns', 'cell',{'647','561','488'} };
+defaults(end+1,:) = {'irchns', 'cell',{'750','647'} };
 defaults(end+1,:) = {'visDaxRoot', 'string', 'Vis'};
 defaults(end+1,:) = {'irDaxRoot', 'string', 'IR'};
 defaults(end+1,:) = {'redVisPars', 'string', [matlabStormPath,'Defaults\redVisBead.xml']};
@@ -35,22 +28,21 @@ defaults(end+1,:) = {'hideterminal', 'hideterminal', true};
 
 defaults(end+1,:) = {'matchRadius1','positive',2};
 defaults(end+1,:) = {'matchRadius','positive',2};
-
 defaults(end+1,:) = {'verbose', 'boolean', true};
 
-% % -------------------------------------------------------------------------
-% % Parse necessary input
-% % -------------------------------------------------------------------------
-% if nargin < 1
-%     error('matlabSTORM:invalidArguments', 'A MList is required');
-% end
+% -------------------------------------------------------------------------
+% Parse necessary input
+% -------------------------------------------------------------------------
+if nargin < 1
+    error('matlabSTORM:invalidArguments', 'A MList is required');
+end
 
 % -------------------------------------------------------------------------
 % Parse variable input
 % -------------------------------------------------------------------------
-% parameters = ParseVariableArguments(varargin, defaults, mfilename);
+ parameters = ParseVariableArguments(varargin, defaults, mfilename);
 
- parameters = ParseVariableArguments([], defaults, mfilename);
+%  parameters = ParseVariableArguments([], defaults, mfilename);
 
 %% Step 1: run dot finding on all data
 clc
@@ -61,20 +53,30 @@ clc
 % blueROI = [257 512,257 512];
 
 
-
+    
 visDaxDir = dir([folder,'*',parameters.visDaxRoot,'*.dax']);
 visDax = strcat(folder,{visDaxDir.name}');
 irDaxDir =  dir([folder,'*',parameters.irDaxRoot,'*.dax']);
 irDax =  strcat(folder,{irDaxDir.name}');
 
+m1 = 1;
+m2 = 2;
+if  ~isempty(visDax) && isempty(irDax)
+    m2=1;
+end
+    
+beadmovie(m1).chns = parameters.irchns;  % {'750','647'};       
 beadmovie(m1).dax = irDax;
 beadmovie(m1).pars = {parameters.irIrPars,parameters.redIrPars}';
 beadmovie(m1).refchn = 2;
-  
+
+beadmovie(m2).chns =  parameters.vischns; %  {'647','561'}; %  {'647','561','488'}; %
 beadmovie(m2).refchn = 1;
 beadmovie(m2).dax = visDax;
 beadmovie(m2).pars = {parameters.redVisPars,parameters.yellowVisPars,parameters.blueVisPars}'; 
 beadmovie(m2).binname = {};
+
+beadmovie(m2).pars
 
 for m=1:m2
     if ~isempty(beadmovie(m).dax)
@@ -85,7 +87,7 @@ for m=1:m2
                 'parsfile',beadmovie(m).pars{i},...
                 'binname',['DAX','_panel',beadmovie(m).chns{i}],...
                 'batchsize',parameters.batchsize,...
-                'overwrite',0,... parameters.overwrite,...
+                'overwrite', parameters.overwrite,...
                 'hideterminal',parameters.hideterminal);
             binfiles = cellfun(@(x) regexprep(x,'.dax',...
                 ['_panel',beadmovie(m).chns{i},'_alist.bin']),...
