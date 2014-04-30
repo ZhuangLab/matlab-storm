@@ -76,7 +76,13 @@ else
     SF{handles.gui_number}.daxfile = daxfile; 
 end
   
-STORMfinderDefaults(handles,eventdata,hObject);
+STORMfinderDefaults(handles);
+
+% Choose default command line output for STORMfinder
+handles.output = hObject;
+
+% Update handles structure
+guidata(hObject, handles);
 
 % If any daxfile has been loaded, open it along with opening the GUI.  
 try

@@ -1,4 +1,4 @@
-function STORMfinderDefaults(handles,eventdata,hObject)
+function STORMfinderDefaults(handles)
 % default parameters for STORMfinder
 
 global SF
@@ -20,8 +20,3 @@ SF{handles.gui_number}.defaultAopts{5} = '95';
 SF{handles.gui_number}.defaultAopts{6}= 'true';
 SF{handles.gui_number}.defaultAopts{7}= '';
 
-% Choose default command line output for STORMfinder
-handles.output = hObject;
-
-% Update handles structure
-guidata(hObject, handles);
