@@ -217,9 +217,12 @@ end
 [~,daxroots,~] = cellfun(@(x) fileparts(x),daxroots,'UniformOutput',false);
 [folders,daxnames,filetype] = cellfun(@(x) fileparts(x),daxnames,'UniformOutput',false);
 daxnames = strcat(daxnames,filetype);
+
 if ~isempty(folders{1})
     dpath = [folders{1},filesep];
 end
+
+
 
 %% ~~~~~~~~~~~~~~~ Set method specific flags ~~~~~~~~~~~~~~~~~~~~~~~
 if ~isempty(parsfile)
@@ -247,7 +250,6 @@ end
 %% ~~~~~~~~~~~~~~~~~~~ Find binfiles ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if isempty(binnames) % a cell array of binnames passed (equal to length daxnames)
      binnames = strcat(dpath,daxroots,datatype);
-binname
    if ~isempty(binname) && strcmp(method,'DaoSTORM') % insight does not allow changing the binname
         binNumbers = cellfun(@(x) ['_',sprintf('%04d',x) ], num2cell(1:length(daxroots)),'UniformOutput',false)' ;
         binnames  = strcat(cell(length(daxroots),1),binname);
@@ -261,7 +263,9 @@ elseif length(binnames) ~= length(daxnames)
 end
 
 [binfolder,binfilenames,~] = cellfun(@(x) fileparts(x),binnames,'UniformOutput',false);
-if isempty(binfolder(1))
+if isempty(binfolder)
+    binnames = strcat(dpath,binfilenames);
+elseif isempty(binfolder{1})
     binnames = strcat(dpath,binfilenames);
 end
 
