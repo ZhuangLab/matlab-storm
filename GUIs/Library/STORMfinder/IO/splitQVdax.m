@@ -159,7 +159,7 @@ for d=1:D  % Main loop over daxfiles
         infoOut{c}.frame_size = 256*256; 
         infoOut{c}.localName = [QVorder{c},'quad_',name];   
         infoOut{c}.localPath = savepath; 
-        daxnames{c} = [QVorder{c},'quad_',daxname];
+        daxnames{c} = [QVorder{c},'quad_',daxname];  
         WriteInfoFiles(infoOut{c}, 'verbose', true);
     end
   
