@@ -23,6 +23,7 @@ defaults = cell(0,3);
 defaults(end+1,:) = {'matchRadius', 'nonnegative', 2};
 defaults(end+1,:) = {'showPlots', 'boolean', true};
 defaults(end+1,:) = {'verbose', 'boolean', true};
+defaults(end+1,:) = {'fighandle', 'handle',[]};
 
 % -------------------------------------------------------------------------
 % Parse necessary input
@@ -82,7 +83,9 @@ for s=1:numSamples
         [matched1,matched2] = MatchFeducials(...
             [data(s).refchn(k).x,data(s).refchn(k).y],...
             [data(s).sample(k).x,data(s).sample(k).y],...
-            'showPlots',parameters.showPlots,'maxD',parameters.matchRadius);
+            'showPlots',parameters.showPlots,...
+            'maxD',parameters.matchRadius,...
+            'fighandle',parameters.fighandle);
         ref{k,1} = data(s).refchn(k).x(matched1);
         ref{k,2} = data(s).refchn(k).y(matched1);
         ref{k,3} = data(s).refchn(k).z(matched1);

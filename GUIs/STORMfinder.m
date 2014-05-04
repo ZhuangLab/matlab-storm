@@ -1041,6 +1041,7 @@ if SF{handles.gui_number}.chromeWarpPars.OK
         beadset(m).parsroot = SF{handles.gui_number}.chromeWarpPars.ParameterRoots{m};
         beadset(m).quadview = SF{handles.gui_number}.chromeWarpPars.Quadview{m};
     end
+   %  ComputeChromeWarp(pathin,'beadset',beadset)
     chromeWarpPars = SF{handles.gui_number}.chromeWarpPars;
     CalcChromeWarp(pathin,'beadset',beadset,'method',method,...
         'QVorder',chromeWarpPars.QVorder,'overwrite',chromeWarpPars.OverwriteBin,...

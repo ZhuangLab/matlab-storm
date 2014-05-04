@@ -58,9 +58,7 @@ image2spotsw = image2spots + repmat([xshift,yshift],numFeducials,1);
 idx(dist>parameters.maxD) = NaN;
 [v,n] = occurrences(idx);
 matched1 =  v(n==1);  % the indices of points in image 1 who have only 1 match within maxD 
-matched2 = find(ismember(idx,matched1));
-
-fighandle = figure(1); clf; 
+matched2 = find(ismember(idx,matched1)); 
 
 % This really shouldn't be necessary, but something crazy happens above
 dist2 = ( (image1spots(matched1,1)-image2spots(matched2,1)).^2 + (image1spots(matched1,2)-image2spots(matched2,2)).^2);
@@ -71,7 +69,7 @@ matched2(failDots) = [];
 %----------------- Plotting ---------
 if parameters.showPlots
     if isempty(parameters.fighandle);
-        figure; 
+        parameters.fighandle = figure; 
     else
         figure(parameters.fighandle); 
     end

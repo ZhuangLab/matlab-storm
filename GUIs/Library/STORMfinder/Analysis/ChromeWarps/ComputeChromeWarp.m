@@ -11,6 +11,7 @@ global matlabStormPath
 % Default variables
 % -------------------------------------------------------------------------
 defaults = cell(0,3);
+defaults(end+1,:) = {'beadset','struct',[]};
 defaults(end+1,:) = {'vischns', 'cell',{'647','561','488'} };
 defaults(end+1,:) = {'irchns', 'cell',{'750','647'} };
 defaults(end+1,:) = {'visDaxRoot', 'string', 'Vis'};
@@ -54,31 +55,37 @@ clc
 
 
     
-visDaxDir = dir([folder,'*',parameters.visDaxRoot,'*.dax']);
-visDax = strcat(folder,{visDaxDir.name}');
-irDaxDir =  dir([folder,'*',parameters.irDaxRoot,'*.dax']);
-irDax =  strcat(folder,{irDaxDir.name}');
 
-m1 = 1;
-m2 = 2;
-if  ~isempty(visDax) && isempty(irDax)
-    m2=1;
-end
     
-beadmovie(m1).chns = parameters.irchns;  % {'750','647'};       
-beadmovie(m1).dax = irDax;
-beadmovie(m1).pars = {parameters.irIrPars,parameters.redIrPars}';
-beadmovie(m1).refchn = 2;
+beadmovie = parameters.beadmovie; 
+if ~isempty(beadmovie)
+    visDaxDir = dir([folder,'*',parameters.visDaxRoot,'*.dax']);
+    visDax = strcat(folder,{visDaxDir.name}');
+    irDaxDir =  dir([folder,'*',parameters.irDaxRoot,'*.dax']);
+    irDax =  strcat(folder,{irDaxDir.name}');
 
-beadmovie(m2).chns =  parameters.vischns; %  {'647','561'}; %  {'647','561','488'}; %
-beadmovie(m2).refchn = 1;
-beadmovie(m2).dax = visDax;
-beadmovie(m2).pars = {parameters.redVisPars,parameters.yellowVisPars,parameters.blueVisPars}'; 
-beadmovie(m2).binname = {};
+    m1 = 1;
+    m2 = 2;
+    if  ~isempty(visDax) && isempty(irDax)
+        m2=1;
+    end
+    
+    beadmovie(m1).chns =  parameters.irchns;  %      
+    beadmovie(m1).dax = irDax;
+    beadmovie(m1).pars = {parameters.irIrPars,parameters.redIrPars}';
+    beadmovie(m1).refchn = '647';
 
-beadmovie(m2).pars
+    beadmovie(m2).chns =  parameters.vischns; %  {'647','561'}; %  {'647','561','488'}; %
+    beadmovie(m2).refchn = '647';
+    beadmovie(m2).dax = visDax;
+    beadmovie(m2).pars = {parameters.redVisPars,parameters.yellowVisPars,parameters.blueVisPars}'; 
+    beadmovie(m2).binname = {};
+end
 
 for m=1:m2
+    
+beadmovie(m).refchni = find(~cellfun(@isempty, strfind(beadmovie(m).chns,beadmovie(m).refchn)));
+
     if ~isempty(beadmovie(m).dax)
         beadmovie(m).binname = cell(length(beadmovie(m).chns),length(beadmovie(m).dax)); %#ok<*AGROW>
         for i=1:length(beadmovie(m).chns)

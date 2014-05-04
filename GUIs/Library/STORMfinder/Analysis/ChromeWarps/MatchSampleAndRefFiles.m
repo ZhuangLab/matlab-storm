@@ -29,7 +29,7 @@ for m=1:numMovies
     
     
     for c=1:length(beadmovie(m).chns)  
-        if c ~= beadmovie(m).refchn
+        if c ~= beadmovie(m).refchni
             sampleset = sampleset + 1; 
             issample = true;
         else
