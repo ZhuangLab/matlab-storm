@@ -5,6 +5,8 @@ function [renderedImage, edges, parameters] = RenderMList(MList, varargin)
 %--------------------------------------------------------------------------
 % Necessary Inputs
 % MList/A molecule list structure. See ReadMasterMoleculeList().
+%    Alternatively, MList could be an Nx2 array containing the data to be
+%    rendered.
 %
 %--------------------------------------------------------------------------
 % Outputs
@@ -58,27 +60,37 @@ end
 % -------------------------------------------------------------------------
 % Determine data to render
 % -------------------------------------------------------------------------
-switch parameters.mlistType
-    case 'compact'
-        if ~isempty(parameters.index)
-            for i=1:2
-                data(:,i) = MList.(parameters.view{i})(parameters.index);
+if isstruct(MList)
+    switch parameters.mlistType
+        case 'compact'
+            if ~isempty(parameters.index)
+                for i=1:2
+                    data(:,i) = MList.(parameters.view{i})(parameters.index);
+                end
+            else
+                for i=1:2
+                    data(:,i) = MList.(parameters.view{i});
+                end
             end
-        else
-            for i=1:2
-                data(:,i) = MList.(parameters.view{i});
+        case 'noncompact'
+            if ~isempty(parameters.index)
+                for i=1:2
+                    data(:,i) = MList(parameters.index).(parameters.view{i});
+                end
+            else
+                for i=1:2
+                    data(:,i) = MList(parameters.index).(parameters.view{i});
+                end
             end
-        end
-    case 'noncompact'
-        if ~isempty(parameters.index)
-            for i=1:2
-                data(:,i) = MList(parameters.index).(parameters.view{i});
-            end
-        else
-            for i=1:2
-                data(:,i) = MList(parameters.index).(parameters.view{i});
-            end
-        end
+    end
+else % Handle direct input of data array
+    data = MList;
+    dim = size(data);
+    if ~any(dim == 2)
+        error('matlabSTORM:invalidArguments', 'Provided array is not Nx2');
+    elseif dim(1)==2
+        data = data';
+    end
 end
 
 % -------------------------------------------------------------------------
