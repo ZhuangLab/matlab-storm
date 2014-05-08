@@ -126,6 +126,13 @@ chromeWarpPars.ExportDataOn = logical(get(handles.ExportDataOn,'Value'));
 chromeWarpPars.is3D = logical(get(handles.is3D,'Value'));
 chromeWarpPars.ListQVorder = get(handles.ListQVorder,'String');
 
+
+chromeWarpPars.ChannelNames = chromeWarpPars.ChannelNames(1:chromeWarpPars.NMovieSets);
+chromeWarpPars.DaxfileRoots = chromeWarpPars.DaxfileRoots(1:chromeWarpPars.NMovieSets);
+chromeWarpPars.ParameterRoots = chromeWarpPars.ParameterRoots(1:chromeWarpPars.NMovieSets);
+chromeWarpPars.ReferenceChannel = chromeWarpPars.ReferenceChannel(1:chromeWarpPars.NMovieSets);
+chromeWarpPars.Chns = chromeWarpPars.Chns(1:chromeWarpPars.NMovieSets);
+
 for m=1:chromeWarpPars.NMovieSets
     chromeWarpPars.Chns{m} = parseCSL(chromeWarpPars.ChannelNames{m}); 
 end

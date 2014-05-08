@@ -4,15 +4,17 @@ function data = MatchSampleAndRefFiles(beadmovie)
 global scratchPath
 excludePoorZfit = false;
 
+save([scratchPath,'test.mat']);
+% load([scratchPath,'test.mat']);
 
-numMovies = length(beadmovie);
-numSamples = length([beadmovie.chns]) - numMovies; 
+numMovies = length(beadmovie)
+numSamples = length([beadmovie.chns]) - numMovies
 data(numSamples).sample = [];
 
 sampleset = 0;
 refset = 0;
 for m=1:numMovies
-    
+    try
     % Nsamples is number of channels minus 1 reference channel for every movie 
     [~,numFields] = size(beadmovie(m).binname);
     
@@ -80,5 +82,9 @@ for m=1:numMovies
                     disp(['skipping field: ',num2str(n)]); 
                 end 
           end  
+    end
+    
+    catch er
+        disp(er.message);
     end
 end

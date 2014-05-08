@@ -69,9 +69,9 @@ matched2(failDots) = [];
 %----------------- Plotting ---------
 if parameters.showPlots
     if isempty(parameters.fighandle);
-        parameters.fighandle = figure; 
+        parameters.fighandle = figure; clf;
     else
-        figure(parameters.fighandle); 
+        figure(parameters.fighandle); clf;
     end
         
     plot(image1spots(:,1),image1spots(:,2),'k.'); hold on;
