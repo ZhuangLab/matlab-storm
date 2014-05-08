@@ -1,14 +1,14 @@
-function [rgbImage, parameters] = Gray2RGB(grayImage, colorMap)
+function [rgbImage, colorMap, parameters] = Gray2RGB(grayImage, colorMap)
 % ------------------------------------------------------------------------
 % [rgbImage, parameters] = Gray2RGB(grayImage, colorMap)
 % This function converts a grayscale image to an RGB image using the
 % specified colormap. 
 %--------------------------------------------------------------------------
 % Necessary Inputs
-% grayImage/NxM double array. The grayscale image. If the array is not of
+% grayImage/NxMxL double array. The grayscale image. If the array is not of
 %   type double it will be converted to a double. 
-% colorMap/1x3 array. The colormap. See colormap().  If empty, defaults to
-%    [1 0 0].
+% colorMap/Lx3 array. The colormap. See colormap().  If empty, defaults to
+%    hsv(L).
 %--------------------------------------------------------------------------
 % Outputs
 % rgbImage/An NxMx3 array representing the RGB image.
@@ -30,26 +30,38 @@ if nargin < 2
 end
 
 % -------------------------------------------------------------------------
-% Check class
+% Check input image class
 % -------------------------------------------------------------------------
 if ~strcmp(class(grayImage), 'double')
     grayImage = double(grayImage);
 end
 
 % -------------------------------------------------------------------------
+% If single frame, make stack
+% -------------------------------------------------------------------------
+dim = size(grayImage);
+if length(dim) < 3
+    grayImage = repmat(grayImage, [1 1 1 3]);
+    L = 1;
+else
+    grayImage(:,:,:,1) = grayImage;
+    grayImage = repmat(grayImage, [1 1 1 3]);
+    L = dim(3);
+end
+
+% -------------------------------------------------------------------------
 % Check colormap
 % -------------------------------------------------------------------------
 if isempty(colorMap)
-    colorMap = [1 0 0];
-elseif ~all(size(colorMap) == [1 3])
-    error('matlabSTORM:invalidArguments', 'The colorMap must have dimensions 1x3');
+    colorMap = hsv(L);
+elseif ~all(size(colorMap) == [L 3])
+    error('matlabSTORM:invalidArguments', 'The colorMap must have dimensions Lx3');
 end
 
 % -------------------------------------------------------------------------
 % Convert to RGB
 % -------------------------------------------------------------------------
-rgbImage = repmat(grayImage, [1 1 3]);
-for i=1:length(colorMap)
-    rgbImage(:,:,i) = grayImage*colorMap(i);
-end
+fourDColorMap(1,1,:,:) = colorMap;
+fourDColorMap = repmat(fourDColorMap, [dim(1) dim(2) 1 1]);
 
+rgbImage = squeeze(sum( grayImage.*fourDColorMap, 3));
