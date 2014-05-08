@@ -75,11 +75,11 @@ if isstruct(MList)
         case 'noncompact'
             if ~isempty(parameters.index)
                 for i=1:2
-                    data(:,i) = MList(parameters.index).(parameters.view{i});
+                    data(:,i) = [MList(parameters.index).(parameters.view{i})];
                 end
             else
                 for i=1:2
-                    data(:,i) = MList(parameters.index).(parameters.view{i});
+                    data(:,i) = [MList.(parameters.view{i})];
                 end
             end
     end
