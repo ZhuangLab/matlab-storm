@@ -1,4 +1,4 @@
-function [rgbImage, colorMap, parameters] = Gray2RGB(grayImage, colorMap)
+function [rgbImage, colorMap, parameters] = Gray2RGB(grayImage, colorMap, varargin)
 % ------------------------------------------------------------------------
 % [rgbImage, parameters] = Gray2RGB(grayImage, colorMap)
 % This function converts a grayscale image to an RGB image using the
@@ -23,6 +23,12 @@ function [rgbImage, colorMap, parameters] = Gray2RGB(grayImage, colorMap)
 %--------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------
+% Default variables
+% -------------------------------------------------------------------------
+defaults = cell(0,3);
+defaults(end+1,:) = {'memoryEfficient', 'boolean', true};
+
+% -------------------------------------------------------------------------
 % Parse necessary input
 % -------------------------------------------------------------------------
 if nargin < 2
@@ -30,22 +36,20 @@ if nargin < 2
 end
 
 % -------------------------------------------------------------------------
+% Parse variable input
+% -------------------------------------------------------------------------
+parameters = ParseVariableArguments(varargin, defaults, mfilename);
+
+% -------------------------------------------------------------------------
 % Check input image class
 % -------------------------------------------------------------------------
 if ~strcmp(class(grayImage), 'double')
     grayImage = double(grayImage);
 end
-
-% -------------------------------------------------------------------------
-% If single frame, make stack
-% -------------------------------------------------------------------------
 dim = size(grayImage);
 if length(dim) < 3
-    grayImage = repmat(grayImage, [1 1 1 3]);
     L = 1;
 else
-    grayImage(:,:,:,1) = grayImage;
-    grayImage = repmat(grayImage, [1 1 1 3]);
     L = dim(3);
 end
 
@@ -61,7 +65,18 @@ end
 % -------------------------------------------------------------------------
 % Convert to RGB
 % -------------------------------------------------------------------------
-fourDColorMap(1,1,:,:) = colorMap;
-fourDColorMap = repmat(fourDColorMap, [dim(1) dim(2) 1 1]);
-
-rgbImage = squeeze(sum( grayImage.*fourDColorMap, 3));
+if ~parameters.memoryEfficient
+    % Use a memory inefficient but fast method
+    grayImage = repmat(grayImage, [1 1 1 3]);
+    fourDColorMap(1,1,:,:) = colorMap;
+    fourDColorMap = repmat(fourDColorMap, [dim(1) dim(2) 1 1]);
+    rgbImage = squeeze(sum( grayImage.*fourDColorMap, 3));
+else
+    % Use a memory efficient but slow method
+    rgbImage = zeros(dim(1), dim(2), 3);
+    for i=1:L
+        for k=1:3
+            rgbImage(:,:,k) = rgbImage(:,:,k)+grayImage(:,:,i)*colorMap(i,k);
+        end
+    end
+end
