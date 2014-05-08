@@ -96,6 +96,15 @@ end
 [~, inds] = histc(data(:,3), range);
 
 % -------------------------------------------------------------------------
+% Preallocate memory
+% -------------------------------------------------------------------------
+dx = 1/parameters.imageScale;
+for i=1:2
+    dim(i) = length(((parameters.ROI(i,1)-1):dx:parameters.ROI(i,2))) - 1;
+end
+renderedImages = zeros(dim(1), dim(2), length(range)-1);
+
+% -------------------------------------------------------------------------
 % Create image stack
 % -------------------------------------------------------------------------
 for i=1:(length(range)-1)
