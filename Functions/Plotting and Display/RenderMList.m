@@ -52,7 +52,7 @@ parameters = ParseVariableArguments(varargin, defaults, mfilename);
 % -------------------------------------------------------------------------
 dx = 1/parameters.imageScale;
 for i=1:2
-    edges{i} = (parameters.ROI(i,1)-1):dx:parameters.ROI(i,2);
+    edges{i} = ((parameters.ROI(i,1)-1):dx:parameters.ROI(i,2)) + 0.5;
 end
 
 % -------------------------------------------------------------------------
@@ -86,24 +86,26 @@ end
 % -------------------------------------------------------------------------
 switch parameters.renderMode
     case 'molecules'
-        renderedImage = hist3(data, 'Edges', edges);
+        renderedImage = hist3(flipdim(data,2), 'Edges', edges); 
+            % flip is required to handle axis switch by hist3
         renderedImage = renderedImage(1:(length(edges{1})-1), 1:(length(edges{2})-1));
     case 'photons'
-        % -------------------------------------------------------------------------
+        % -----------------------------------------------------------------
         % Underdevelopment
-        % -------------------------------------------------------------------------
+        % -----------------------------------------------------------------
 end
 
 % -------------------------------------------------------------------------
 % Blur image
 % -------------------------------------------------------------------------
 if parameters.gaussianWidth ~= 0
-    % -------------------------------------------------------------------------
+    % ---------------------------------------------------------------------
     % Determine sigma and filter matrix size
-    % -------------------------------------------------------------------------
+    % ---------------------------------------------------------------------
     sigma = parameters.gaussianWidth*parameters.imageScale;
     matSize = max(parameters.matSizeScale, ...
         2*round(parameters.matSizeScale*sigma/2) + 1); % Always odd
     filterMat = fspecial('gaussian', matSize, sigma);
     renderedImage = imfilter(renderedImage, filterMat);
 end
+
