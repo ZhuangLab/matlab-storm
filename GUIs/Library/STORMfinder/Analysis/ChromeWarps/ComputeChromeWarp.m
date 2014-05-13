@@ -28,7 +28,7 @@ defaults(end+1,:) = {'batchsize', 'overwrite', 2};
 defaults(end+1,:) = {'overwrite', 'nonnegative', 2};
 defaults(end+1,:) = {'hideterminal', 'hideterminal', true};
 
-defaults(end+1,:) = {'matchRadius1','positive',2};
+defaults(end+1,:) = {'AffineRadius','positive',2};
 defaults(end+1,:) = {'matchRadius','positive',2};
 defaults(end+1,:) = {'verbose', 'boolean', true};
 
@@ -148,7 +148,8 @@ end
 data = MatchSampleAndRefFiles(beadmovie); 
 
 fighandle = figure(1); clf;
-dat = MatchSampleAndRefData(data,'matchRadius',parameters.matchRadius1,'fighandle',fighandle); % match beads 
+figH = figure(2); clf;
+dat = MatchSampleAndRefData(data,'matchRadius',parameters.AffineRadius,'fighandle',fighandle,'showPlots',false); % match beads 
 
 [tform_1,tform_1_inv,data2,dat2] = ShiftRotateMatch(dat,data,parameters.matchRadius);
 
