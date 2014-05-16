@@ -3,6 +3,7 @@ function [tform_1,tform_1_inv,data2,dat2,parameters] = ShiftRotateMatch(dat,data
 
 %% Default Parameters
 
+global scratchPath
 
 % -------------------------------------------------------------------------
 % Default variables
@@ -28,21 +29,37 @@ mark = {'o','o','.'};
 %% Main Function
  tform_1 = cell(1,numSamples); % cell to contain tform_1 for each chn. 
  tform_1_inv = cell(1,numSamples);
+ dat2 = dat;  % concatinated 
+ 
+% save([scratchPath,'test3.mat']); 
+% load([scratchPath,'test3.mat']); 
+ 
 for s=1:numSamples
 % maybe important for handling missing data:
-    method = 'translation rotation';
+    method = 'affine'; % 'translation rotation';
     tform_1{s} = maketform('affine',[1 0 0; 0 1 0; 0 0 1]); % 
     if  ~isempty(dat(s).refchn.x)
         refdata = [dat(s).refchn.x dat(s).refchn.y];
         basedata = [dat(s).sample.x dat(s).sample.y ];
         tform_1{s} = WarpPoints(refdata,basedata,method); % compute warp
         tform_1_inv{s} = WarpPoints(basedata,refdata,method); % compute warp
+        
+        [xt,yt] = tforminv(tform_1{s}, dat(s).sample.x,  dat(s).sample.y);
+        dat2(s).sample.x = xt; 
+        dat2(s).sample.y = yt;
+        
+%         figure(2); hold on;
+%         plot(refdata(:,1),refdata(:,2),mark{s},'color',cmap(s,:)); hold on;
+%         plot(basedata(:,1),basedata(:,2),'+','color',cmap(s,:)); hold on;
+%         [xdat,ydat] = ConnectDotPairs(dat2(s).refchn.x,dat2(s).refchn.y,dat2(s).sample.x,dat2(s).sample.y);
+%         plot(xdat,ydat,'c-');
     end 
 end
 
 %------------------------------------
-data2 = data;
+data2 = data; % sorted by frame
 for s=1:numSamples
+
     for k=1:numFields
         [xt,yt] = tforminv(tform_1{s}, data(s).sample(k).x,  data(s).sample(k).y);
         data2(s).sample(k).x = xt; 
@@ -54,7 +71,6 @@ end
 % match molecules in each section
 % (much less ambiguious than matching superimposed selection list). 
 
-dat2 = dat; 
 % % Outdated.  
 % 
 % tform_start = maketform('affine',[1 0 0; 0 1 0; 0 0 1]);
@@ -85,8 +101,9 @@ dat2 = dat;
 %     dat2(s).sample.y = cell2mat(set2{s}.y);
 %     dat2(s).sample.z = cell2mat(set2{s}.z);
 % end
-    
-%   % test plot
+
+
+  % test plot
       subplot(1,2,2);
       for s=1:numSamples
       plot(dat2(s).refchn.x,dat2(s).refchn.y,mark{s},'color',cmap(s,:)); hold on;

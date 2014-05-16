@@ -17,13 +17,13 @@ end
 if init
     chromeWarpPars.ChannelNames{1} = '750,647';
     chromeWarpPars.DaxfileRoots{1} = 'IRbeads';
-    chromeWarpPars.ParameterRoots{1} = 'IRBead';
+    chromeWarpPars.ParameterRoots{1} = 'Ir';
     chromeWarpPars.ReferenceChannel{1} = '647';
     chromeWarpPars.Quadview{1} = 1;
 
     chromeWarpPars.ChannelNames{2} = '647,561,488';
     chromeWarpPars.DaxfileRoots{2} = 'Visbeads';
-    chromeWarpPars.ParameterRoots{2} = 'VisBead';
+    chromeWarpPars.ParameterRoots{2} = 'Vis';
     chromeWarpPars.ReferenceChannel{2} = '647';
     chromeWarpPars.Quadview{2} = 1;
     chromeWarpPars.ListQVorder = '647,561,750,488';
