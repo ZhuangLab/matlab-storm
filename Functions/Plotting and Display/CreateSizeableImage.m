@@ -83,3 +83,5 @@ if ~isempty(image)
     apiSP.setMagnification(apiSP.findFitMag());
 end
 
+hold on;
+

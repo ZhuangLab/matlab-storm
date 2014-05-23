@@ -34,7 +34,6 @@ display('Adding GUI Paths');
 addpath(GUIpaths);
 
 display('------------------------------------------------------------------');
-cd(matlabStormPath);
 
 %% Define paths for other STORM analysis software 
 % Optionally change the default parameter files

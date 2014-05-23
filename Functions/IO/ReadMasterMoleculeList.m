@@ -164,41 +164,51 @@ end
 %--------------------------------------------------------------------------
 % Create memory map
 %--------------------------------------------------------------------------
-if ~compact
-    memoryMap = memmapfile(fileName, ...
-            'Format', format, ...
-            'Writable', false, ...
-            'Offset', headerSize, ...
-            'Repeat', numMoleculesFrame0);
+try
+    if ~compact
+        memoryMap = memmapfile(fileName, ...
+                'Format', format, ...
+                'Writable', false, ...
+                'Offset', headerSize, ...
+                'Repeat', numMoleculesFrame0);
 
-    MList = memoryMap.Data;
-else %compact
-    MList = CreateMoleculeList(numMoleculesFrame0, 'compact', true); %Allocate memory
-    memoryMap = memmapfile(fileName, ...
-            'Format', 'int32', ...
-            'Writable', false, ...
-            'Offset', headerSize, ...
-            'Repeat', inf);
+        MList = memoryMap.Data;
+    else %compact
+        MList = CreateMoleculeList(numMoleculesFrame0, 'compact', true); %Allocate memory
+        memoryMap = memmapfile(fileName, ...
+                'Format', 'int32', ...
+                'Writable', false, ...
+                'Offset', headerSize, ...
+                'Repeat', inf);
 
-    for i=1:length(format)
-        memoryMap.Format = format{i,1};
-        memoryMap.Offset = headerSize + (i-1)*entrySize;
-        MList.(format{i,3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
+        for i=1:length(format)
+            memoryMap.Format = format{i,1};
+            memoryMap.Offset = headerSize + (i-1)*entrySize;
+            MList.(format{i,3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
+        end
     end
+catch % Handle corrupt file
+    warning(['matlabSTORM:corruptMlist', 'Could not map mlist. The file ',fileName,' is likely corrupt']);
+    memoryMap = [];
+    MList = CreateMoleculeList(0, 'compact', compact);
 end
 
 %--------------------------------------------------------------------------
 % Rescale Z if necessary
 %--------------------------------------------------------------------------
-if ~(ZScale == 1)
-    if compact
-        MList.z = MList.z/ZScale;
-        MList.zc = MList.zc/ZScale;
+if ~(ZScale == 1) 
+    if compact 
+        if ~isempty(MList.z)
+            MList.z = MList.z/ZScale;
+            MList.zc = MList.zc/ZScale;
+        end
     else
-        tempZ = num2cell([MList(:).z]/ZScale);
-        [MList.z] = deal(tempZ{:});
-        tempZc = num2cell([MList(:).zc]/ZScale);
-        [MList.zc] = deal(tempZc{:});
+        if ~isempty(MList)
+            tempZ = num2cell([MList(:).z]/ZScale);
+            [MList.z] = deal(tempZ{:});
+            tempZc = num2cell([MList(:).zc]/ZScale);
+            [MList.zc] = deal(tempZc{:});
+        end
     end
 end
 

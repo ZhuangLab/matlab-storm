@@ -28,8 +28,11 @@ function infoFiles = AnalyzeSTORM(varargin)
 % 'numParallel'/integer/(4): Determine the number of parallel jobs to start
 %
 % 'includeSubdir'/boolean(false): Determine if STORM analysis is run on
-% all folders within the default directory
+%   all folders within the default directory
 % 
+% 'recursionDepth'/integer/(1): The number of folders deep to look if
+%   includeSubdir is true
+%
 % 'outputInMatlab'/boolean(false): Determine if the process is run in the
 % matlab command line or in an extrernal dos line'
 %--------------------------------------------------------------------------
@@ -54,7 +57,6 @@ function infoFiles = AnalyzeSTORM(varargin)
 % Hardcoded Variables
 %--------------------------------------------------------------------------
 quiet = 0;
-waitTime = 15; % Determines the wait between pooling jobs to see if they are done in seconds
 maxTime = 60; % Determines the maximum duration of analysis in minutes
 methodList = {'insight', 'multifit', 'L1H', 'daoSTORM'};
 
@@ -81,6 +83,8 @@ includeSubdir = false;
 hideterminal = false;
 verbalize = false;
 outputInMatlab = false;
+recursionDepth = 1;
+waitTime = 15; % Determines the wait between pooling jobs to see if they are done in seconds
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -121,6 +125,8 @@ if nargin > 1
                 numFrames = CheckParameter(parameterValue, 'positive', 'numFrames');
             case 'outputInMatlab'
                 outputInMatlab = CheckParameter(parameterValue, 'boolean', 'outputInMatlab');
+            case 'waitTime'
+                waitTime = CheckParameter(parameterValue, 'positive', 'waitTime');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -174,17 +180,18 @@ if verbose
 end
 
 %--------------------------------------------------------------------------
+% Check filesep on analysisPath
+%--------------------------------------------------------------------------
+if analysisPath(end) ~= filesep
+    analysisPath(end+1) = filesep;
+end
+
+%--------------------------------------------------------------------------
 % Find subdirectories
 %--------------------------------------------------------------------------
 dataPaths = {};
 if includeSubdir
-    dirContents = dir(analysisPath);
-    dataPaths = {dirContents([dirContents.isdir]).name};
-    dataPaths = dataPaths(~ismember(dataPaths, {'.', '..'}));
-    % Build full path
-    for i=1:length(dataPaths)
-        dataPaths{i} = [analysisPath dataPaths{i} '\'];
-    end
+    dataPaths = FindAllDirectories(analysisPath);
 end
 dataPaths{end+1} = analysisPath; % Append analysisPath
 
@@ -214,7 +221,8 @@ if isempty(infoFiles)
     end
 end
 if isempty(infoFiles)
-    error('No .inf files were found');
+    warning('matlabSTORM:invalidINF', 'No .inf files were found in any of the directories');
+    return;
 end
 
 %--------------------------------------------------------------------------

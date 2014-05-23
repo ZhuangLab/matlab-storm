@@ -1,20 +1,23 @@
 function data = MatchSampleAndRefFiles(beadmovie)
 
-
+%%
 global scratchPath
 excludePoorZfit = false;
 
+save([scratchPath,'test.mat']);
+% load([scratchPath,'test.mat']);
 
-numMovies = length(beadmovie);
-numSamples = length([beadmovie.chns]) - numMovies; 
+numMovies = length(beadmovie)
+numSamples = length([beadmovie.chns]) - numMovies
 data(numSamples).sample = [];
 
 sampleset = 0;
 refset = 0;
 for m=1:numMovies
-    
+    try
     % Nsamples is number of channels minus 1 reference channel for every movie 
     [~,numFields] = size(beadmovie(m).binname);
+    
     data(numSamples).sample(numFields).x = [];
     data(numSamples).sample(numFields).y = [];
     data(numSamples).sample(numFields).z = [];
@@ -39,7 +42,7 @@ for m=1:numMovies
           for n = 1:numFields; 
                 try % keep going even if a movie is missing
                     mol_list = ReadMasterMoleculeList( beadmovie(m).binname{c,n},'verbose',false); 
-
+                    mol_list = ReZeroROI(beadmovie(m).binname{c,n},mol_list);
                     % only keep beads that are detected in all frames
                     frames_per_field = max(mol_list.length);
                     mols_on_allframes = mol_list.length >= .9*frames_per_field;
@@ -72,13 +75,16 @@ for m=1:numMovies
                 
                 catch er
                     disp(er.message); 
-                     save([scratchPath, filesep, 'troubleshoot.mat']); 
-                     disp(['saved data as, ',scratchPath, filesep, 'troubleshoot.mat']);
+                  %   save([scratchPath, filesep, 'troubleshoot.mat']); 
+                  %   disp(['saved data as, ',scratchPath, filesep, 'troubleshoot.mat']);
                      % load([scratchPath, filesep, 'troubleshoot.mat']); 
                     disp(['failed to load ', beadmovie(m).binname{c,n}]);
                     disp(['skipping field: ',num2str(n)]); 
-                   
                 end 
           end  
+    end
+    
+    catch er
+        disp(er.message);
     end
 end

@@ -38,6 +38,9 @@ catch
         clrmap = [clrmap(:,1),clrmap(:,3),clrmap(:,1)];
         clrmap(clrmap<0) = 0; 
         
+        case 'black'
+        clrmap = gray(pts);
+        
         case 'cyan'
         clrmap = hot(pts);
         clrmap = [clrmap(:,3),clrmap(:,1),clrmap(:,1)];

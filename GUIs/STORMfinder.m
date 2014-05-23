@@ -69,33 +69,20 @@ gui_number = length(SF);
 set(handles.SFinstance,'String',['inst id',num2str(gui_number)]);
 handles.gui_number = gui_number;
 
-SF{handles.gui_number}.daxfile = daxfile; 
-% initialize other variables as empty
-SF{handles.gui_number}.inifile = ''; 
-SF{handles.gui_number}.xmlfile = ''; 
-SF{handles.gui_number}.gpufile = ''; 
-SF{handles.gui_number}.mlist = []; 
-SF{handles.gui_number}.FitPars = []; 
-SF{handles.gui_number}.impars = []; 
-SF{handles.gui_number}.fullmlist = []; 
-
-% Default Analysis options
-SF{handles.gui_number}.defaultAopts{1} = 'true';
-SF{handles.gui_number}.defaultAopts{2} = 'false';
-SF{handles.gui_number}.defaultAopts{3} = '2';
-SF{handles.gui_number}.defaultAopts{4} = '60';
-SF{handles.gui_number}.defaultAopts{5} = '95';
-SF{handles.gui_number}.defaultAopts{6}= 'true';
-SF{handles.gui_number}.defaultAopts{7}= '';
-
-
+if length(varargin) > 1
+    daxfile = varargin{2}; 
+    SF{handles.gui_number}.daxfile = daxfile;
+else
+    SF{handles.gui_number}.daxfile = daxfile; 
+end
+  
+STORMfinderDefaults(handles);
 
 % Choose default command line output for STORMfinder
 handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-
 
 % If any daxfile has been loaded, open it along with opening the GUI.  
 try
@@ -1038,6 +1025,7 @@ elseif FitMethod == 3
     method = 'GPUmultifit';
 end
 
+clear chromeWarpPars;
 chromeWarpPars.OK = false; 
 pathin = ExtractPath(SF{handles.gui_number}.daxfile);
 f = ChromeWarpParameters; 
@@ -1054,14 +1042,15 @@ if SF{handles.gui_number}.chromeWarpPars.OK
         beadset(m).parsroot = SF{handles.gui_number}.chromeWarpPars.ParameterRoots{m};
         beadset(m).quadview = SF{handles.gui_number}.chromeWarpPars.Quadview{m};
     end
-    chromeWarpPars = SF{handles.gui_number}.chromeWarpPars;
-    CalcChromeWarp(pathin,'beadset',beadset,'method',method,...
-        'QVorder',chromeWarpPars.QVorder,'overwrite',chromeWarpPars.OverwriteBin,...
-        'save root',chromeWarpPars.SaveNameRoot,'affine match radius',chromeWarpPars.AffineRadius,...
-        'polyfit match radius',chromeWarpPars.PolyRadius,'verbose',chromeWarpPars.VerboseOn,...
-        'hideterminal',chromeWarpPars.HideTerminal,'Noclass9',chromeWarpPars.ExcludePoorZ,...
-        'frames per Z',chromeWarpPars.FramesPerZ,'exportData',chromeWarpPars.ExportDataOn,...
-        'fit3D',chromeWarpPars.is3D); 
+     ComputeChromeWarp(pathin,'beadmovie',beadset)
+%     chromeWarpPars = SF{handles.gui_number}.chromeWarpPars;
+%     CalcChromeWarp(pathin,'beadset',beadset,'method',method,...
+%         'QVorder',chromeWarpPars.QVorder,'overwrite',chromeWarpPars.OverwriteBin,...
+%         'save root',chromeWarpPars.SaveNameRoot,'affine match radius',chromeWarpPars.AffineRadius,...
+%         'polyfit match radius',chromeWarpPars.PolyRadius,'verbose',chromeWarpPars.VerboseOn,...
+%         'hideterminal',chromeWarpPars.HideTerminal,'Noclass9',chromeWarpPars.ExcludePoorZ,...
+%         'frames per Z',chromeWarpPars.FramesPerZ,'exportData',chromeWarpPars.ExportDataOn,...
+%         'fit3D',chromeWarpPars.is3D); 
 end
 
 
