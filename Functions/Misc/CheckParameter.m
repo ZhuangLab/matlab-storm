@@ -114,6 +114,10 @@ for i=1:length(type)
             if ~ishandle(value)
                error([name ' is not a handle']);  
             end
+        case 'integer'
+            if ~( round(value)==value )
+               error([name ' is not an integer']);  
+            end
         otherwise
             error('Not a valid type');
     end
