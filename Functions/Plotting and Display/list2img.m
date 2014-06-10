@@ -81,6 +81,7 @@ Zs = 1;
 Zrange = [-500,500]; % range in nm 
 npp = 160; 
 scalebar = 500;
+scalebarWidth = 1;
 zm = 10; 
 CorrectDrift = true;
 showScalebar = true;
@@ -185,6 +186,8 @@ if ~isempty(varinput)
                 npp = CheckParameter(parameterValue,'positive','nm per pixel');
             case 'scalebar'
                 scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
+            case 'scalebarWidth'
+                scalebarWidth = CheckParameter(parameterValue,'positive','scalebarWidth');
             case 'correct drift'
                 CorrectDrift = CheckParameter(parameterValue,'nonnegative','correct drift');
             case 'Fast'
@@ -311,7 +314,7 @@ for c=chns
     if showScalebar
         scb = round(1:scalebar/npp*zm);
         h1 = round(.9*H);
-        In{c}(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Zs,'uint16'); % Add scale bar and labels
+        In{c}(h1:h1+2*scalebarWidth,10+scb,:) = 2^16*ones(1+2*scalebarWidth,length(scb),Zs,'uint16'); % Add scale bar and labels
     end  
      
 end

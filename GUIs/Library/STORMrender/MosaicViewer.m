@@ -64,13 +64,6 @@ MosaicView = [];
 % P = csvread(position_list);
 % position = P(3,:); 
 
-%--------------------------------------------------------------------------
-% Parse mustHave variables
-%--------------------------------------------------------------------------
-if nargin < 1
-   error([mfilename,' expects 3 inputs, folder, bead_folder and binnames']);
-end
-
 
 %--------------------------------------------------------------------------
 % Parse variable input

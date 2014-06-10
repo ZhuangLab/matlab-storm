@@ -3,6 +3,7 @@ function structOut = IndexStructure(structIn,idx,varargin)
 % fields may be cell arrays or numeric arrays.  Also takes a index.
 % Returns a structure with the same N fields but each field contains only
 % the values in idx.  
+%  structOut = IndexStructure(structIn,idx,'celldata',false,'verbose',true)
 
 verbose = false; 
 celldata = true; 
