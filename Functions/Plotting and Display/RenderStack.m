@@ -1,16 +1,21 @@
-function [renderedImage, edges, parameters] = RenderMList(MList, varargin)
+function [renderedImages, parameters] = RenderStack(MList, range, varargin)
 % ------------------------------------------------------------------------
-% [renderedImage, edges, parameters] = RenderMList(MList, varargin)
-% This function renders an MList into a high resolution image.  
+% [renderedImages, parameters] = RenderStack(MList, range, varargin)
+% This function renders a series of high resolution images of the MList or
+%   data structure with the appropriate values indexed by the values in
+%   range. 
 %--------------------------------------------------------------------------
 % Necessary Inputs
 % MList/A molecule list structure. See ReadMasterMoleculeList().
-%    Alternatively, MList could be an Nx2 array containing the data to be
-%    rendered.
-%
+%    Alternatively, MList could be an Nx3 array containing the data to be
+%    rendered.  The first two dimensions contain the data to be rendered
+%    and the third contains the data used to split the stack. 
+% range/An L+1x1 array that determines which which values be included in
+%    each stack
 %--------------------------------------------------------------------------
 % Outputs
-% renderedImage/An NxM array containing the rendered molecules.
+% renderedImage/An NxMxL array containing the rendered molecules within the
+%   L values determined by range.
 % parameters/A structure containing the parameters used to render the
 %   image.
 %--------------------------------------------------------------------------
@@ -18,7 +23,7 @@ function [renderedImage, edges, parameters] = RenderMList(MList, varargin)
 %--------------------------------------------------------------------------
 % Jeffrey Moffitt
 % jeffmoffitt@gmail.com
-% April 10, 2014
+% May 8, 2014
 %--------------------------------------------------------------------------
 % Creative Commons License CC BY NC SA
 %--------------------------------------------------------------------------
@@ -33,15 +38,15 @@ defaults(end+1,:) = {'index', 'array', []};
 defaults(end+1,:) = {'mlistType', {'compact', 'noncompact'}, 'compact'};
 defaults(end+1,:) = {'ROI', 'array', [1 256; 1 256]};
 defaults(end+1,:) = {'imageScale', 'positive', 10};
-defaults(end+1,:) = {'view', 'cell', {'x', 'y'}};
+defaults(end+1,:) = {'view', 'cell', {'x', 'y', 'z'}}; % Note that this is an overload
 defaults(end+1,:) = {'photonsField', 'string', 'a'};
 defaults(end+1,:) = {'matSizeScale', 'positive', 5};
 
 % -------------------------------------------------------------------------
 % Parse necessary input
 % -------------------------------------------------------------------------
-if nargin < 1
-    error('matlabSTORM:invalidArguments', 'A MList is required');
+if nargin < 2
+    error('matlabSTORM:invalidArguments', 'An MList and a range are required.');
 end
 
 % -------------------------------------------------------------------------
@@ -50,35 +55,27 @@ end
 parameters = ParseVariableArguments(varargin, defaults, mfilename);
 
 % -------------------------------------------------------------------------
-% Determine range
-% -------------------------------------------------------------------------
-dx = 1/parameters.imageScale;
-for i=1:2
-    edges{i} = ((parameters.ROI(i,1)-1):dx:parameters.ROI(i,2)) + 0.5;
-end
-
-% -------------------------------------------------------------------------
-% Determine data to render
+% Build data array
 % -------------------------------------------------------------------------
 if isstruct(MList)
     switch parameters.mlistType
         case 'compact'
             if ~isempty(parameters.index)
-                for i=1:2
+                for i=1:3
                     data(:,i) = MList.(parameters.view{i})(parameters.index);
                 end
             else
-                for i=1:2
+                for i=1:3
                     data(:,i) = MList.(parameters.view{i});
                 end
             end
         case 'noncompact'
             if ~isempty(parameters.index)
-                for i=1:2
+                for i=1:3
                     data(:,i) = [MList(parameters.index).(parameters.view{i})];
                 end
             else
-                for i=1:2
+                for i=1:3
                     data(:,i) = [MList.(parameters.view{i})];
                 end
             end
@@ -86,38 +83,30 @@ if isstruct(MList)
 else % Handle direct input of data array
     data = MList;
     dim = size(data);
-    if ~any(dim == 2)
-        error('matlabSTORM:invalidArguments', 'Provided array is not Nx2');
-    elseif dim(1)==2
+    if ~any(dim == 3)
+        error('matlabSTORM:invalidArguments', 'Provided array is not Nx3');
+    elseif dim(1)==3
         data = data';
     end
 end
 
 % -------------------------------------------------------------------------
-% Render image and remove spurious last row and column
+% Parse molecules into appropriate ranges
 % -------------------------------------------------------------------------
-switch parameters.renderMode
-    case 'molecules'
-        renderedImage = hist3(flipdim(data,2), 'Edges', edges); 
-            % flip is required to handle axis switch by hist3
-        renderedImage = renderedImage(1:(length(edges{1})-1), 1:(length(edges{2})-1));
-    case 'photons'
-        % -----------------------------------------------------------------
-        % Underdevelopment
-        % -----------------------------------------------------------------
-end
+[~, inds] = histc(data(:,3), range);
 
 % -------------------------------------------------------------------------
-% Blur image
+% Preallocate memory
 % -------------------------------------------------------------------------
-if parameters.gaussianWidth ~= 0
-    % ---------------------------------------------------------------------
-    % Determine sigma and filter matrix size
-    % ---------------------------------------------------------------------
-    sigma = parameters.gaussianWidth*parameters.imageScale;
-    matSize = max(parameters.matSizeScale, ...
-        2*round(parameters.matSizeScale*sigma/2) + 1); % Always odd
-    filterMat = fspecial('gaussian', matSize, sigma);
-    renderedImage = imfilter(renderedImage, filterMat);
+dx = 1/parameters.imageScale;
+for i=1:2
+    dim(i) = length(((parameters.ROI(i,1)-1):dx:parameters.ROI(i,2))) - 1;
 end
+renderedImages = zeros(dim(1), dim(2), length(range)-1);
 
+% -------------------------------------------------------------------------
+% Create image stack
+% -------------------------------------------------------------------------
+for i=1:(length(range)-1)
+    renderedImages(:,:,i) = RenderMList(data(inds==i,1:2), 'parameters', parameters);
+end
