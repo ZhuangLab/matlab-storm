@@ -290,14 +290,14 @@ for c=chns
          I0 = zeros(H,W);          
          inZ =  z{c} >= Zsteps(k) & z{c} < Zsteps(k+2);
          for n=1:N
-             inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & ...
-                     y{c}>imaxes.ymin & y{c}<imaxes.ymax;
+             inbox = x{c}>= imaxes.xmin & x{c} < imaxes.xmax & ...
+                     y{c}>= imaxes.ymin & y{c} < imaxes.ymax;
             inW = sigC{c} >= wdth(n) & sigC{c} < wdth(n+1);
             plotdots = inbox & inW & inZ & infilter{c} ; % find all molecules which fall in this photon bin        
             xi = x{c}(plotdots)*zm-imaxes.xmin*zm;
             yi = y{c}(plotdots)*zm-imaxes.ymin*zm;
            
-            It = hist3([yi,xi],'Edges',{1:H,1:W}); % drop all molecules into chosen x,y bin   {1.5:h*zm+.5, 1.5:w*zm+.5}
+            It = hist3([yi,xi],'Edges',{0:H-1,0:W-1}); % drop all molecules into chosen x,y bin   {1.5:h*zm+.5, 1.5:w*zm+.5}
             gaussblur = fspecial('gaussian',150,wc(n)); % create gaussian filter of appropriate width
             if ~fastMode
                 It = imfilter(gc(n)*It,gaussblur); % convert into gaussian of appropriate width
