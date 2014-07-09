@@ -88,6 +88,7 @@ showScalebar = true;
 fastMode = false;
 verbose = false;
 veryverbose = false;
+autocontrast = true; 
 
 if isstruct(mlist)
     mlist = {mlist};
@@ -200,6 +201,8 @@ if ~isempty(varinput)
                 veryverbose = CheckParameter(parameterValue,'boolean','very verbose'); 
             case 'zoom'
                 zm = CheckParameter(parameterValue,'positive','zoom');
+            case 'autocontrast'
+                autocontrast = CheckParameter(parameterValue,'boolean','autocontrast');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -308,7 +311,11 @@ for c=chns
          Iz(:,:,k) = I0; 
      end
       maxint = max(Iz(:)) + maxint; % compute normalization
-      Iz = uint16(2^16*double(Iz)./double(maxint)); % normalize
+      if autocontrast
+        Iz = uint16(2^16*double(Iz)./double(maxint)); % normalize
+      else
+          Iz = uint16(Iz); % normalize  
+      end
      In{c} = Iz; % record
    
     if showScalebar
