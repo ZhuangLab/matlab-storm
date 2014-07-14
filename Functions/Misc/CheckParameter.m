@@ -120,6 +120,6 @@ for i=1:length(type)
                 error([name ' is not a function handle']);
             end
         otherwise
-            error('Not a valid type');
+            error([type{i} ' is not a valid type']);
     end
 end
