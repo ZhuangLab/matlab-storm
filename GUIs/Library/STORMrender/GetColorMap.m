@@ -7,6 +7,7 @@ if nargin > 1
     pts = varargin{1};
 end
 
+
 try 
     clrmap = eval([clrmapName, '(',num2str(pts),')']);
 catch

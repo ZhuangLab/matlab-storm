@@ -1,11 +1,6 @@
-# matlab_storm #
-This collection of matlab, c, and python code is designed to provide a basic interface for STORM data analysis using a Matlab(R) front-end interface.  
-The Graphical User Interfaces (GUIs) should be usable to those with little programming experience.  
-Many additional STORM related data processing functions are available to the experience matlab user.  
-
 ### Authors ###
 Core code was contributed by Alistair Boettiger and Jeffrey Moffitt.  
-All core code contained here is licensed under the creative commons CC BY NC.  See individual help files for more information.
+All core code contained here is licensed under the creative commons CC BY NC. See individual help files for more information.
 
 Some functions are dependent upon the sister repository `storm-analysis`, written primarily by Hazen Babcock.
 This repository is available here: https://github.com/ZhuangLab/storm-analysis
@@ -39,3 +34,4 @@ Everyone is welcome to contribute to matlab-storm but any code contributed must 
 ## Additional Software for Analysis
 Some aspects of this analysis package depend on the Insight3 which can be provided by request (contact Matt Kilroy kilroy at chem.harvard.edu). 
 For instructions on integrating this software with `matlab-storm`, contact Alistair or Jeff. 
+

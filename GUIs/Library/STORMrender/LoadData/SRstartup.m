@@ -26,7 +26,7 @@ SR{handles.gui_number}.Oz = {};
     SR{handles.gui_number}.DisplayOps.verbose = true;
     SR{handles.gui_number}.DisplayOps.zrange = [-500,500];
     SR{handles.gui_number}.DisplayOps.CorrDrift = true;
-    SR{handles.gui_number}.DisplayOps.clrmap = 'lines';
+    SR{handles.gui_number}.DisplayOps.clrmap = 'hsv';
     SR{handles.gui_number}.DisplayOps.resolution = 512; 
 
 % Default MultiBinFile Load Options
@@ -54,6 +54,7 @@ set(handles.Yslider,'Max',256);
 set(handles.Yslider,'SliderStep',[0.005,0.05]);
 
 % set up axes for plotting
+colordef white; 
  axes(handles.axes1); 
  set(gca,'color','k');
  set(gca,'XTick',[],'YTick',[]);

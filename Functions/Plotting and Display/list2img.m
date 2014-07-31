@@ -81,12 +81,14 @@ Zs = 1;
 Zrange = [-500,500]; % range in nm 
 npp = 160; 
 scalebar = 500;
+scalebarWidth = 1;
 zm = 10; 
 CorrectDrift = true;
 showScalebar = true;
 fastMode = false;
 verbose = false;
 veryverbose = false;
+autocontrast = true; 
 
 if isstruct(mlist)
     mlist = {mlist};
@@ -185,6 +187,8 @@ if ~isempty(varinput)
                 npp = CheckParameter(parameterValue,'positive','nm per pixel');
             case 'scalebar'
                 scalebar = CheckParameter(parameterValue,'nonnegative','scalebar');
+            case 'scalebarWidth'
+                scalebarWidth = CheckParameter(parameterValue,'positive','scalebarWidth');
             case 'correct drift'
                 CorrectDrift = CheckParameter(parameterValue,'nonnegative','correct drift');
             case 'Fast'
@@ -197,6 +201,8 @@ if ~isempty(varinput)
                 veryverbose = CheckParameter(parameterValue,'boolean','very verbose'); 
             case 'zoom'
                 zm = CheckParameter(parameterValue,'positive','zoom');
+            case 'autocontrast'
+                autocontrast = CheckParameter(parameterValue,'boolean','autocontrast');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -287,14 +293,14 @@ for c=chns
          I0 = zeros(H,W);          
          inZ =  z{c} >= Zsteps(k) & z{c} < Zsteps(k+2);
          for n=1:N
-             inbox = x{c}>imaxes.xmin & x{c} < imaxes.xmax & ...
-                     y{c}>imaxes.ymin & y{c}<imaxes.ymax;
+             inbox = x{c}>= imaxes.xmin & x{c} < imaxes.xmax & ...
+                     y{c}>= imaxes.ymin & y{c} < imaxes.ymax;
             inW = sigC{c} >= wdth(n) & sigC{c} < wdth(n+1);
             plotdots = inbox & inW & inZ & infilter{c} ; % find all molecules which fall in this photon bin        
             xi = x{c}(plotdots)*zm-imaxes.xmin*zm;
             yi = y{c}(plotdots)*zm-imaxes.ymin*zm;
            
-            It = hist3([yi,xi],'Edges',{1:H,1:W}); % drop all molecules into chosen x,y bin   {1.5:h*zm+.5, 1.5:w*zm+.5}
+            It = hist3([yi,xi],'Edges',{0:H-1,0:W-1}); % drop all molecules into chosen x,y bin   {1.5:h*zm+.5, 1.5:w*zm+.5}
             gaussblur = fspecial('gaussian',150,wc(n)); % create gaussian filter of appropriate width
             if ~fastMode
                 It = imfilter(gc(n)*It,gaussblur); % convert into gaussian of appropriate width
@@ -305,13 +311,17 @@ for c=chns
          Iz(:,:,k) = I0; 
      end
       maxint = max(Iz(:)) + maxint; % compute normalization
-      Iz = uint16(2^16*double(Iz)./double(maxint)); % normalize
+      if autocontrast
+        Iz = uint16(2^16*double(Iz)./double(maxint)); % normalize
+      else
+          Iz = uint16(Iz); % normalize  
+      end
      In{c} = Iz; % record
    
     if showScalebar
         scb = round(1:scalebar/npp*zm);
         h1 = round(.9*H);
-        In{c}(h1:h1+2,10+scb,:) = 2^16*ones(3,length(scb),Zs,'uint16'); % Add scale bar and labels
+        In{c}(h1:h1+2*scalebarWidth,10+scb,:) = 2^16*ones(1+2*scalebarWidth,length(scb),Zs,'uint16'); % Add scale bar and labels
     end  
      
 end

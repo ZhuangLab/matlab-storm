@@ -4,7 +4,7 @@ function data = MatchSampleAndRefFiles(beadmovie)
 global scratchPath
 excludePoorZfit = false;
 
-save([scratchPath,'test.mat']);
+% save([scratchPath,'test.mat']);
 % load([scratchPath,'test.mat']);
 
 numMovies = length(beadmovie)

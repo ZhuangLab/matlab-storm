@@ -219,7 +219,9 @@ for k = 1:length(frames);
     end
     
  % rescale image if requested
-    im = imresize(im,1/shrk); 
+     if shrk ~= 1
+        im = imresize(im,1/shrk); 
+     end
     [h,w,~] = size(im);
     h2 = round(h/2); % avoid integer operands for colon operator warning
     w2 = round(w/2);    
@@ -228,11 +230,8 @@ for k = 1:length(frames);
     x1 = X(i)+1-w2;
     x2 = X(i)+w2;
     
-    if showall
-        Im(y1:y2,x1:x2) = uint16(im);
-    else
-        Im(y1:y2,x1:x2) = uint16(im);
-    end
+        Im(y1:y2,x1:x2) = im;
+
     if verbose
         if rem(k,5) == 0
           disp(['rebuilding mosaic ', num2str(100*k/length(frames),3), '% done']);

@@ -24,12 +24,12 @@ defaults(end+1,:) = {'redIrPars', 'string', [matlabStormPath,'Defaults\redIRBead
 defaults(end+1,:) = {'irIrPars', 'string', [matlabStormPath,'Defaults\irIRBead.xml']};
 
 defaults(end+1,:) = {'batchsize', 'positive', 10};
-defaults(end+1,:) = {'batchsize', 'overwrite', 2};
 defaults(end+1,:) = {'overwrite', 'nonnegative', 2};
 defaults(end+1,:) = {'hideterminal', 'hideterminal', true};
 
-defaults(end+1,:) = {'matchRadius1','positive',2};
+defaults(end+1,:) = {'AffineRadius','positive',2};
 defaults(end+1,:) = {'matchRadius','positive',2};
+defaults(end+1,:) = {'showMatches', 'boolean', false};
 defaults(end+1,:) = {'verbose', 'boolean', true};
 
 % -------------------------------------------------------------------------
@@ -47,7 +47,7 @@ end
 %  parameters = ParseVariableArguments([], defaults, mfilename);
 
 %% Step 1: run dot finding on all data
-clc
+% clc
 % modify_script(iniFileIn,iniFileOut,{},{}); 
 % redROI = [0 256, 0 256];
 % yellowROI = [257 512,0 256];
@@ -55,9 +55,9 @@ clc
 % blueROI = [257 512,257 512];
 
 global scratchPath
-save([scratchPath,'test2.mat']);
+ save([scratchPath,'test2.mat']);
     
-
+% load([scratchPath,'test2.mat']);
     
 beadmovie = parameters.beadmovie; 
 if isempty(beadmovie)
@@ -93,7 +93,11 @@ else
                    for c=1:length(beadmovie(m).chns)
                         disp('searching for parameter files'); 
                         parsDir = dir([folder,beadmovie(m).chns{c},'*',beadmovie(m).parsroot,'*.xml']);
-                        beadmovie(m).pars{c} = strcat(folder,{parsDir.name}');
+                        if ~isempty(parsDir)
+                            beadmovie(m).pars(c) = strcat(folder,{parsDir.name}');
+                        else 
+                            beadmovie(m).pars{1} = '';
+                        end
                    end
                elseif ~isempty(StringFind(beadmovie(m).chns,'561'))
                    beadmovie(m).pars = {parameters.redVisPars,parameters.yellowVisPars,parameters.blueVisPars}';
@@ -101,7 +105,7 @@ else
                     beadmovie(m).pars = {parameters.irIrPars,parameters.redIrPars}';
                end
                if isempty(beadmovie(m).pars{1})
-                   disp('could not find any pars files'); 
+                   disp('could not find any pars files, using defaults'); 
                     if ~isempty(StringFind(beadmovie(m).chns,'561'))
                    beadmovie(m).pars = {parameters.redVisPars,parameters.yellowVisPars,parameters.blueVisPars}';
                     elseif ~isempty(StringFind(beadmovie(m).chns,'750'))
@@ -144,11 +148,12 @@ end
 %   system([daoSTORMexe,' "',daxfile,'" "',binfile,'" "',parsfile,'"']);  
 %%
 
-
+clear data dat data2 dat2
 data = MatchSampleAndRefFiles(beadmovie); 
 
 fighandle = figure(1); clf;
-dat = MatchSampleAndRefData(data,'matchRadius',parameters.matchRadius1,'fighandle',fighandle); % match beads 
+figH = figure(2); clf;
+dat = MatchSampleAndRefData(data,'matchRadius',parameters.AffineRadius,'fighandle',fighandle,'showPlots',parameters.showMatches); % match beads 
 
 [tform_1,tform_1_inv,data2,dat2] = ShiftRotateMatch(dat,data,parameters.matchRadius);
 

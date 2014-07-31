@@ -1025,13 +1025,14 @@ elseif FitMethod == 3
     method = 'GPUmultifit';
 end
 
-clear chromeWarpPars;
 chromeWarpPars.OK = false; 
 pathin = ExtractPath(SF{handles.gui_number}.daxfile);
 f = ChromeWarpParameters; 
 waitfor(f);
-SF{handles.gui_number}.chromeWarpPars = chromeWarpPars;   
+SF{handles.gui_number}.chromeWarpPars = chromeWarpPars;  
   
+SF{handles.gui_number}.chromeWarpPars 
+
 if SF{handles.gui_number}.chromeWarpPars.OK
     M = SF{handles.gui_number}.chromeWarpPars.NMovieSets;
     beadset(M).chns =[];
@@ -1042,7 +1043,9 @@ if SF{handles.gui_number}.chromeWarpPars.OK
         beadset(m).parsroot = SF{handles.gui_number}.chromeWarpPars.ParameterRoots{m};
         beadset(m).quadview = SF{handles.gui_number}.chromeWarpPars.Quadview{m};
     end
-     ComputeChromeWarp(pathin,'beadmovie',beadset)
+     ComputeChromeWarp(pathin,'beadmovie',beadset,...
+         'AffineRadius',chromeWarpPars.AffineRadius,...
+         'matchRadius',chromeWarpPars.PolyRadius)
 %     chromeWarpPars = SF{handles.gui_number}.chromeWarpPars;
 %     CalcChromeWarp(pathin,'beadset',beadset,'method',method,...
 %         'QVorder',chromeWarpPars.QVorder,'overwrite',chromeWarpPars.OverwriteBin,...

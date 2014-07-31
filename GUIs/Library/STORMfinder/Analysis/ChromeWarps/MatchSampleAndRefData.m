@@ -61,22 +61,7 @@ for s=1:numSamples
 end
 numFields = numFieldsWithData;
 
-% set1 = cell(numSamples,1);
-% set2 = cell(numSamples,1);
-% set1{s}.x{k} provides the set1 matches for sample s in frame k.  
-for s=1:numSamples
-%     for k = 1:numFields   % k = 217  k=15;
-%     [set1{s},set2{s}] = MatchMols(data(s).refchn(k),data(s).sample(k),...
-%         tform_start, match_radius1,verbose,data(s).sample(k).chn,k,...
-%         set1{s},set2{s},numFields);
-%     end   
-%     dat(s).refchn.x = cat(1,set1{s}.x{:}); % cell2mat(set1{s}.x);
-%     dat(s).refchn.y = cat(1,set1{s}.y{:}); % cell2mat(set1{s}.y);
-%     dat(s).refchn.z = cat(1,set1{s}.z{:}); %  cell2mat(set1{s}.z);
-%     dat(s).sample.x = cat(1,set2{s}.x{:}); %  cell2mat(set2{s}.x);
-%     dat(s).sample.y = cat(1,set2{s}.y{:}); %  cell2mat(set2{s}.y);
-%     dat(s).sample.z = cat(1,set2{s}.z{:}); %  cell2mat(set2{s}.z);
-%     
+for s=1:numSamples   
     ref = cell(numFields,3); 
     sample = cell(numFields,3); 
     for k=1:numFields
