@@ -212,11 +212,11 @@ else
     [~,daxroots,~] = cellfun(@(x) fileparts(x),daxnames,'UniformOutput',false);
 end
 
-
 % make sure daxroots and daxnames don't contain extra copies of filepath
 [~,daxroots,~] = cellfun(@(x) fileparts(x),daxroots,'UniformOutput',false);
 [folders,daxnames,filetype] = cellfun(@(x) fileparts(x),daxnames,'UniformOutput',false);
 daxnames = strcat(daxnames,filetype);
+
 
 if ~isempty(folders{1})
     dpath = [folders{1},filesep];
