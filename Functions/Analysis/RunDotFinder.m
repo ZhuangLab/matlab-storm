@@ -254,7 +254,7 @@ if isempty(binnames) % a cell array of binnames passed (equal to length daxnames
         binNumbers = cellfun(@(x) ['_',sprintf('%04d',x) ], num2cell(1:length(daxroots)),'UniformOutput',false)' ;
         binnames  = strcat(cell(length(daxroots),1),binname); 
         binnames = cellfun(@(x,y) regexprep(x,'#',y),binnames,binNumbers,'UniformOutput',false);
-        binnames = cellfun(@(x,y) regexprep(x,'DAX',y),binnames,daxroots','UniformOutput',false);
+        binnames = cellfun(@(x,y) regexprep(x,'DAX',y),Column(binnames),Column(daxroots),'UniformOutput',false);
         binnames = strcat(dpath,binnames,datatype);
    end
    
