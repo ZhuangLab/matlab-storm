@@ -21,6 +21,7 @@ function value = CheckParameter(value, type, name)
 %           'fileDir'
 %           'colormap'
 %           'fraction'
+%           'handle'
 % 
 % name/string: The name of the parameter to be checked
 %--------------------------------------------------------------------------

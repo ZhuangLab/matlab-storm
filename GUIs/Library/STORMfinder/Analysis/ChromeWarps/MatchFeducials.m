@@ -29,7 +29,7 @@ parameters = ParseVariableArguments(varargin, defaults, mfilename);
 
 % parameters = ParseVariableArguments('', defaults, mfilename);
 
-
+% image1spots = hybe1; image2spots = hybe2; 
 
 %--------------------------------------------------------------------------
 %% Main Function
