@@ -41,7 +41,8 @@ function RunDotFinder(varargin)
 % overwrite / double / 2     
 %               - Skip files for which bin files already exist (0),
 %               Overwrite any existing bin files without asking (1), Ask
-%               the user what to do if file exists (2). 
+%               the user what to do if file exists (4):  
+%               0 - cancel, 1-overwrite, 2-skip, 3-resume.  
 % method / string / DaoSTORM
 %               - method to use for dotfinding analysis.  
 %               Options: insight, DaoSTORM, GPUmultifit
@@ -114,7 +115,7 @@ global daoSTORMexe
 %--------------------------------------------------------------------------
 % this makes it easy to change default values
 batchsize = 2;
-overwrite = 2; % ask user
+overwrite = 4; % ask user
 minsize = 20E6;
 daxroot = '';
 parsroot = '';
@@ -303,7 +304,7 @@ end
     
 % don't analyze movies which have _list.bin files
 if sum(hasbin) ~= 0 
-    if overwrite == 2   
+    if overwrite == 4   
         disp(txtout);
         overwritefiles = input('Please select: 3=resume, 2=skip, 1=overwrite, 0=cancel:  ');
     elseif overwrite == 1

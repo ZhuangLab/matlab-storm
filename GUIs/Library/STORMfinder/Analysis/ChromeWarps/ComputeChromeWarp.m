@@ -24,12 +24,12 @@ defaults(end+1,:) = {'redIrPars', 'string', [matlabStormPath,'Defaults\redIRBead
 defaults(end+1,:) = {'irIrPars', 'string', [matlabStormPath,'Defaults\irIRBead.xml']};
 
 defaults(end+1,:) = {'batchsize', 'positive', 10};
-defaults(end+1,:) = {'overwrite', 'nonnegative', 2};
+defaults(end+1,:) = {'overwrite', 'boolean', 0};
 defaults(end+1,:) = {'hideterminal', 'hideterminal', true};
 
 defaults(end+1,:) = {'AffineRadius','positive',2};
 defaults(end+1,:) = {'matchRadius','positive',2};
-defaults(end+1,:) = {'showMatches', 'boolean', false};
+defaults(end+1,:) = {'showMatches', 'boolean', true};
 defaults(end+1,:) = {'verbose', 'boolean', true};
 
 % -------------------------------------------------------------------------
@@ -118,7 +118,7 @@ else
 end
 
 for m=1:length(beadmovie)
-    
+        
 beadmovie(m).refchni = find(~cellfun(@isempty, strfind(beadmovie(m).chns,beadmovie(m).refchn)));
 
     if ~isempty(beadmovie(m).dax)
@@ -149,13 +149,29 @@ end
 %%
 
 clear data dat data2 dat2
+% name matching game -- loads data from mlists and sorts it into a data
+% structure of matching sample data and reference data.  
+% the beadmovie structure includes all the information on which channels
+% are sample data and which are reference data.
 data = MatchSampleAndRefFiles(beadmovie); 
 
 fighandle = figure(1); clf;
 figH = figure(2); clf;
-dat = MatchSampleAndRefData(data,'matchRadius',parameters.AffineRadius,'fighandle',fighandle,'showPlots',parameters.showMatches); % match beads 
 
-[tform_1,tform_1_inv,data2,dat2] = ShiftRotateMatch(dat,data,parameters.matchRadius);
+% use MatchFeducials to pair up samples data and reference data prior to warp  
+% this function uses a combination of 2D cross-correlation to compute an
+% initial alignment and knnsearch to match sub-pixel bead positions.  
+% Also the multiple fields of view in data are combined into a single 
+dat = MatchSampleAndRefData(data,...
+    'matchRadius',parameters.AffineRadius,...
+    'useCorrAlign',true,...
+    'fighandle',fighandle,...
+    'showPlots',parameters.showMatches); % match beads 
+
+% Computes rigid translation rotation and apply it to data
+% uses WarpPoints, a modified cp2tform allowing for translation rotation
+% without scaling (affine allows rescaling and requires more matched points).  
+[tform_1,tform_1_inv,data2,dat2] = ShiftRotateMatch(dat,data);
 
 [tform,tform2D,tform_inv,tform2D_inv,dat2] = ComputePolyWarp(dat2);
 

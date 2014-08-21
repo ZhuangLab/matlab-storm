@@ -24,6 +24,7 @@ defaults(end+1,:) = {'matchRadius', 'nonnegative', 2};
 defaults(end+1,:) = {'showPlots', 'boolean', true};
 defaults(end+1,:) = {'verbose', 'boolean', true};
 defaults(end+1,:) = {'fighandle', 'handle',[]};
+defaults(end+1,:) = {'useCorrAlign', 'boolean', true};
 
 % -------------------------------------------------------------------------
 % Parse necessary input
@@ -70,7 +71,10 @@ for s=1:numSamples
             [data(s).sample(k).x,data(s).sample(k).y],...
             'showPlots',parameters.showPlots,...
             'maxD',parameters.matchRadius,...
-            'fighandle',parameters.fighandle);
+            'fighandle',parameters.fighandle,...
+            'useCorrAlign',parameters.useCorrAlign);
+        
+        
         ref{k,1} = data(s).refchn(k).x(matched1);
         ref{k,2} = data(s).refchn(k).y(matched1);
         ref{k,3} = data(s).refchn(k).z(matched1);
@@ -80,7 +84,7 @@ for s=1:numSamples
         sample{k,3} = data(s).sample(k).z(matched2);
 
         if parameters.verbose
-            disp(['frame ',num2str(k),' :matched ',num2str(length(matched2)),...
+            disp(['frame ',num2str(k),': matched ',num2str(length(matched2)),...
                 ' of ',num2str(length(data(s).sample(k).x)),' ',...
                 data(s).sample(k).chn,' beads'])
         end
