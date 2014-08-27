@@ -21,6 +21,8 @@ function value = CheckParameter(value, type, name)
 %           'fileDir'
 %           'colormap'
 %           'fraction'
+%           'handle'
+%           'function'
 % 
 % name/string: The name of the parameter to be checked
 %--------------------------------------------------------------------------
@@ -118,7 +120,11 @@ for i=1:length(type)
             if ~( round(value)==value )
                error([name ' is not an integer']);  
             end
+        case 'function'
+            if ~strcmp(class(value), 'function_handle')
+                error([name ' is not a function handle']);
+            end
         otherwise
-            error('Not a valid type');
+            error([type{i} ' is not a valid type']);
     end
 end

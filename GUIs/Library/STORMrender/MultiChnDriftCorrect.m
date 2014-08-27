@@ -41,6 +41,7 @@ function mlist = MultiChnDriftCorrect(mlist,varargin)
 %--------------------------------------------------------------------------
 correctDrift = true;
 verbose = true;
+npp = 160;
 %--------------------------------------------------------------------------
 % Parse mustHave variables
 %--------------------------------------------------------------------------
@@ -64,7 +65,9 @@ if nargin > 1
             case 'correctDrift'
                 correctDrift = CheckParameter(parameterValue,'boolean','correctDrift'); 
             case 'verbose'
-                verbose = CheckParameter(parameterValue,'boolean','verbose');                
+                verbose = CheckParameter(parameterValue,'boolean','verbose');  
+            case 'npp'
+                npp = ChecParameter(parameterValue,'positive','npp');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -88,8 +91,8 @@ if correctDrift
         mlist{c}.xc = mlist{c}.xc - drift_xT;
         mlist{c}.yc = mlist{c}.yc - drift_yT;
         if verbose
-             disp(['corrected global drift of ',num2str(drift_xT),' X pixels']); 
-             disp(['corrected global drift of ',num2str(drift_yT),' Y pixels']); 
+             disp(['corrected global drift of ',num2str(drift_xT*npp,3),' nm in X']); 
+             disp(['corrected global drift of ',num2str(drift_yT*npp,3),' nm in Y']); 
         end
     end
 end

@@ -41,7 +41,8 @@ function RunDotFinder(varargin)
 % overwrite / double / 2     
 %               - Skip files for which bin files already exist (0),
 %               Overwrite any existing bin files without asking (1), Ask
-%               the user what to do if file exists (2). 
+%               the user what to do if file exists (4):  
+%               0 - cancel, 1-overwrite, 2-skip, 3-resume.  
 % method / string / DaoSTORM
 %               - method to use for dotfinding analysis.  
 %               Options: insight, DaoSTORM, GPUmultifit
@@ -114,7 +115,7 @@ global daoSTORMexe
 %--------------------------------------------------------------------------
 % this makes it easy to change default values
 batchsize = 2;
-overwrite = 2; % ask user
+overwrite = 4; % ask user
 minsize = 20E6;
 daxroot = '';
 parsroot = '';
@@ -212,11 +213,11 @@ else
     [~,daxroots,~] = cellfun(@(x) fileparts(x),daxnames,'UniformOutput',false);
 end
 
-
 % make sure daxroots and daxnames don't contain extra copies of filepath
 [~,daxroots,~] = cellfun(@(x) fileparts(x),daxroots,'UniformOutput',false);
 [folders,daxnames,filetype] = cellfun(@(x) fileparts(x),daxnames,'UniformOutput',false);
 daxnames = strcat(daxnames,filetype);
+
 
 if ~isempty(folders{1})
     dpath = [folders{1},filesep];
@@ -254,7 +255,7 @@ if isempty(binnames) % a cell array of binnames passed (equal to length daxnames
         binNumbers = cellfun(@(x) ['_',sprintf('%04d',x) ], num2cell(1:length(daxroots)),'UniformOutput',false)' ;
         binnames  = strcat(cell(length(daxroots),1),binname); 
         binnames = cellfun(@(x,y) regexprep(x,'#',y),binnames,binNumbers,'UniformOutput',false);
-        binnames = cellfun(@(x,y) regexprep(x,'DAX',y),binnames,daxroots','UniformOutput',false);
+        binnames = cellfun(@(x,y) regexprep(x,'DAX',y),Column(binnames),Column(daxroots),'UniformOutput',false);
         binnames = strcat(dpath,binnames,datatype);
    end
    
@@ -303,7 +304,7 @@ end
     
 % don't analyze movies which have _list.bin files
 if sum(hasbin) ~= 0 
-    if overwrite == 2   
+    if overwrite == 4   
         disp(txtout);
         overwritefiles = input('Please select: 3=resume, 2=skip, 1=overwrite, 0=cancel:  ');
     elseif overwrite == 1
