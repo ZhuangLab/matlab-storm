@@ -334,7 +334,7 @@ global SF
     fend = ftell(fid);
     fclose(fid);
     TFrames = fend/(16/8)/(SF{handles.gui_number}.impars.h*SF{handles.gui_number}.impars.w);  % total number of frames
-    set(handles.FrameSlider,'Min',1);
+    set(handles.FrameSlider,'Min',0);
     set(handles.FrameSlider,'Max',TFrames);
     set(handles.FrameSlider,'Value',SF{handles.gui_number}.impars.cframe); 
     set(handles.FrameSlider,'SliderStep',[1/TFrames,50/TFrames]);
@@ -598,7 +598,8 @@ function FrameSlider_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 global SF
-SF{handles.gui_number}.impars.cframe = round(get(handles.FrameSlider,'Value'));
+cframe = round(get(handles.FrameSlider,'Value')); % get current frame
+SF{handles.gui_number}.impars.cframe = cframe;
 set(handles.currframe,'String',num2str(SF{handles.gui_number}.impars.cframe));
 UpdateFrame(hObject, handles);
 

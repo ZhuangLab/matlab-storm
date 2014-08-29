@@ -12,6 +12,7 @@ function [matched1,matched2,parameters] = MatchFeducials(image1spots,image2spots
 % maxTrueSeparation -- maximum distance allowed between matched points 
 
 global scratchPath
+troubleshoot = false; 
 
 % -------------------------------------------------------------------------
 % Default variables
@@ -50,8 +51,8 @@ parameters = ParseVariableArguments(varargin, defaults, mfilename);
 h = parameters.imageSize(1);
 w = parameters.imageSize(2);
 
-% ----------------------- Step 1 Match beads-----------------------
-% Match by cross correlation
+% -------------Step 1: Match by cross correlation -----------------------
+% (This step is optional)
 stp = parameters.corrPrecision; 
 I1 = hist3([image1spots(:,2),image1spots(:,1)],{1:stp:h,1:stp:h});
 I2 = hist3([image2spots(:,2),image2spots(:,1)],{1:stp:h,1:stp:w});
@@ -67,48 +68,56 @@ else
     yshift = 0;
 end
 
-% % % figure for troubleshooting correlation alignment; 
-% figure(10); clf; 
-% subplot(1,2,1); Ncolor(cat(3,I1,I2)); hold on; 
-% plot(image1spots(:,1)/stp,image1spots(:,2)/stp,'ro');
-% plot(image2spots(:,1)/stp,image2spots(:,2)/stp,'bo');
-% subplot(1,2,2); Ncolor(cat(3,I1,I2)); hold on; 
-% plot(image1spots(:,1)/stp,image1spots(:,2)/stp,'ro');
-% plot(image2spots(:,1)/stp+xshift,image2spots(:,2)/stp+yshift,'bo');
+% Enforce maximum 
 
+
+% % figure for troubleshooting correlation alignment; 
+if troubleshoot
+    figure(10); clf; 
+    subplot(1,2,1); Ncolor(cat(3,I1,I2)); hold on; 
+    plot(image1spots(:,1)/stp,image1spots(:,2)/stp,'ro');
+    plot(image2spots(:,1)/stp,image2spots(:,2)/stp,'bo');
+    subplot(1,2,2); Ncolor(cat(3,I1,I2)); hold on; 
+    plot(image1spots(:,1)/stp,image1spots(:,2)/stp,'ro');
+    plot(image2spots(:,1)/stp+xshift,image2spots(:,2)/stp+yshift,'bo');
+end
+    
 if parameters.verbose
     disp(['xshift=',num2str(xshift),' yshift=',num2str(yshift)]);
 end
 
+%-------------- Step 2: Match by warp to nearest neigbhor --------------%
 numFeducials = size(image2spots,1); 
 image2spotsw = image2spots + repmat([xshift,yshift],numFeducials,1);
 % Match unique nearest neighbors 
-[idx1,dist1] = knnsearch(image1spots,image2spotsw); %  indices of image1spots nearest for each point in image2spots 
-matches21 = [ (1:size(image2spots,1))',idx1 ];
-matches21(  dist1>parameters.maxD, :) = [];   % remove distant points
-[v,n] = occurrences(idx1);
-multihits1 = v(n>1);
-multihits1_idx = ismember( matches21(:,2), multihits1);
-matches21(multihits1_idx,:) = [];
+if size(image1spots,1) >= size(image2spots,1)
+    [idx1,dist1] = knnsearch(image1spots,image2spotsw); %  indices of image1spots nearest for each point in image2spots 
+    matches21 = [ (1:size(image2spots,1))',idx1 ];
+    matches21(  dist1>parameters.maxD, :) = [];   % remove distant points
 
-matched1 = matches21(:,2); 
-matched2 = matches21(:,1); 
+    % for the channel with the smaller number of feducials, remove double hits
+    [v,n] = occurrences(idx1); 
+    multihits1 = v(n>1);
+    multihits1_idx = ismember( matches21(:,2), multihits1);
+    matches21(multihits1_idx,:) = [];
 
-save([scratchPath,'test.mat']);
-load([scratchPath,'test.mat']);
+    matched1 = matches21(:,2); 
+    matched2 = matches21(:,1); 
+else
+    [idx2,dist2] = knnsearch(image2spotsw,image1spots); %  indices of image2spots nearest for each point in image1spots 
+    matches12 = [ (1:size(image1spots,1))',idx2 ];
+    matches12(  dist2>parameters.maxD, :) = [];   % remove distant points
 
-% idx(dist>parameters.maxD) = NaN;
-% 
-% matched1 =  v(n==1);  % the indices of points in image 1 who have only 1 match within maxD 
-% matched2 = find(ismember(1:numel(image2spotsw(:,1)),matched1)); 
-% matched2 = find(ismember(matched1,idx)); 
-% 
-% % This really shouldn't be necessary, but something crazy happens above
-% dist2 = ( (image1spots(matched1,1)-image2spots(matched2,1)).^2 + (image1spots(matched1,2)-image2spots(matched2,2)).^2);
-% failDots = dist2 > parameters.maxTrueSeparation^2;
-% matched1(failDots) = [];
-% matched2(failDots) = [];
+    % for the channel with the smaller number of feducials, remove double hits
+    [v,n] = occurrences(idx2); 
+    multihits2 = v(n>1);
+    multihits2_idx = ismember( matches12(:,2), multihits2);
+    matches12(multihits2_idx,:) = [];
 
+    matched1 = matches12(:,1); 
+    matched2 = matches12(:,2); 
+end
+    
 
 %----------------- Plotting ---------
 if parameters.showPlots
