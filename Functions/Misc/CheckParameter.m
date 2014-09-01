@@ -23,6 +23,7 @@ function value = CheckParameter(value, type, name)
 %           'fraction'
 %           'handle'
 %           'function'
+%           'freeType'
 % 
 % name/string: The name of the parameter to be checked
 %--------------------------------------------------------------------------
@@ -124,6 +125,7 @@ for i=1:length(type)
             if ~strcmp(class(value), 'function_handle')
                 error([name ' is not a function handle']);
             end
+        case 'freeType'
         otherwise
             error([type{i} ' is not a valid type']);
     end
