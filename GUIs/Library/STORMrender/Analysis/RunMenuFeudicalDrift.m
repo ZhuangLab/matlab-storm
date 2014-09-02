@@ -33,6 +33,7 @@ function RunMenuFeudicalDrift(hObject, eventdata, handles)
 % 
 global SR scratchPath
 
+npp = SR{handles.gui_number}.DisplayOps.npp; 
 mlist = SR{handles.gui_number}.mlist;
 
 for c = 1:length(mlist) 
@@ -109,14 +110,19 @@ if length(Opts) > 1 % Do nothing if cancelled
        SR{handles.gui_number}.driftData{c}.xDrift = nonzeros(dxc);
        SR{handles.gui_number}.driftData{c}.yDrift = nonzeros(dyc);
        if eval(Opts{11}) && c>1
-        prevXdrift = [0,SR{handles.gui_number}.driftData{1:c-1}.xDrift(end)];
-        prevYdrift = [0,SR{handles.gui_number}.driftData{1:c-1}.yDrift(end)]; 
+        prevXdrift = [0,SR{handles.gui_number}.driftData{c-1}.xDrift(end)];  % this is being corrected inside the loop, don't need 1:c-1, just need last step, c-1.  (no difference for 2 channels)
+        prevYdrift = [0,SR{handles.gui_number}.driftData{c-1}.yDrift(end)]; 
        else
         prevXdrift = 0; 
         prevYdrift = 0;
        end
         mlist{c}.xc = mlist{c}.x - dxc(mlist{c}.frame) - sum(prevXdrift);
-        mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame) - sum(prevYdrift);   
+        mlist{c}.yc = mlist{c}.y - dyc(mlist{c}.frame) - sum(prevYdrift);
+        
+        drift_xT =  sum(prevXdrift);
+        drift_yT =  sum(prevYdrift);
+        disp(['corrected global drift of ',num2str(drift_xT*npp,3),' nm in X']); 
+        disp(['corrected global drift of ',num2str(drift_yT*npp,3),' nm in Y']); 
 end  
    
 end
