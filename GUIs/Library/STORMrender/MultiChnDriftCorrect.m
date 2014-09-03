@@ -84,12 +84,13 @@ if correctDrift
     drift_xi = zeros(1,numChns);
     drift_yi = zeros(1,numChns);   
     for c = 1:length(mlist);
-        drift_xi(c) = mlist{c}.xc(end) - mlist{c}.x(end);
-        drift_yi(c) = mlist{c}.yc(end) - mlist{c}.y(end); 
+        drift_xi(c) =  mlist{c}.x(end) - mlist{c}.xc(end);
+        drift_yi(c) = mlist{c}.y(end) - mlist{c}.yc(end); 
         drift_xT = sum([0,drift_xi(1:c-1)]);
         drift_yT = sum([0,drift_yi(1:c-1)]);
         mlist{c}.xc = mlist{c}.xc - drift_xT;
         mlist{c}.yc = mlist{c}.yc - drift_yT;
+                
         if verbose
              disp(['corrected global drift of ',num2str(drift_xT*npp,3),' nm in X']); 
              disp(['corrected global drift of ',num2str(drift_yT*npp,3),' nm in Y']); 
