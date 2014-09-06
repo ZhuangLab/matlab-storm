@@ -46,7 +46,7 @@ end
 % -------------------------------------------------------------------------
 % Build Indices
 % -------------------------------------------------------------------------
-indices = true(length(mlist.x),1);
+indices = true(size(mlist.x));
 for i=1:length(fieldNames)
     indices = indices & mlist.(fieldNames{i}) >= ranges{i}(1) & mlist.(fieldNames{i}) < ranges{i}(2);
 end
