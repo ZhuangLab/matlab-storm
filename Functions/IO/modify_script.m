@@ -160,7 +160,13 @@ for ln=1:max_lines
         % backslashes will be written literally.
         str = regexprep(str,'\\','\\\'); % convert \ to \\.  
     end
-      fprintf(fid,str,['']); fprintf(fid,'%s\r\n',['']);
+    try
+      fprintf(fid,str,''); fprintf(fid,'%s\r\n','');
+    catch er
+        warning(['failed writing to file ',fname_out]);
+        warning(['check to make sure file path to ',fname_out, ' exists']);
+        error(er.getReport); 
+    end
 end
 fclose(fid); 
 if verbose

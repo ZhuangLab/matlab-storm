@@ -3,9 +3,10 @@ function structOut = IndexStructure(structIn,idx,varargin)
 % fields may be cell arrays or numeric arrays.  Also takes a index.
 % Returns a structure with the same N fields but each field contains only
 % the values in idx.  
+%  structOut = IndexStructure(structIn,idx,'celldata',false,'verbose',true)
 
 verbose = false; 
-
+celldata = true; 
 %--------------------------------------------------------------------------
 %% Parse variable input
 %--------------------------------------------------------------------------
@@ -18,6 +19,8 @@ if nargin > 2
         parameterName = varargin{parameterIndex*2 - 1};
         parameterValue = varargin{parameterIndex*2};
         switch parameterName
+            case 'celldata'
+                celldata = CheckParameter(parameterValue,'boolean','celldata');
             case 'verbose'
                 verbose = CheckParameter(parameterValue,'boolean','verbose');
             otherwise
@@ -33,7 +36,7 @@ end
 
 for f=fieldnames(structIn)';
     try
-    if iscell( structIn.(f{1})  )
+    if iscell( structIn.(f{1})  ) && celldata
         structOut.(f{1})=structIn.(f{1}){idx};
     else
         structOut.(f{1})=structIn.(f{1})(idx);

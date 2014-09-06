@@ -21,6 +21,7 @@ function value = CheckParameter(value, type, name)
 %           'fileDir'
 %           'colormap'
 %           'fraction'
+%           'handle'
 %           'function'
 % 
 % name/string: The name of the parameter to be checked
@@ -101,11 +102,11 @@ for i=1:length(type)
             end
         case 'cell'
             if ~iscell(value)
-                error([name 'is not a cell']);
+                error([name ' is not a cell']);
             end
         case 'colormap'
             if ~(ischar(value) || size(value,2) == 3)
-                error([name 'is not a valid colormap']); 
+                error([name ' is not a valid colormap']); 
             end
         case 'fraction'
             if ~(value >= 0 && value <= 1)
@@ -114,6 +115,10 @@ for i=1:length(type)
         case 'handle'
             if ~ishandle(value)
                error([name ' is not a handle']);  
+            end
+        case 'integer'
+            if ~( round(value)==value )
+               error([name ' is not an integer']);  
             end
         case 'function'
             if ~strcmp(class(value), 'function_handle')

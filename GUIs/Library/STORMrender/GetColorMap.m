@@ -7,6 +7,7 @@ if nargin > 1
     pts = varargin{1};
 end
 
+
 try 
     clrmap = eval([clrmapName, '(',num2str(pts),')']);
 catch
@@ -37,6 +38,9 @@ catch
         clrmap = hot(pts);
         clrmap = [clrmap(:,1),clrmap(:,3),clrmap(:,1)];
         clrmap(clrmap<0) = 0; 
+        
+        case 'black'
+        clrmap = gray(pts);
         
         case 'cyan'
         clrmap = hot(pts);

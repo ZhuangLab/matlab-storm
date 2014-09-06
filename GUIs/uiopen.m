@@ -3,7 +3,7 @@ function uiopen(type,direct)
 % file. Remember you are overloading uiopen inside toolbox/matlab/uitools
 %
 
-global myImage daxfile inffile inifile xmlfile mlist binfile
+global myImage daxfile inffile inifile xmlfile mlist binfile stvfile
 warning off all
 %---- dax file -----v
 if ((~isempty(findstr(type,'.dax'))) && (direct))
@@ -20,6 +20,20 @@ if ((~isempty(findstr(type,'.dax'))) && (direct))
             STORMfinder;      
        end
     end
+
+%---- stv file -----v
+elseif ((~isempty(findstr(type,'.msc'))) && (direct))
+    %-------------------------------------------------
+    % Your function that will open/run this file type
+    %-------------------------------------------------
+    disp('reading steve Mosaic file into global var "stvfile"...');
+    disp(type);
+    stvfile = type;
+    if ~isempty(stvfile)
+       ConvertStv2Mat;
+       SteveMosaicViewer;
+    end    
+    
     
 %---- ini file -----v
 elseif ((~isempty(findstr(type,'.ini'))) && (direct))

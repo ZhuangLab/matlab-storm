@@ -52,33 +52,10 @@ function ChromeWarpParameters_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to ChromeWarpParameters (see VARARGIN)
 
-global chromeWarpPars
 % Choose default command line output for ChromeWarpParameters
 handles.output = hObject;
 
-% Set defaults:
-if isfield(chromeWarpPars,'OK');  % only update on load, not on exit
-    init = 0;
-    if ~chromeWarpPars.OK
-        init = 1;
-    end
-else
-    init = 1;
-end    
-if init
-    chromeWarpPars.ChannelNames{1} = '750,647';
-    chromeWarpPars.DaxfileRoots{1} = 'IRbeads';
-    chromeWarpPars.ParameterRoots{1} = 'IRBead';
-    chromeWarpPars.ReferenceChannel{1} = '647';
-    chromeWarpPars.Quadview{1} = 1;
-
-    chromeWarpPars.ChannelNames{2} = '647,561,488';
-    chromeWarpPars.DaxfileRoots{2} = 'Visbeads';
-    chromeWarpPars.ParameterRoots{2} = 'VisBead';
-    chromeWarpPars.ReferenceChannel{2} = '647';
-    chromeWarpPars.Quadview{2} = 1;
-    chromeWarpPars.ListQVorder = '647,561,750,488';
-end
+ChromeWarpParsDefaults;
 % Update handles structure
 guidata(hObject, handles);
 
@@ -126,12 +103,28 @@ chromeWarpPars.ExportDataOn = logical(get(handles.ExportDataOn,'Value'));
 chromeWarpPars.is3D = logical(get(handles.is3D,'Value'));
 chromeWarpPars.ListQVorder = get(handles.ListQVorder,'String');
 
+
+try
+chromeWarpPars.ChannelNames = chromeWarpPars.ChannelNames(1:chromeWarpPars.NMovieSets);
+chromeWarpPars.DaxfileRoots = chromeWarpPars.DaxfileRoots(1:chromeWarpPars.NMovieSets);
+chromeWarpPars.ParameterRoots = chromeWarpPars.ParameterRoots(1:chromeWarpPars.NMovieSets);
+chromeWarpPars.ReferenceChannel = chromeWarpPars.ReferenceChannel(1:chromeWarpPars.NMovieSets);
+
 for m=1:chromeWarpPars.NMovieSets
     chromeWarpPars.Chns{m} = parseCSL(chromeWarpPars.ChannelNames{m}); 
 end
+chromeWarpPars.Chns = chromeWarpPars.Chns(1:chromeWarpPars.NMovieSets);
 chromeWarpPars.QVorder = parseCSL(chromeWarpPars.ListQVorder); 
+disp('saving chromatic warp parameters...'); 
 pause(.1);
 close(ChromeWarpParameters); 
+
+catch
+    disp('reseting default values'); 
+    chromeWarpPars.OK  = false;
+    chromeWarpPars
+    ChromeWarpParsDefaults;
+end
 
 % --- Executes on selection change in SelectSet.
 function SelectSet_Callback(hObject, eventdata, handles)

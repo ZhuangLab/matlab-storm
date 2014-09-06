@@ -89,7 +89,9 @@ infoFile = [];
 subregion = [];
 verbose = true;
 orientation = 'normal';
+
 maxMemory = 10E9; % 1 Gb
+
 
 %--------------------------------------------------------------------------
 % Parse Required Input
@@ -229,7 +231,7 @@ if DoThis
     if isempty(subregion)     
         fid = fopen([infoFile.localPath fileName]);
         if fid < 0
-            error('Invalid file');
+            error(['Invalid file: ' infoFile.localPath fileName]);
         end
 
         fseek(fid,(frameSize*(startFrame - 1))*16/8,'bof'); % bits/(bytes per bit) 

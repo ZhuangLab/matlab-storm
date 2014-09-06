@@ -17,9 +17,14 @@ txtOut = {['parameters used = ',parsfile];
           ['binfile = ',binfile]};
 
 fid = fopen(binparsfile,'w+');
-for i=1:length(txtOut)
-  str = regexprep(txtOut{i},'\\','\\\'); % convert \ to \\.  
-  fprintf(fid,str,''); 
-  fprintf(fid,'%s\r\n','');
+try
+    for i=1:length(txtOut)
+      str = regexprep(txtOut{i},'\\','\\\'); % convert \ to \\.  
+      fprintf(fid,str,''); 
+      fprintf(fid,'%s\r\n','');
+    end
+    fclose(fid);
+catch er
+  warning(['could not write to file ',binparsfile]);
+  warning(er.getReport);
 end
-fclose(fid);
