@@ -94,9 +94,6 @@ matches21(multihits1_idx,:) = [];
 matched1 = matches21(:,2); 
 matched2 = matches21(:,1); 
 
-save([scratchPath,'test.mat']);
-load([scratchPath,'test.mat']);
-
 % idx(dist>parameters.maxD) = NaN;
 % 
 % matched1 =  v(n==1);  % the indices of points in image 1 who have only 1 match within maxD 
