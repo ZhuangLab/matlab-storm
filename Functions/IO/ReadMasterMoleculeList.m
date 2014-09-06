@@ -29,7 +29,9 @@ function [MList, memoryMap] = ReadMasterMoleculeList(varargin)
 %   structure of arrays.  The later is much more memory efficient. 
 %
 % 'ZScale'/positive (1): The value by which the Z data will be rescaled. 
-%    Useful for converting nm to pixels.   
+%    Useful for converting nm to pixels. 
+% 'transpose/boolean (false): Change the entries from Nx1 to 1xN.
+%
 %--------------------------------------------------------------------------
 % Jeffrey Moffitt
 % jeffmoffitt@gmail.com
@@ -116,6 +118,8 @@ if length(varargin)>1
                 compact = CheckParameter(parameterValue, 'boolean', parameterName);
             case 'ZScale'
                 ZScale = CheckParameter(parameterValue, 'positive', parameterName);
+            case 'transpose'
+                transpose = CheckParameter(parameterValue, 'boolean', parameterName);
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -209,6 +213,16 @@ if ~(ZScale == 1)
             tempZc = num2cell([MList(:).zc]/ZScale);
             [MList.zc] = deal(tempZc{:});
         end
+    end
+end
+
+%--------------------------------------------------------------------------
+% Transpose entries
+%--------------------------------------------------------------------------
+if compact & transpose
+    fieldNames = format(:,3);
+    for i=1:length(fieldNames)
+        MList.(fieldNames{i}) = MList.(fieldNames{i})';
     end
 end
 
