@@ -23,6 +23,7 @@ function value = CheckParameter(value, type, name)
 %           'fraction'
 %           'handle'
 %           'function'
+%           'map'
 % 
 % name/string: The name of the parameter to be checked
 %--------------------------------------------------------------------------
@@ -123,6 +124,10 @@ for i=1:length(type)
         case 'function'
             if ~strcmp(class(value), 'function_handle')
                 error([name ' is not a function handle']);
+            end
+        case 'map'
+            if ~strcmp(class(value), 'containers.Map')
+                error([name ' is not a containers.Map object']);
             end
         otherwise
             error([type{i} ' is not a valid type']);
