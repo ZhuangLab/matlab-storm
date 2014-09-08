@@ -73,6 +73,7 @@ global defaultDataPath;
 %--------------------------------------------------------------------------
 % Define default parameters
 %--------------------------------------------------------------------------
+transpose = false;
 verbose = true;
 compact = true;
 ZScale = 1;
