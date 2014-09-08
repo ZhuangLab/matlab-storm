@@ -24,6 +24,7 @@ function value = CheckParameter(value, type, name)
 %           'handle'
 %           'function'
 %           'map'
+%           'freeType'
 % 
 % name/string: The name of the parameter to be checked
 %--------------------------------------------------------------------------
@@ -129,6 +130,7 @@ for i=1:length(type)
             if ~strcmp(class(value), 'containers.Map')
                 error([name ' is not a containers.Map object']);
             end
+        case 'freeType'
         otherwise
             error([type{i} ' is not a valid type']);
     end
