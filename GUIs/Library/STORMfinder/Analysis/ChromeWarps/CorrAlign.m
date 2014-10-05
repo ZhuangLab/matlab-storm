@@ -22,20 +22,20 @@ end
 parameters = ParseVariableArguments(varargin, defaults, mfilename);
 
 
+[H,W] = size(Im1);
+corrM = xcorr2(single(Im1),single(Im2)); % The correlation map
+Hc = min(H,parameters.region);    
+Wc = min(W,parameters.region); 
+% Just the center of the correlation map  
+corrMmini = corrM(H-Hc/2+1:H+Hc/2,W-Wc/2+1:W+Wc/2);
+[~,indmax] =  max(corrMmini(:));
+[cy,cx] = ind2sub([Hc,Wc],indmax );
+xshift = (cx-Wc/2);
+yshift = (cy-Hc/2);
 
- [H,W] = size(Im1);
- corrM = xcorr2(single(Im1),single(Im2)); % The correlation map
-   Hc = min(H,parameters.region);    
-   Wc = min(W,parameters.region); 
- % Just the center of the correlation map  
-   corrMmini = corrM(H-Hc/2+1:H+Hc/2,W-Wc/2+1:W+Wc/2);
-   [~,indmax] =  max(corrMmini(:));
-   [cy,cx] = ind2sub([Hc,Wc],indmax );
-   xshift = (cx-Wc/2);
-   yshift = (cy-Hc/2);
-   
-   if parameters.showplot
-       subplot(1,2,1); Ncolor(cat(3,Im1,Im2));
-       subplot(1,2,2); imagesc(corrMmini);
- 
-   end
+if parameters.showplot
+   subplot(1,3,1); Ncolor(cat(3,Im1,Im2));
+   Im2 = TranslateImage(Im2,xshift,yshift);
+   subplot(1,3,2); Ncolor(cat(3,Im1,Im2)); freezeColors;
+   subplot(1,3,3); imagesc(corrMmini); colormap(jet(256));
+end

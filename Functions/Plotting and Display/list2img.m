@@ -314,7 +314,7 @@ for c=chns
       if autocontrast
         Iz = uint16(2^16*double(Iz)./double(maxint)); % normalize
       else
-          Iz = uint16(Iz); % normalize  
+          Iz = uint8(Iz); % normalize  
       end
      In{c} = Iz; % record
    

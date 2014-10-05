@@ -218,7 +218,6 @@ end
 [folders,daxnames,filetype] = cellfun(@(x) fileparts(x),daxnames,'UniformOutput',false);
 daxnames = strcat(daxnames,filetype);
 
-
 if ~isempty(folders{1})
     dpath = [folders{1},filesep];
 end

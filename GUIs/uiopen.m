@@ -3,7 +3,7 @@ function uiopen(type,direct)
 % file. Remember you are overloading uiopen inside toolbox/matlab/uitools
 %
 
-global myImage daxfile inffile inifile xmlfile mlist binfile stvfile
+global myImage daxfile inffile inifile xmlfile mlist binfile stvfile loadedData
 warning off all
 %---- dax file -----v
 if ((~isempty(findstr(type,'.dax'))) && (direct))
@@ -74,6 +74,11 @@ elseif ((~isempty(findstr(type,'.tif'))) && (direct))
     figure; imagesc(myImage);
     % TiffViewer;  % not yet out of Beta
     %-------------------------------------------------
+    
+%---- matb file: byteStream serialized matlab object -----v
+elseif ((~isempty(findstr(type,'.matb'))) && (direct))
+    disp('Loading variable into global loadedData');
+    loadedData = LoadByteStream(type);
     
 else
   % %   Matlab gets confused by finding these function names

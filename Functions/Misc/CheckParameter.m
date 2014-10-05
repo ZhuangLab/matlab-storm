@@ -10,10 +10,10 @@ function value = CheckParameter(value, type, name)
 % type/string or cell array of strings: A flag to specify the check
 %   conditions or the set of conditions to test
 %   Valid types: 
-%           'positive',
-%           'nonnegative',
-%           'struct',
-%           'cell',
+%           'positive'
+%           'nonnegative'
+%           'struct'
+%           'cell'
 %           'string'
 %           'boolean'
 %           'array' 
@@ -23,6 +23,9 @@ function value = CheckParameter(value, type, name)
 %           'fraction'
 %           'handle'
 %           'function'
+%           'map'
+%           'float'
+%           'integer'
 %           'freeType'
 % 
 % name/string: The name of the parameter to be checked
@@ -124,6 +127,14 @@ for i=1:length(type)
         case 'function'
             if ~strcmp(class(value), 'function_handle')
                 error([name ' is not a function handle']);
+            end
+        case 'map'
+            if ~strcmp(class(value), 'containers.Map')
+                error([name ' is not a containers.Map object']);
+            end
+        case 'float'
+            if ~isfloat(value)
+                error([name 'is not a float']); 
             end
         case 'freeType'
         otherwise

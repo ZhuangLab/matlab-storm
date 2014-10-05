@@ -56,5 +56,4 @@ display(['    daoSTORMexe = ' daoSTORMexe]);
 display(['    insightExe = ' insightExe]);
 display('------------------------------------------------------------------');
 
-%% Remove Non-global Variables 
-clear variables;
+

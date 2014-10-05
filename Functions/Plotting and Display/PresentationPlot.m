@@ -72,7 +72,7 @@ if isempty(axisWidth)
     axisWidth = lineWidth;
 end
 
-figure(figHandle);
+set(0, 'CurrentFigure', figHandle); %Makes figure current figure without forcing visibility
 ax = get(gcf, 'Children');
 set(gcf,'color',bkd); 
 

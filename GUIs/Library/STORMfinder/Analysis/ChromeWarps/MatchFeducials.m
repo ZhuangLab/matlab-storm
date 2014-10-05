@@ -90,6 +90,7 @@ end
 numFeducials = size(image2spots,1); 
 image2spotsw = image2spots + repmat([xshift,yshift],numFeducials,1);
 % Match unique nearest neighbors 
+
 if size(image1spots,1) >= size(image2spots,1)
     [idx1,dist1] = knnsearch(image1spots,image2spotsw); %  indices of image1spots nearest for each point in image2spots 
     matches21 = [ (1:size(image2spots,1))',idx1 ];
@@ -118,6 +119,30 @@ else
     matched2 = matches12(:,2); 
 end
     
+
+[idx1,dist1] = knnsearch(image1spots,image2spotsw); %  indices of image1spots nearest for each point in image2spots 
+matches21 = [ (1:size(image2spots,1))',idx1 ];
+matches21(  dist1>parameters.maxD, :) = [];   % remove distant points
+[v,n] = occurrences(idx1);
+multihits1 = v(n>1);
+multihits1_idx = ismember( matches21(:,2), multihits1);
+matches21(multihits1_idx,:) = [];
+
+matched1 = matches21(:,2); 
+matched2 = matches21(:,1); 
+
+% idx(dist>parameters.maxD) = NaN;
+% 
+% matched1 =  v(n==1);  % the indices of points in image 1 who have only 1 match within maxD 
+% matched2 = find(ismember(1:numel(image2spotsw(:,1)),matched1)); 
+% matched2 = find(ismember(matched1,idx)); 
+% 
+% % This really shouldn't be necessary, but something crazy happens above
+% dist2 = ( (image1spots(matched1,1)-image2spots(matched2,1)).^2 + (image1spots(matched1,2)-image2spots(matched2,2)).^2);
+% failDots = dist2 > parameters.maxTrueSeparation^2;
+% matched1(failDots) = [];
+% matched2(failDots) = [];
+
 
 %----------------- Plotting ---------
 if parameters.showPlots
