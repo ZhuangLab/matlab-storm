@@ -1,14 +1,27 @@
-function mosaicImage = LoadTiles()
+function [mosaicImage,mosaicPars] = LoadTiles(varargin)
+% [mosaicImage,mosaicPars] = LoadTiles() 
+%  -- Loads the steve mosaic currently in global variable stvfile and plots
+%  the results in figure(1) for the first 1000 frames.   
 
-global stvfile
 
+%%
+global stvfile steveMosaic
+
+% default parameters
+position = [0,0]
 showbox = false;
 shrk = 1; 
-N = 30; 
+N = 1000; 
 verbose = true; 
 showall = false;
 
-[mosaicFolder,mosaicName] = fileparts(stvfile);
+if length(varargin) == 0
+    mosaicFile = stvfile
+else
+    mosaicFile = varargin{1};
+end
+
+[mosaicFolder,mosaicName] = fileparts(mosaicFile);
 mosaicFolder = [regexprep(mosaicFolder,'\','/'),'/']; 
 
 
@@ -74,10 +87,15 @@ X = round(xp-xmin);
 Y = round(yp-ymin);
 
 
-xs = round(xs/shrk); 
-ys = round(ys/shrk); 
-X = round(X/shrk);
-Y = round(Y/shrk); 
+while max([ys,xs]) > 1E7
+   warning('Mosaic is larger than 1E7 x 1E7.  Downsampling...');
+   shrk = shrk*2; 
+    xs = round(xs/shrk); 
+    ys = round(ys/shrk); 
+    X = round(X/shrk);
+    Y = round(Y/shrk); 
+    disp(['downsampled mosaic ' ,num2str(shrk), ' fold']); 
+end
 
 % This is heavy on memory for large N or for scaling up low res images.
 mosaicImage = zeros(ys,xs,1,'uint16');
@@ -108,8 +126,8 @@ for k = 1:length(frames);
     
     
     
-  %   mosaicImage(y1:y2,x1:x2) = im;
-    mosaicImage(x1:x2,y1:y2) = fliplr( flipud(im) );
+     mosaicImage(y1:y2,x1:x2) = im';
+  %   mosaicImage(x1:x2,y1:y2) = fliplr( flipud(im) );
 
     if verbose
         if rem(k,5) == 0
@@ -124,18 +142,25 @@ end
 %--------- show plot
 figure(1); clf; 
 imOut = imadjust(mosaicImage,[0,1],[0,.5]);
-imagesc(99*imOut); 
+steveMosaic = 150*imOut;
+imagesc(steveMosaic); 
 colormap(gray(2^8));
+set(gcf,'color','w');
+axis image;
+disp('mosaic image saved in global variable steveMosaic'); 
 
 %-------------------- compute pixel to um conversion    
 %figure(2); plot(xu(mag==1),xp(mag==1),'k.');
 mx = ( max(xp(mag==1)) - min(xp(mag==1)) )/( max(xu(mag==1)) - min(xu(mag==1)) ) ;
 my = ( max(yp(mag==1)) - min(yp(mag==1)) )/( max(yu(mag==1)) - min(yu(mag==1)) ) ;
 
-box_cx = mx*position(1)-xmin-256;
-box_cy = my*position(2)-ymin-256;
-box_coords = [box_cx,box_cy,256,256];
-   
+mosaicPars.mx = mx; 
+mosaicPars.my = my;
+mosaicPars.xmin = xmin;
+mosaicPars.ymin = ymin;
+
+box_coords = PositionToBox(position,mosaicPars);
+
 if showbox && nargout==0;
 hold on;
   rectangle('Position',box_coords,'EdgeColor','w');
@@ -143,3 +168,6 @@ hold on;
   set(lin,'color','w','linewidth',3);
   hold off;
 end
+
+
+   
