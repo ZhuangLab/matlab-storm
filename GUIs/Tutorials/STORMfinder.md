@@ -118,7 +118,7 @@ In the field **daxfile name roots** just give it enough of the beginning of the 
 
 In the field **Parameter file name roots**, I changed "Ir" to "Vis". This will use the parameters files in the `matlab-storm\Defaults\` folder that begin with the channel name specified (i.e. "647") and contain Vis.  Alternatively if I save a parameters file in the same folder as my data which matches this convention, the software will use that parameter instead. (For example if I call the first channel "656" and save a parameters file "656_BeadParameters.xml" in the data folder, all fields of view on the left side will be analyzed using this parameter set).   
 
-![](https://github.com/ZhuangLab/matlab-storm/blob/master/GUIs/Tutorials/figs/ChromeWarpsEditedOptions.PNG)
+![](https://github.com/ZhuangLab/matlab-storm/blob/master/GUIs/Tutorials/figs/ChomeWarpsEditedOptions.PNG)
 
 **Dual/Quadview order** needs to list the channel names in the order they appear in the dax file from left to right in each frame.  If I was using the quadview I would need to name all for fields of view appropriately.  
 
@@ -138,7 +138,7 @@ You should see a graphic display of the matching between frames at this point.  
 
 If everything went well you should see a final report on the warp.
 
-![](https://github.com/ZhuangLab/matlab-storm/blob/master/GUIs/Tutorials/figs/BeadMatching.PNG)
+![](https://github.com/ZhuangLab/matlab-storm/blob/master/GUIs/Tutorials/figs/ChromeWarpsFinalMatches.PNG)
 
 Matlab will also record the overall warp accuracy (In my case it is ~10nm), and save a `chromewarps.mat` file.  This file is used by STORMrender and other aspects of `matlab-storm` to chromatically align channels.  
 
