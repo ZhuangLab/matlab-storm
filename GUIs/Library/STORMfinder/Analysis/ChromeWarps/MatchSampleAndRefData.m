@@ -66,6 +66,7 @@ for s=1:numSamples
     ref = cell(numFields,3); 
     sample = cell(numFields,3); 
     for k=1:numFields
+        try
         [matched1,matched2] = MatchFeducials(...
             [data(s).refchn(k).x,data(s).refchn(k).y],...
             [data(s).sample(k).x,data(s).sample(k).y],...
@@ -87,6 +88,13 @@ for s=1:numSamples
             disp(['frame ',num2str(k),': matched ',num2str(length(matched2)),...
                 ' of ',num2str(length(data(s).sample(k).x)),' ',...
                 data(s).sample(k).chn,' beads'])
+        end
+        catch er
+            if parameters.verbose
+                disp(['error aligning beads in filed ',num2str(k)]);
+                warning(er.getReport)
+                disp('skipping this field');
+            end
         end
     end
     dat(s).refchn.x = cat(1,ref{:,1});

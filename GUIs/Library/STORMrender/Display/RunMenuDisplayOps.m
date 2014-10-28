@@ -15,7 +15,8 @@ Dprompt = {
     'verbose'...
     'Plot corrected positions (xc, yc)',...
     'Color map',...
-    'Display resolution'};
+    'Display resolution',...
+    'Number of spot diameters'};
 default_Dopts{1} = num2str(SR{handles.gui_number}.DisplayOps.ColorZ);
 default_Dopts{2} = num2str(SR{handles.gui_number}.DisplayOps.Zsteps);
 default_Dopts{3} = strcat('[',num2str(SR{handles.gui_number}.DisplayOps.zrange),']');
@@ -27,6 +28,7 @@ default_Dopts{8} = num2str(SR{handles.gui_number}.DisplayOps.verbose);
 default_Dopts{9} = num2str(SR{handles.gui_number}.DisplayOps.CorrDrift);
 default_Dopts{10} = num2str(SR{handles.gui_number}.DisplayOps.clrmap);
 default_Dopts{11} = num2str(SR{handles.gui_number}.DisplayOps.resolution);
+default_Dopts{12} = num2str(SR{handles.gui_number}.DisplayOps.NumDiameters);
 % if the menu is screwed up, reset 
 try
 default_Dopts = inputdlg(Dprompt,dlg_title,num_lines,default_Dopts);
@@ -43,7 +45,8 @@ catch er
     'true',...
     'true',...
     'hsv',...
-    '512'};
+    '512',...
+    '1'};
 end
 if length(default_Dopts) > 1 % Do nothing if canceled
     newResolution = eval(default_Dopts{11});
@@ -64,6 +67,7 @@ if length(default_Dopts) > 1 % Do nothing if canceled
     SR{handles.gui_number}.DisplayOps.CorrDrift= eval(default_Dopts{9});
     SR{handles.gui_number}.DisplayOps.clrmap = default_Dopts{10};
     SR{handles.gui_number}.DisplayOps.resolution= newResolution;
+    SR{handles.gui_number}.DisplayOps.NumDiameters = eval(default_Dopts{12});
     if updateRes
         ImSetup(hObject,eventdata, handles);
     end  

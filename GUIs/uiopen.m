@@ -30,8 +30,9 @@ elseif ((~isempty(findstr(type,'.msc'))) && (direct))
     disp(type);
     stvfile = type;
     if ~isempty(stvfile)
-       ConvertStv2Mat;
-       SteveMosaicViewer;
+       ConvertStv2Mat();
+       LoadTiles();
+       % SteveMosaicViewer;
     end    
     
     

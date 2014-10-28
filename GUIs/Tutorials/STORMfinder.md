@@ -100,6 +100,51 @@ The curve coefficients are also printed to the matlab command window.  As we can
 
 ## Computing Chromatic Warp Maps
 
-To compute a chromatic warp map to correct for chromatic aberrations between different color channels, you will need a a series of `.dax` movies of the same beads visible in each channel (either use multi-color beads or use high laser excitation and use the fluorescent blead-through).  
+To compute a chromatic warp map to correct for chromatic aberrations between different color channels, you will need a a series of `.dax` movies of the same beads, visible in each channel (either use multi-color beads or use high laser excitation and use the fluorescent blead-through).  
+
+In this example, my bead image is called `VisBeads540_560_0_0.dax`.  There are 35 more like it where the final numbers change. 
+
+![](https://github.com/ZhuangLab/matlab-storm/blob/master/GUIs/Tutorials/figs/STORMfinderComputeChromaticWarp.PNG)
+
+Firs we select Compute Chromatic Warp from the Analysis Menu.  You should get a popup menu that looks like this.
+
+![](https://github.com/ZhuangLab/matlab-storm/blob/master/GUIs/Tutorials/figs/ChromeWarpOptionsMenu.PNG)
+
+Since we are computing warps from only 1 movie type, change **Number of sets** from 2 to 1.
+
+In the field **Channel Names** we list the names of the color channels we're using.  I have the 647 channel on the left and the 561 channel on the right, so I type, "647,561".  
+
+In the field **daxfile name roots** just give it enough of the beginning of the common file name so that it can find all bead files you wish to combine and not confuse other files.  For me "VisBeads" is sufficient.  
+
+In the field **Parameter file name roots**, I changed "Ir" to "Vis". This will use the parameters files in the `matlab-storm\Defaults\` folder that begin with the channel name specified (i.e. "647") and contain Vis.  Alternatively if I save a parameters file in the same folder as my data which matches this convention, the software will use that parameter instead. (For example if I call the first channel "656" and save a parameters file "656_BeadParameters.xml" in the data folder, all fields of view on the left side will be analyzed using this parameter set).   
+
+![](https://github.com/ZhuangLab/matlab-storm/blob/master/GUIs/Tutorials/figs/ChomeWarpsEditedOptions.PNG)
+
+**Dual/Quadview order** needs to list the channel names in the order they appear in the dax file from left to right in each frame.  If I was using the quadview I would need to name all for fields of view appropriately.  
+
+The **Camera mode** Options are obsolete, the new code will automatically figure out if the data is dual-view or quadview by assuming the fields of view are 256x256.  
+
+
 
 Run "Analysis", Compute Chromatic Warp.   
+
+Matlab will take a moment to run DaoSTORM to fit all your bead data.  It will then start trying to match beads between frames.  
+
+You should see a graphic display of the matching between frames at this point.  It looks something like this:
+
+![](https://github.com/ZhuangLab/matlab-storm/blob/master/GUIs/Tutorials/figs/BeadMatching.PNG)
+
+ If the matches look off or there are many fewer or many more dots per image than you expect to see per frame, your parameters file probably need to be recalibrated.
+
+If everything went well you should see a final report on the warp.
+
+![](https://github.com/ZhuangLab/matlab-storm/blob/master/GUIs/Tutorials/figs/ChromeWarpsFinalMatches.PNG)
+
+Matlab will also record the overall warp accuracy (In my case it is ~10nm), and save a `chromewarps.mat` file.  This file is used by STORMrender and other aspects of `matlab-storm` to chromatically align channels.  
+
+### Manually Apply Chromatic Warp  
+You can also manually apply chromatic warps to your molecule lists with the `ApplyChromeWarp` function.   If you pass the function `ApplyChromeWarp` a cell array of molecule lists, and a cell array which lists the channel names of the molecule lists in the first array, where these name match the names you specified when you ran the Compute Chromatic Warp function (e.g. 647, 750 etc), and the location of the chromewarps.mat file, you will get back new molecule lists where the .xc and .yc coordinates contain your chromatically adjusted positions.  For example:
+
+     correctedMoleculeLists = ApplyChromeWarps({moleculeList750, moleculeList647},{'750','647'},'C:\Data\chromewarps.mat')
+     corrected750 = correctedMoleculeLists{1}
+     corrected647 = correctedMoleculeLists{2}  
