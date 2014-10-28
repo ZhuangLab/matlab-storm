@@ -7,19 +7,45 @@ function [mosaicImage,mosaicPars] = LoadTiles(varargin)
 %%
 global stvfile steveMosaic
 
-% default parameters
-position = [0,0]
-showbox = false;
-shrk = 1; 
-N = 1000; 
-verbose = true; 
-showall = false;
+% -------------------------------------------------------------------------
+% Default variables
+% -------------------------------------------------------------------------
+defaults = cell(0,3);
+defaults(end+1,:) = {'verbose', 'boolean', true}; 
+defaults(end+1,:) = {'showall', 'boolean', true}; 
+defaults(end+1,:) = {'showbox', 'boolean', false};  % plot box over seed position 
+defaults(end+1,:) = {'shrk', 'positive', 1}; 
+defaults(end+1,:) = {'position', 'array', [0,0]};  % seed position
+defaults(end+1,:) = {'N', 'positive', 2000};  % max number of tiles around seed position 
+
+% -------------------------------------------------------------------------
+% Parse variable input
+% -------------------------------------------------------------------------
 
 if length(varargin) == 0
-    mosaicFile = stvfile
-else
+    mosaicFile = stvfile;
+    varInput = [];
+else length(varargin) 
     mosaicFile = varargin{1};
+    varInput = [];
 end
+if length(varargin) > 1
+    varInput = varargin(2:end);
+end
+
+parameters = ParseVariableArguments(varInput, defaults, mfilename);
+
+% default parameters
+verbose = parameters.verbose; 
+showall = parameters.showall;
+position = parameters.position;
+showbox = parameters.showbox;
+shrk = parameters.shrk; 
+N = parameters.N; 
+
+
+
+%% Main Function
 
 [mosaicFolder,mosaicName] = fileparts(mosaicFile);
 mosaicFolder = [regexprep(mosaicFolder,'\','/'),'/']; 
@@ -141,13 +167,13 @@ end
 
 %--------- show plot
 figure(1); clf; 
-imOut = imadjust(mosaicImage,[0,1],[0,.5]);
-steveMosaic = 150*imOut;
-imagesc(steveMosaic); 
+imOut = imadjust(mosaicImage,stretchlim(mosaicImage,0.001));
+imagesc(imOut); 
 colormap(gray(2^8));
 set(gcf,'color','w');
 axis image;
-disp('mosaic image saved in global variable steveMosaic'); 
+steveMosaic = imOut;
+disp('saved mosaic image in global variable steveMosaic'); 
 
 %-------------------- compute pixel to um conversion    
 %figure(2); plot(xu(mag==1),xp(mag==1),'k.');
