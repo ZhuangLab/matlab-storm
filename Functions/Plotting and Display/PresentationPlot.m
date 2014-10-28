@@ -58,6 +58,8 @@ if nargin >= 2
                 axisWidth = CheckParameter(parameterValue, 'nonnegative', parameterName);
             case 'MarkerWidth'
                 markerWidth = CheckParameter(parameterValue, 'nonnegative', parameterName);
+            case 'MarkerSize'
+                markerSize = CheckParameter(parameterValue, 'nonnegative', parameterName);
             case 'FigureHandle'
                 figHandle = CheckParameter(parameterValue, 'positive', parameterName);
             case 'Background'
