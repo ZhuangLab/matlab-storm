@@ -53,7 +53,7 @@ global ScratchPath
 % Default Parameters
 %--------------------------------------------------------------------------
 verbose = true; 
-warpD = 3;
+warpD = 2;
 fnames = {};
 % warpfile = 'I:\2013-02-09_fab7Pc\Beads\3DBeads1\chromewarps.mat';
 
