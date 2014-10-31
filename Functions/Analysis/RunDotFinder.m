@@ -316,9 +316,11 @@ if sum(hasbin) ~= 0
         overwritefiles = 2; 
               disp(txtout);
         disp('these files will be skipped.  ');
+    elseif overwrite == 3
+        overwritefiles = overwrite;
+        disp('these files will resume from last fit frame...')
     else
-        disp(overwrite)
-        disp('is not a valid value for overwrite'); 
+        error([num2str(overwrite), ' is not a valid value for overwrite']); 
     end
     if overwritefiles==1    
         % files must be physically deleted to enable a fresh daoSTORM
