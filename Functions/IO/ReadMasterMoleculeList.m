@@ -30,8 +30,11 @@ function [MList, memoryMap] = ReadMasterMoleculeList(varargin)
 %
 % 'ZScale'/positive (1): The value by which the Z data will be rescaled. 
 %    Useful for converting nm to pixels. 
+%
 % 'transpose/boolean (false): Change the entries from Nx1 to 1xN.
 %
+% 'fieldsToLoad'/cell (all fields): Load only the subset of fields provided
+%   in this option. 
 %--------------------------------------------------------------------------
 % Jeffrey Moffitt
 % jeffmoffitt@gmail.com
@@ -65,6 +68,7 @@ format = {...
 headerSize = 16;
 numEntries = 18;
 entrySize = 4;
+
 %--------------------------------------------------------------------------
 % Global Variables
 %--------------------------------------------------------------------------
@@ -77,6 +81,7 @@ transpose = false;
 verbose = true;
 compact = true;
 ZScale = 1;
+fieldsToLoad = format(:,3);
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -121,6 +126,8 @@ if length(varargin)>1
                 ZScale = CheckParameter(parameterValue, 'positive', parameterName);
             case 'transpose'
                 transpose = CheckParameter(parameterValue, 'boolean', parameterName);
+            case 'fieldsToLoad'
+                fieldsToLoad = CheckParameter(parameterValue, 'cell', parameterName);
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -167,6 +174,11 @@ if numMoleculesFrame0 >  20E6
 end
 
 %--------------------------------------------------------------------------
+% Confirm provided fields are valid
+%--------------------------------------------------------------------------
+fieldIndsToLoad = find(ismember(format(:,3), fieldsToLoad));
+
+%--------------------------------------------------------------------------
 % Create memory map
 %--------------------------------------------------------------------------
 try
@@ -179,17 +191,17 @@ try
 
         MList = memoryMap.Data;
     else %compact
-        MList = CreateMoleculeList(numMoleculesFrame0, 'compact', true); %Allocate memory
+        MList = CreateMoleculeList(numMoleculesFrame0, 'compact', true, 'fieldsToLoad', fieldsToLoad); %Allocate memory
         memoryMap = memmapfile(fileName, ...
                 'Format', 'int32', ...
                 'Writable', false, ...
                 'Offset', headerSize, ...
                 'Repeat', inf);
 
-        for i=1:length(format)
-            memoryMap.Format = format{i,1};
-            memoryMap.Offset = headerSize + (i-1)*entrySize;
-            MList.(format{i,3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
+        for i=1:length(fieldIndsToLoad)
+            memoryMap.Format = format{fieldIndsToLoad(i),1};
+            memoryMap.Offset = headerSize + (fieldIndsToLoad(i)-1)*entrySize;
+            MList.(format{fieldIndsToLoad(i),3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
         end
     end
 catch % Handle corrupt file
@@ -199,20 +211,30 @@ catch % Handle corrupt file
 end
 
 %--------------------------------------------------------------------------
+% Remove fields not loaded
+%--------------------------------------------------------------------------
+
+
+
+%--------------------------------------------------------------------------
 % Rescale Z if necessary
 %--------------------------------------------------------------------------
 if ~(ZScale == 1) 
     if compact 
-        if ~isempty(MList.z)
+        if isfield(MList, 'z') && ~isempty(MList.z) 
             MList.z = MList.z/ZScale;
-            MList.zc = MList.zc/ZScale;
+            if isfield(MList, 'zc')
+                MList.zc = MList.zc/ZScale;
+            end
         end
     else
-        if ~isempty(MList)
+        if isfield(MList, 'z') && ~isempty(MList)
             tempZ = num2cell([MList(:).z]/ZScale);
             [MList.z] = deal(tempZ{:});
-            tempZc = num2cell([MList(:).zc]/ZScale);
-            [MList.zc] = deal(tempZc{:});
+            if isfield(MList, 'zc')
+                tempZc = num2cell([MList(:).zc]/ZScale);
+                [MList.zc] = deal(tempZc{:});
+            end
         end
     end
 end
@@ -221,9 +243,9 @@ end
 % Transpose entries
 %--------------------------------------------------------------------------
 if compact & transpose
-    fieldNames = format(:,3);
-    for i=1:length(fieldNames)
-        MList.(fieldNames{i}) = MList.(fieldNames{i})';
+    foundFields = fields(MList);
+    for i=1:length(foundFields)
+        MList.(foundFields{i}) = MList.(foundFields{i})';
     end
 end
 

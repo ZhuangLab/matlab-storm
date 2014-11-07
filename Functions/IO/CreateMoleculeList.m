@@ -14,6 +14,8 @@ function MList = CreateMoleculeList(numElements, varargin)
 % Variable Inputs:
 % 'compact'/boolean (false): A flag which controls whether the molecule
 %   list is an array of structures or a structure with array elements
+% 'fieldsToLoad'/cell (all fields): Create only the subset of fields provided
+%   in this option. 
 %--------------------------------------------------------------------------
 % Jeffrey Moffitt
 % jeffmoffitt@gmail.com
@@ -41,6 +43,7 @@ defaultValues = {'nan', 'nan', 'nan', 'nan', 'nan', 'nan', 'nan', 'nan', 'nan', 
 % Default Parameters
 %--------------------------------------------------------------------------
 compact = true;
+fieldsToLoad = fieldNames;
 
 %--------------------------------------------------------------------------
 % Parse Required Input
@@ -48,6 +51,7 @@ compact = true;
 if nargin < 1
     numElements = 0; %Return empty, compact MList
 end
+
 %--------------------------------------------------------------------------
 % Parse Variable Input
 %--------------------------------------------------------------------------
@@ -63,6 +67,8 @@ if nargin > 1
         switch parameterName
             case 'compact'
                 compact = CheckParameter(parameterValue, 'boolean', parameterName);
+            case 'fieldsToLoad'
+                fieldsToLoad = CheckParameter(parameterValue, 'cell', parameterName);
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -70,18 +76,24 @@ if nargin > 1
 end
 
 %--------------------------------------------------------------------------
+% Parse Variable Input
+%--------------------------------------------------------------------------
+fieldIndsToLoad = find(ismember(fieldNames, fieldsToLoad));
+
+%--------------------------------------------------------------------------
 % Create Molecule Structure
 %--------------------------------------------------------------------------
 if ~compact
-    for i=1:length(fieldNames)
-        MList.(fieldNames{i}) = eval([fieldTypes{i} '(' defaultValues{i} ')']);
+    for i=1:length(fieldIndsToLoad)
+        MList.(fieldNames{fieldIndsToLoad(i)}) = ...
+            eval([fieldTypes{fieldIndsToLoad(i)} '(' defaultValues{fieldIndsToLoad(i)} ')']);
     end
     MList = repmat(MList, [1 numElements]);
 else
-    for i=1:length(fieldNames)
-        MList.(fieldNames{i}) = eval([fieldTypes{i} '(' defaultValues{i} '*ones(' ...
+    for i=1:length(fieldIndsToLoad)
+        MList.(fieldNames{fieldIndsToLoad(i)}) = ...
+            eval([fieldTypes{fieldIndsToLoad(i)} '(' defaultValues{fieldIndsToLoad(i)} '*ones(' ...
             num2str(numElements) ', 1) )']);
     end
 end
-
 
