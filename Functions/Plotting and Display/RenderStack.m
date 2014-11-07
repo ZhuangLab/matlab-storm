@@ -41,6 +41,7 @@ defaults(end+1,:) = {'imageScale', 'positive', 10};
 defaults(end+1,:) = {'view', 'cell', {'x', 'y', 'z'}}; % Note that this is an overload
 defaults(end+1,:) = {'photonsField', 'string', 'a'};
 defaults(end+1,:) = {'matSizeScale', 'positive', 5};
+defaults(end+1,:) = {'verbose', 'boolean', false};
 
 % -------------------------------------------------------------------------
 % Parse necessary input
@@ -53,6 +54,13 @@ end
 % Parse variable input
 % -------------------------------------------------------------------------
 parameters = ParseVariableArguments(varargin, defaults, mfilename);
+
+% -------------------------------------------------------------------------
+% Timing if verbose
+% -------------------------------------------------------------------------
+if parameters.verbose
+    tic;
+end
 
 % -------------------------------------------------------------------------
 % Build data array
@@ -109,4 +117,11 @@ renderedImages = zeros(dim(1), dim(2), length(range)-1);
 % -------------------------------------------------------------------------
 for i=1:(length(range)-1)
     renderedImages(:,:,i) = RenderMList(data(inds==i,1:2), 'parameters', parameters);
+end
+
+% -------------------------------------------------------------------------
+% Performance reporting
+% -------------------------------------------------------------------------
+if parameters.verbose
+    display(['Rendered stack in ' num2str(toc) ' s']);
 end
