@@ -14,19 +14,23 @@ function savename = IncrementSaveName(savename)
 % 
 %-------------------------------------------------------------------------
 
-disp('incrementing save name');
-savename
+if ~exist(savename)
+    savename = savename;
+else
+    disp('incrementing save name');
+    disp(['new savename = ',savename]);
 
- currnumIdx = strfind(savename,'_save');
- nameEnd = strfind(savename,'.');
- nameEnd = nameEnd(end); % the last dot
- if isempty(nameEnd)
-     nameEnd = length(savename);
- end
- if isempty(currnumIdx)
-    savename = [savename(1:nameEnd-1),'_save2',savename(nameEnd:end)];
- else
-     currnum = str2double(savename(currnumIdx+5:nameEnd-1));
-     newnum = currnum + 1;
-     savename = [savename(1:currnumIdx+4),num2str(newnum),savename(nameEnd:end)];
+     currnumIdx = strfind(savename,'_save');
+     nameEnd = strfind(savename,'.');
+     nameEnd = nameEnd(end); % the last dot
+     if isempty(nameEnd)
+         nameEnd = length(savename);
+     end
+     if isempty(currnumIdx)
+        savename = [savename(1:nameEnd-1),'_save2',savename(nameEnd:end)];
+     else
+         currnum = str2double(savename(currnumIdx+5:nameEnd-1));
+         newnum = currnum + 1;
+         savename = [savename(1:currnumIdx+4),num2str(newnum),savename(nameEnd:end)];
+     end
  end
