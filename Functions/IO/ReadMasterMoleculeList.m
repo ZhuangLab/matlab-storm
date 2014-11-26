@@ -96,7 +96,7 @@ if isempty(fileName)
     [fileName, pathName] = uigetfile([defaultDataPath '*_list.bin']);
     if fileName == 0
         display('Canceled file load');
-        MList = [];
+        MList = CreateMoleculeList(0, 'compact', compact);
         return;
     end
     fileName = [pathName fileName];
