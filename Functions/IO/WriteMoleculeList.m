@@ -154,6 +154,10 @@ fwrite(fid, version);
 fwrite(fid, numFrames, 'int32');
 fwrite(fid, status, 'int32');
 
+if verbose
+    display(['Writing: ' newFile]);
+end
+
 %--------------------------------------------------------------------------
 % Write master list (Frame 0)
 %--------------------------------------------------------------------------
@@ -181,6 +185,7 @@ else
         display(['Wrote ' num2str(length(MList.x)) ' molecules to master molecule list']);
     end
 end
+
 %--------------------------------------------------------------------------
 % Write additional frames (Frame 1 -> N)
 %--------------------------------------------------------------------------
@@ -195,9 +200,10 @@ else
         end
     end
 end
-if verbose
-    display(['Wrote ' num2str(numFrames) ' frames']);
-end
+% if verbose
+%     display(['Wrote ' num2str(numFrames) ' frames']);
+% end
+
 %--------------------------------------------------------------------------
 % Close file ID
 %--------------------------------------------------------------------------
