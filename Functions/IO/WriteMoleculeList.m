@@ -175,12 +175,20 @@ if ~compact
 else
     fwrite(fid, length(MList.x), 'int32');
     
+    % Write first values
+    i=1;
+    for j=1:length(fieldNames)
+        fwrite(fid, MList.(fieldNames{j})(i), fieldTypes{j});  
+    end
     
-    for i=1:length(MList.x)
+    if length(MList.x) > 1
         for j=1:length(fieldNames)
-            fwrite(fid, MList.(fieldNames{j})(i), fieldTypes{j});  %Could be faster
+            frewind(fid);
+            fseek(fid, 4*4 +4*j, 'bof');
+            fwrite(fid, MList.(fieldNames{j})(2:end), fieldTypes{j}, 4*(length(fieldNames)-1));
         end
     end
+    
     if verbose
         display(['Wrote ' num2str(length(MList.x)) ' molecules to master molecule list']);
     end
