@@ -2,7 +2,7 @@ function [mosaicImage,mosaicPars] = LoadTiles(varargin)
 % [mosaicImage,mosaicPars] = LoadTiles() 
 %  -- Loads the steve mosaic currently in global variable stvfile and plots
 %  the results in figure(1) for the first 1000 frames.   
-
+% [mosaicImage,mosaicPars] = LoadTiles(mosaicFile) 
 
 %%
 global stvfile steveMosaic

@@ -89,6 +89,7 @@ fastMode = false;
 verbose = false;
 veryverbose = false;
 autocontrast = true; 
+wc = [];  % optionally specify array of dot sizes; 
 
 if isstruct(mlist)
     mlist = {mlist};
@@ -203,6 +204,8 @@ if ~isempty(varinput)
                 zm = CheckParameter(parameterValue,'positive','zoom');
             case 'autocontrast'
                 autocontrast = CheckParameter(parameterValue,'boolean','autocontrast');
+            case 'wc'
+                wc = CheckParameter(parameterValue,'array','wc');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -275,6 +278,11 @@ In = cell(Cs,1);
 
 for c=chns   
     
+    if isempty(wc)
+        wc = linspace(.01*dotsize(c), .05*dotsize(c),N+1)*zm; 
+    else
+        N = length(wc);
+    end
     % Min and Max Sigma
     a = mlist{c}.a;
     sigC{c} = real(4./sqrt(a)); % 5
@@ -284,7 +292,7 @@ for c=chns
     gc = fliplr(800*linspace(.5,8,N+1)); % intensity of dots. also linear in root photon number
     wdth = linspace(min_sig, max_sig,N+1); 
     wdth(end) = inf; 
-    wc = linspace(.01*dotsize(c), .05*dotsize(c),N+1)*zm; 
+ 
     
     % actually build image
     maxint = 0; 
@@ -301,7 +309,7 @@ for c=chns
             yi = y{c}(plotdots)*zm-imaxes.ymin*zm;
            
             It = hist3([yi,xi],'Edges',{0:H-1,0:W-1}); % drop all molecules into chosen x,y bin   {1.5:h*zm+.5, 1.5:w*zm+.5}
-            gaussblur = fspecial('gaussian',150,wc(n)); % create gaussian filter of appropriate width
+            gaussblur = fspecial('gaussian',250,wc(n)); % create gaussian filter of appropriate width
             if ~fastMode
                 It = imfilter(gc(n)*It,gaussblur); % convert into gaussian of appropriate width
             end
