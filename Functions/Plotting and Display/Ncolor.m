@@ -75,6 +75,7 @@ else
         % load([scratchPath,'troubleshoot.mat']);
         warning(er.getReport);
         warning(['Data saved in:' scratchPath,'troubleshoot.mat']);
+        warning(['expected ',num2str(numColors),' found ',num2str(size(Io,3)),' colors.']);
         error('error running Ncolor'); 
     end
 end

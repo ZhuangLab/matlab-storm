@@ -85,7 +85,7 @@ verbalize = false;
 outputInMatlab = false;
 recursionDepth = 1;
 waitTime = 15; % Determines the wait between pooling jobs to see if they are done in seconds
-
+requiredString = '';
 %--------------------------------------------------------------------------
 % Parse Variable Input
 %--------------------------------------------------------------------------
@@ -127,6 +127,8 @@ if nargin > 1
                 outputInMatlab = CheckParameter(parameterValue, 'boolean', 'outputInMatlab');
             case 'waitTime'
                 waitTime = CheckParameter(parameterValue, 'positive', 'waitTime');
+            case 'requiredString'
+                requiredString = CheckParameter(parameterValue, 'string', 'requiredString');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -209,6 +211,13 @@ end
 if isempty(infoFiles)
     for i=1:length(dataPaths)
         files = dir([dataPaths{i} '*.inf']);
+        
+        % Remove files that do not match required string
+        if ~isempty(requiredString)
+            indsToKeep = cellfun(@(x) ~isempty(regexp(x, requiredString)), {files.name});
+            files = files(indsToKeep);
+        end
+        
         if isempty(files)
             if verbose
                 display(['No .inf files in ' dataPaths{i}]);
