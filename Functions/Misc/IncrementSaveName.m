@@ -43,7 +43,12 @@ parameters = ParseVariableArguments(varargin, defaults, mfilename);
 
 if ~parameters.overwrite
     done = false;
-    count = 0;
+    countStartIdx = regexp(name,'\([0-9]*\.?[0-9]\)'); % find numbers in parenthesis
+    if ~isempty(countStartIdx)
+        count = num2str(name(countStartIdx+1:end-1));
+    else
+        count = 0;
+    end
     newName = name;
     while ~done
         done = false;
