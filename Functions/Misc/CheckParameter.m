@@ -136,6 +136,10 @@ for i=1:length(type)
             if ~isfloat(value)
                 error([name 'is not a float']); 
             end
+        case 'parallel'
+            if ~strcmp(class(value), 'parallel.Pool')
+                error([name ' is not a parallel.Pool object']);
+            end
         case 'freeType'
         otherwise
             error([type{i} ' is not a valid type']);
