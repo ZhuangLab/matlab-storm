@@ -23,8 +23,8 @@ end
 parameters = ParseVariableArguments(varargin, defaults, mfilename);
 
 if parameters.upsample ~= 1
-Im1 = imresize(Im1,parameters.upsample);
-Im2 = imresize(Im2,parameters.upsample);
+    Im1 = imresize(Im1,parameters.upsample);
+    Im2 = imresize(Im2,parameters.upsample);
 end
 
 [H,W] = size(Im1);
@@ -41,8 +41,6 @@ yshift = (cy-Hc/2);
 if parameters.showplot
    subplot(1,3,1); Ncolor(cat(3,Im1,Im2));
    Im2 = TranslateImage(Im2,xshift,yshift);
-   size(Im1)
-   size(Im2)
    subplot(1,3,2); Ncolor(cat(3,Im1,Im2)); freezeColors;
    subplot(1,3,3); imagesc(corrMmini); colormap(jet(256));
 end
