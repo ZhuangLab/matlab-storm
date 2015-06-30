@@ -43,6 +43,7 @@ function [imageOut, warpError] = WarpImage(imageIn,chnName,warpfile,varargin)
 % Default Parameters
 %--------------------------------------------------------------------------
 verbose = true; 
+reverse = false;
 % warpfile = 'I:\2013-02-09_fab7Pc\Beads\3DBeads1\chromewarps.mat';
 
 %--------------------------------------------------------------------------
@@ -61,7 +62,9 @@ if nargin > 3
         parameterValue = varargin{parameterIndex*2};
         switch parameterName    
             case 'verbose'
-                verbose = CheckParameter(parameterValue,'boolean','verbose');                
+                verbose = CheckParameter(parameterValue,'boolean','verbose');      
+            case 'reverse'
+                reverse = CheckParameter(parameterValue,'boolean','reverse');      
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -82,10 +85,18 @@ end
 
 chnIdx = find(strcmp(chn_warp_names(:,1),chnName)); 
 if ~isempty(chnIdx)
-    imageOut = imtransform(imageIn,tform_1_inv{chnIdx},...
+    if ~reverse
+        imageOut = imtransform(imageIn,tform_1_inv{chnIdx},...
                 'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<*DIMTRNS,USENS>
-    imageOut = imtransform(imageOut,tform2D_inv{chnIdx},...
+        imageOut = imtransform(imageOut,tform2D_inv{chnIdx},...
                 'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<USENS>
+    else
+        imageOut = imtransform(imageIn,tform_1{chnIdx},...
+                'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<*DIMTRNS,USENS>
+        imageOut = imtransform(imageOut,tform2D{chnIdx},...
+                'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<USENS>
+    end
+            
     warpError = cdf2D_thresh(chnIdx);
     if verbose
         disp(['Data mapped using ',...

@@ -166,8 +166,8 @@ end
 % Load molecule list
 [bead_path,daxname] = extractpath(daxfile);
 try
-    binfile = regexprep(daxfile,'.dax','_list.bin');
-    froot = regexprep(daxname,'.dax','');
+    binfile = regexprep(daxfile,'\.dax','_list.bin');
+    froot = regexprep(daxname,'\.dax','');
     mlist = ReadMasterMoleculeList(binfile);
 catch
     binfile = regexprep(daxfile,'_list.bin','_mlist.bin');
@@ -183,7 +183,7 @@ wy = mlist.w .* sqrt(mlist.ax);  % *
 z = mlist.z;
 
 % Get the stage file 
-scanzfile = [bead_path,'\',froot,'.off'];
+scanzfile = [bead_path,'\',froot,'\.off'];
 fid = fopen(scanzfile);
 stage = textscan(fid, '%d\t%f\t%f\t%f','headerlines',1);
 fclose(fid);
@@ -391,7 +391,7 @@ commonZ = linspace(-600,600,100);
 fitWx = zeros(Nfeducials,100);
 fitWy = zeros(Nfeducials,100);
 for i=1:Nfeducials;
-    if ~isempty(Wxf{i});
+    if ~isempty(Wxf{i}) && ~isempty(Wyf{i})
         fitWx(i,:) = feval(Wxf{i},commonZ);
         fitWy(i,:) = feval(Wyf{i},commonZ);
     end
@@ -435,7 +435,7 @@ if showPlots
     set(gcf,'color','w'); set(gca,'FontSize',16);
     xlabel('Z-position'), ylabel('dot-width'); legend('wx','wy');
     title('curve fits');
-    savePlot = regexprep(daxfile,'.dax','_zfit.png');
+    savePlot = regexprep(daxfile,'\.dax','_zfit.png');
     saveas(zcurvePlot,savePlot);
     if verbose; 
         disp(['wrote: ',savePlot]);
@@ -452,7 +452,7 @@ if isempty(templateFile)
 end
 
 if isempty(newFile)
-    newFile = regexprep(daxfile,'.dax',['_zpars',parstype]);
+    newFile = regexprep(daxfile,'\.dax',['_zpars',parstype]);
 end
     
 writeZfit2ini(templateFile,newFile,wx_fit,wy_fit,'verbose',true,'parstype',parstype)
