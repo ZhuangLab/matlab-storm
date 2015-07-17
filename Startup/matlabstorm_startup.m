@@ -51,7 +51,7 @@ daoSTORMexe = [setWindowsPaths,setPythonPaths,daoSTORMcmd];
 display('Created STORM-Specific Global Variables:');
 display(['    ScratchPath = ' scratchPath]);
 display(['    defaultIniFile = ' defaultIniFile]);
-display(['    defaultIniFile = ' defaultXmlFile]);
+display(['    defaultXmlFile = ' defaultXmlFile]);
 display(['    daoSTORMexe = ' daoSTORMexe]);
 display(['    insightExe = ' insightExe]);
 display('------------------------------------------------------------------');
