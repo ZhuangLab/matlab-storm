@@ -330,7 +330,7 @@ if sum(hasbin) ~= 0
             for a = find(logical(hasbin))';
                 disp(['deleting ',binnames{a}]);          
                 delete(binnames{a});
-                alistname = regexprep(binnames{a},'_mlist.bin','_alist.bin');
+                alistname = regexprep(binnames{a},'_mlist\.bin','_alist\.bin');
                 if exist(alistname,'file')>0
                     delete(alistname);
                 end
