@@ -86,6 +86,8 @@ outputInMatlab = false;
 recursionDepth = 1;
 waitTime = 15; % Determines the wait between pooling jobs to see if they are done in seconds
 requiredString = '';
+prefix = [];
+
 %--------------------------------------------------------------------------
 % Parse Variable Input
 %--------------------------------------------------------------------------
@@ -115,6 +117,8 @@ if nargin > 1
                 overwrite  = CheckParameter(parameterValue, 'boolean', 'overwrite');
             case 'numParallel'
                 numParallel = CheckParameter(parameterValue, 'positive', 'numParallel');
+            case 'prefix'
+                prefix = CheckParameter(parameterValue, 'string', 'prefix');
             case 'includeSubdir'
                 includeSubdir = CheckParameter(parameterValue, 'boolean', 'includeSubdir');
             case 'hideterminal'
@@ -255,12 +259,15 @@ fileNames = {};
 binFileNames = {};
 filePaths = {};
 
-prefix = [];
 switch method
     case 'insight'
         fileExt = '_list.bin';
     case {'multifit', 'daoSTORM'}
-        fileExt = '_mlist.bin';
+        if ~isempty(prefix)
+            fileExt = ['_' prefix '_mlist.bin'];
+        else
+            fileExt = '_mlist.bin';
+        end
 end
 
 for i=1:length(infoFiles)
