@@ -57,6 +57,8 @@ function [In, imaxes] = list2img(mlist,varargin)
 %  'zoom' / scalar / 10
 %                 instead of passing a full imaxes structure, just pass
 %                 zoom. 
+%   'wc' / array / []
+%                 optionally specify array of dot sizes; 
 %-------------------------------------------------------------------------- 
 % Related Functions
 % see: STORMcell2img

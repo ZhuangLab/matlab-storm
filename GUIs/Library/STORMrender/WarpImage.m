@@ -72,44 +72,49 @@ if nargin > 3
 end
 
 %% Main Function
+if ~isempty(warpfile)
 load(warpfile)
+else 
 
-% If chromewarp file does not have channel names, assume defaults.  
-if ~exist('chn_warp_names','var')
-    chn_warp_names = {'750','647';
-                      '561','647';
-                      '488','647'};
-end
+    % If chromewarp file does not have channel names, assume defaults.  
+    if ~exist('chn_warp_names','var')
+        chn_warp_names = {'750','647';
+                          '561','647';
+                          '488','647'};
+    end
 
-[H,W] = size(imageIn); 
+    [H,W] = size(imageIn); 
 
-chnIdx = find(strcmp(chn_warp_names(:,1),chnName)); 
-if ~isempty(chnIdx)
-    if ~reverse
-        imageOut = imtransform(imageIn,tform_1_inv{chnIdx},...
-                'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<*DIMTRNS,USENS>
-        imageOut = imtransform(imageOut,tform2D_inv{chnIdx},...
-                'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<USENS>
+    chnIdx = find(strcmp(chn_warp_names(:,1),chnName)); 
+    if ~isempty(chnIdx)
+        if ~reverse
+            imageOut = imtransform(imageIn,tform_1_inv{chnIdx},...
+                    'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<*DIMTRNS,USENS>
+            imageOut = imtransform(imageOut,tform2D_inv{chnIdx},...
+                    'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<USENS>
+        else
+            imageOut = imtransform(imageIn,tform_1{chnIdx},...
+                    'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<*DIMTRNS,USENS>
+            imageOut = imtransform(imageOut,tform2D{chnIdx},...
+                    'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<USENS>
+        end
+
+        warpError = cdf2D_thresh(chnIdx);
+        if verbose
+            disp(['Data mapped using ',...
+                chn_warp_names{chnIdx,1},' to ',chn_warp_names{chnIdx,2},...
+                ' bead warp map.']);
+            disp(['Warp accuracy: ',num2str(warpError,2),' nm']);
+        end
     else
-        imageOut = imtransform(imageIn,tform_1{chnIdx},...
-                'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<*DIMTRNS,USENS>
-        imageOut = imtransform(imageOut,tform2D{chnIdx},...
-                'XYScale',1,'XData',[1 W],'YData',[1 H]); %#ok<USENS>
+        if verbose
+            disp('Data not warped');
+        end
+        imageOut = imageIn; 
+        warpError = NaN; 
     end
-            
-    warpError = cdf2D_thresh(chnIdx);
+
     if verbose
-        disp(['Data mapped using ',...
-            chn_warp_names{chnIdx,1},' to ',chn_warp_names{chnIdx,2},...
-            ' bead warp map.']);
-        disp(['Warp accuracy: ',num2str(warpError,2),' nm']);
+        warning('no warpfile provided')
     end
-else
-    if verbose
-        disp('Data not warped');
-    end
-    imageOut = imageIn; 
-    warpError = NaN; 
 end
-
-

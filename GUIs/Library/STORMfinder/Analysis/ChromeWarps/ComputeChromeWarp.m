@@ -55,7 +55,7 @@ end
 % blueROI = [257 512,257 512];
 
 global scratchPath
- save([scratchPath,'test2.mat']);
+ % save([scratchPath,'test2.mat']);
     
 % load([scratchPath,'test2.mat']);
     
