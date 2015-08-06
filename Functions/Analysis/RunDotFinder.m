@@ -303,10 +303,10 @@ end
     
 % don't analyze movies which have _list.bin files
 if sum(hasbin) ~= 0 
-    if overwrite == 4   
+    if overwrite == 4 || 2 
         disp(txtout);
         overwritefiles = input('Please select: 3=resume, 2=skip, 1=overwrite, 0=cancel:  ');
-    elseif overwrite == 1
+    elseif overwrite == 1 
         overwritefiles = 1;
         if verbose
         disp(txtout);
@@ -330,7 +330,7 @@ if sum(hasbin) ~= 0
             for a = find(logical(hasbin))';
                 disp(['deleting ',binnames{a}]);          
                 delete(binnames{a});
-                alistname = regexprep(binnames{a},'_mlist.bin','_alist.bin');
+                alistname = regexprep(binnames{a},'_mlist\.bin','_alist\.bin');
                 if exist(alistname,'file')>0
                     delete(alistname);
                 end
