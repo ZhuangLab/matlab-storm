@@ -73,9 +73,7 @@ end
 
 %% Main Function
 if ~isempty(warpfile)
-load(warpfile)
-else 
-
+    load(warpfile)
     % If chromewarp file does not have channel names, assume defaults.  
     if ~exist('chn_warp_names','var')
         chn_warp_names = {'750','647';
@@ -113,8 +111,10 @@ else
         imageOut = imageIn; 
         warpError = NaN; 
     end
-
+else 
     if verbose
         warning('no warpfile provided')
     end
+    imageOut = imageIn;
+    warpError = 'notWarped';
 end

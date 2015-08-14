@@ -22,6 +22,10 @@ function [cmp,dxc,dyc] = ColorByFrame(vlist,varargin)
 % 'colormap' / string / 'hsv' - string name of colormape to use.  
 % 
 %--------------------------------------------------------------------------
+% Example Use;
+% figure; scatter(vlist.xc, vlist.yc, 5, cmp, 'filled'); 
+% 
+%--------------------------------------------------------------------------
 % Alistair Boettiger
 % boettiger.alistair@gmail.com
 % December 31st, 2013
