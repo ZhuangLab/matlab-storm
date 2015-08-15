@@ -31,7 +31,7 @@ if nargin > 1
         end
     end
 end
-
+%%
 [h,w] = size(mask); 
 
 ystep = ( max(yBins) - min(yBins) )/h;

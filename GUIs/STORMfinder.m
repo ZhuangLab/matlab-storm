@@ -320,9 +320,10 @@ global SF
     SF{handles.gui_number}.impars.w = iminfo.frame_dimensions(1);
     SF{handles.gui_number}.impars.infofile = iminfo; 
 % setup default intensities
-    fid = fopen(SF{handles.gui_number}.daxfile);
-    Im = fread(fid, SF{handles.gui_number}.impars.h*SF{handles.gui_number}.impars.w, '*uint16',0,'b');
-    fclose(fid);
+%     fid = fopen(SF{handles.gui_number}.daxfile);
+%     Im = fread(fid, SF{handles.gui_number}.impars.h*SF{handles.gui_number}.impars.w, '*uint16',0,'b');
+%     fclose(fid);
+    Im = ReadDax(SF{handles.gui_number}.daxfile,'endFrame',1)';
     SF{handles.gui_number}.impars.cmax = max(Im(:));
     SF{handles.gui_number}.impars.cmin = min(Im(:));
 % set up framer slider
@@ -346,12 +347,13 @@ function UpdateFrame(hObject,handles)
     cframe = SF{handles.gui_number}.impars.cframe; 
     h = SF{handles.gui_number}.impars.h;
     w = SF{handles.gui_number}.impars.w;
-    fid = fopen(SF{handles.gui_number}.daxfile);
-    L = 1; % number of frames to read in
-    fseek(fid,(h*w*(cframe-1))*16/8,'bof'); % bits/(bytes per bit) 
-    Im = fread(fid, h*w*L, '*uint16',0,'b');
-    fclose(fid);
-    Im = reshape(Im,w,h,L);
+%     fid = fopen(SF{handles.gui_number}.daxfile);
+%     L = 1; % number of frames to read in
+%     fseek(fid,(h*w*(cframe-1))*16/8,'bof'); % bits/(bytes per bit) 
+%     Im = fread(fid, h*w*L, '*uint16',0,'b');
+%     fclose(fid);
+%     Im = reshape(Im,w,h,L);
+    Im = ReadDax(SF{handles.gui_number}.daxfile,'startFrame',cframe,'endFrame',cframe,'verbose',false)';
     handles.axes1; cla;
     imagesc(Im(:,:,1)'); caxis([SF{handles.gui_number}.impars.cmin,SF{handles.gui_number}.impars.cmax]); colormap gray;
      axis off; 

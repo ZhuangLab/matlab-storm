@@ -1,5 +1,7 @@
 function data = MatchSampleAndRefFiles(beadmovie)
-
+% beadmovie(m).binname{c,n}  c channels by n fields
+% beadmovie(m).chns cell array of channel names e.g. {'750','647'}
+% beadmovie(m).refchni index corresponding to reference channel
 %%
 global scratchPath
 excludePoorZfit = false;
@@ -42,7 +44,7 @@ for m=1:numMovies
           for n = 1:numFields; 
                 try % keep going even if a movie is missing
                     mol_list = ReadMasterMoleculeList( beadmovie(m).binname{c,n},'verbose',false); 
-                    mol_list = ReZeroROI(beadmovie(m).binname{c,n},mol_list);
+                    mol_list = ReZeroROI(beadmovie(m).binname{c,n},mol_list,'verbose',false);
                     % only keep beads that are detected in all frames
                     frames_per_field = max(mol_list.length);
                     mols_on_allframes = mol_list.length >= .9*frames_per_field;

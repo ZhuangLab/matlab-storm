@@ -121,3 +121,6 @@ if parameters.gaussianWidth ~= 0
     renderedImage = imfilter(renderedImage, filterMat);
 end
 
+if nargout == 0
+    imagesc(renderedImage);
+end

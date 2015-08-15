@@ -61,7 +61,10 @@ function [movie, infoFile, infoFileRoi] = ReadDax(varargin)
 %-----------------------
 % 12/22/13: ANB
 % Added 'subregion' feature.  
-% 
+% -------------------
+% ~08/01/15: ANB
+% fixed bug: data-type was hard-coded, should use what the info file
+% specifies. 
 %--------------------------------------------------------------------------
 
 %--------------------------------------------------------------------------
@@ -225,6 +228,12 @@ if DoThis
         display(['Loading ' infoFile.localPath fileName ]);
     end
 
+    if ~isempty( strfind(infoFile.data_type,'little endian') );
+        binaryFormat = 'l';
+    else
+        binaryFormat = 'b';
+    end
+    
     %----------------------------------------------------------------- 
     % Read all pixels from selected frames
     %----------------------------------------------------------------- 
@@ -236,7 +245,7 @@ if DoThis
 
         fseek(fid,(frameSize*(startFrame - 1))*16/8,'bof'); % bits/(bytes per bit) 
         dataSize = frameSize*framesToLoad;
-        movie = fread(fid, dataSize, '*uint16', 'b');
+        movie = fread(fid, dataSize, '*uint16', binaryFormat);
         fclose(fid);
 
         try % Catch corrupt files
