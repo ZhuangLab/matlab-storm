@@ -69,15 +69,15 @@ methods
         
         % Handle the request for a copy
         if nargin == 1 
-            if strcmp(class(varargin{1}, 'StructureArray'))
+            if strcmp(class(varargin{1}), 'StructureArray')
                 oldObj = varargin{1};
                 fieldNames = fields(oldObj);
                 argIn = cell(1, length(fieldNames)*2);
                 argIn(1:2:end) = fieldNames;
                 for f=1:length(fieldNames)
-                    argIn{2*f} = oldObj.(fieldNames{f})(S.subs{:});
+                    argIn{2*f} = oldObj.(fieldNames{f});
                 end
-                output = StructureArray(argIn{:});
+                obj = StructureArray(argIn{:});
                 return;
             end
         end
@@ -208,7 +208,7 @@ methods
     end
     
     % -------------------------------------------------------------------------
-    % Overlaod vertical cat method
+    % Overload vertical cat method
     % ------------------------------------------------------------------------
     function newObj = vertcat(A, B)
         if length(fields(A)) ~= length(fields(B)) & ...
@@ -226,6 +226,26 @@ methods
         newObj = StructureArray(argIn{:});
     end
     
+    % -------------------------------------------------------------------------
+    % Overload isfield
+    % ------------------------------------------------------------------------
+    function bool = isfield(obj, fieldName)
+        if ~ischar(fieldName)
+            error('matlabFunctions:incorrectArguments', 'Field name must be a string');
+        end
+        bool = ismember(fieldName, fields(obj));
+    end
+    
+    % -------------------------------------------------------------------------
+    % Overload isempty
+    % ------------------------------------------------------------------------
+    function bool = isempty(obj)
+        if obj.dataSize == 0
+            bool = true;
+        else
+            bool = false;
+        end
+    end
 end
     
 end
