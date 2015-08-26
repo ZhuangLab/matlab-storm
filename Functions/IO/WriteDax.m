@@ -8,6 +8,7 @@ global scratchPath
 defaults = cell(0,3);
 defaults(end+1,:) = {'folder', 'string', scratchPath}; % 
 defaults(end+1,:) = {'daxName', 'string', 'temp'}; % 
+defaults(end+1,:) = {'verbose', 'boolean', true}; % 
 parameters = ParseVariableArguments(varargin, defaults, mfilename);
 
 [yDim,xDim,nFrames] = size(dax); 
@@ -46,4 +47,5 @@ parameters = ParseVariableArguments(varargin, defaults, mfilename);
                   infoFile.scalemin= 100;
                      infoFile.notes= '';
                      
- WriteDAXFiles(dax,infoFile);
+ WriteDAXFiles(dax,infoFile,'verbose',parameters.verbose);
+ 

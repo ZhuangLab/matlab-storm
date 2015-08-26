@@ -8,6 +8,7 @@ global SR scratchPath %#ok<NUSED>
 imaxes = SR{handles.gui_number}.imaxes;
 handles = guidata(hObject);
 % user specifies box:
+colordef white; 
 axes(handles.axes2); 
 set(gca,'XTick',[],'YTick',[]);
 % GetEdges(hObject, eventdata, handles)
