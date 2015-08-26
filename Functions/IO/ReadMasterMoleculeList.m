@@ -35,6 +35,10 @@ function [MList, memoryMap] = ReadMasterMoleculeList(varargin)
 %
 % 'fieldsToLoad'/cell (all fields): Load only the subset of fields provided
 %   in this option. 
+%
+% 'loadAsStructArray'/boolean (false): Load the mList as a structure array
+%   object, which provides the convenience of the non-compact format
+%   without the memory overhead. See StructureArray.m for details. 
 %--------------------------------------------------------------------------
 % Jeffrey Moffitt
 % jeffmoffitt@gmail.com
@@ -82,6 +86,7 @@ verbose = true;
 compact = true;
 ZScale = 1;
 fieldsToLoad = format(:,3);
+loadAsStructArray = false;
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -128,6 +133,8 @@ if length(varargin)>1
                 transpose = CheckParameter(parameterValue, 'boolean', parameterName);
             case 'fieldsToLoad'
                 fieldsToLoad = CheckParameter(parameterValue, 'cell', parameterName);
+            case 'loadAsStructArray'
+                loadAsStructArray = CheckParameter(parameterValue, 'boolean', parameterName);
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -182,26 +189,44 @@ fieldIndsToLoad = find(ismember(format(:,3), fieldsToLoad));
 % Create memory map
 %--------------------------------------------------------------------------
 try
-    if ~compact
-        memoryMap = memmapfile(fileName, ...
-                'Format', format, ...
-                'Writable', false, ...
-                'Offset', headerSize, ...
-                'Repeat', numMoleculesFrame0);
+    if ~loadAsStructArray % Load via the built in matlab structure objects
+        if ~compact
+            memoryMap = memmapfile(fileName, ...
+                    'Format', format, ...
+                    'Writable', false, ...
+                    'Offset', headerSize, ...
+                    'Repeat', numMoleculesFrame0);
 
-        MList = memoryMap.Data;
-    else %compact
-        MList = CreateMoleculeList(numMoleculesFrame0, 'compact', true, 'fieldsToLoad', fieldsToLoad); %Allocate memory
-        memoryMap = memmapfile(fileName, ...
-                'Format', 'int32', ...
-                'Writable', false, ...
-                'Offset', headerSize, ...
-                'Repeat', inf);
+            MList = memoryMap.Data;
+        else %compact
+            MList = CreateMoleculeList(numMoleculesFrame0, 'compact', true, 'fieldsToLoad', fieldsToLoad); %Allocate memory
+            memoryMap = memmapfile(fileName, ...
+                    'Format', 'int32', ...
+                    'Writable', false, ...
+                    'Offset', headerSize, ...
+                    'Repeat', inf);
 
+            for i=1:length(fieldIndsToLoad)
+                memoryMap.Format = format{fieldIndsToLoad(i),1};
+                memoryMap.Offset = headerSize + (fieldIndsToLoad(i)-1)*entrySize;
+                MList.(format{fieldIndsToLoad(i),3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
+            end
+        end
+    else % Load as a StructureArray object
+        memoryMap = memmapfile(fileName, ...
+            'Format', 'int32', ...
+            'Writable', false, ...
+            'Offset', headerSize, ...
+            'Repeat', inf);
         for i=1:length(fieldIndsToLoad)
             memoryMap.Format = format{fieldIndsToLoad(i),1};
             memoryMap.Offset = headerSize + (fieldIndsToLoad(i)-1)*entrySize;
-            MList.(format{fieldIndsToLoad(i),3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
+            if i==1
+                MList = StructureArray(format{fieldIndsToLoad(i),3}, ...
+                    memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0)));
+            else
+                MList.(format{fieldIndsToLoad(i),3}) = memoryMap.Data(1:numEntries:(numEntries*numMoleculesFrame0));
+            end
         end
     end
 catch % Handle corrupt file
@@ -209,12 +234,6 @@ catch % Handle corrupt file
     memoryMap = [];
     MList = CreateMoleculeList(0, 'compact', compact);
 end
-
-%--------------------------------------------------------------------------
-% Remove fields not loaded
-%--------------------------------------------------------------------------
-
-
 
 %--------------------------------------------------------------------------
 % Rescale Z if necessary

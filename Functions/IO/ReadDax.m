@@ -61,7 +61,10 @@ function [movie, infoFile, infoFileRoi] = ReadDax(varargin)
 %-----------------------
 % 12/22/13: ANB
 % Added 'subregion' feature.  
-% 
+% -------------------
+% ~08/01/15: ANB
+% fixed bug: data-type was hard-coded, should use what the info file
+% specifies. 
 %--------------------------------------------------------------------------
 
 %--------------------------------------------------------------------------

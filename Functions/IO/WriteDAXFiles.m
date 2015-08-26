@@ -81,12 +81,18 @@ daxName = [infoFile.localName(1:(end-4)) '.dax'];
 %--------------------------------------------------------------------------
 % Write DAX file
 %--------------------------------------------------------------------------
+ if ~isempty( strfind(infoFile.data_type,'little endian') );
+    binaryFormat = 'l';
+else
+    binaryFormat = 'b';
+end
+
 fid = fopen([infoFile.localPath daxName], 'w');
 if fid<0
     error(['Unable to open ' infoFile.localPath daxName]);
 end
 
-fwrite(fid, ipermute(int16(movie), [2 1 3]), 'int16', 'b');
+fwrite(fid, ipermute(int16(movie), [2 1 3]), 'int16', binaryFormat);
 
 if verbose
     display(['Finished writing ' infoFile.localPath daxName]);
