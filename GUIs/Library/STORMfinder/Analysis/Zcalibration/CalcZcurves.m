@@ -163,6 +163,8 @@ end
 
 %% Main Function
 
+% daxfile = 'T:\2015-08-05_beads\561_zcal_0001.dax'
+
 % Load molecule list
 [bead_path,daxname] = extractpath(daxfile);
 try
@@ -170,7 +172,7 @@ try
     froot = regexprep(daxname,'\.dax','');
     mlist = ReadMasterMoleculeList(binfile);
 catch
-    binfile = regexprep(daxfile,'_list.bin','_mlist.bin');
+    binfile = regexprep(binfile,'_list.bin','_mlist.bin');
     mlist = ReadMasterMoleculeList(binfile);
 end
 
@@ -183,10 +185,20 @@ wy = mlist.w .* sqrt(mlist.ax);  % *
 z = mlist.z;
 
 % Get the stage file 
-scanzfile = [bead_path,'\',froot,'\.off'];
-fid = fopen(scanzfile);
-stage = textscan(fid, '%d\t%f\t%f\t%f','headerlines',1);
-fclose(fid);
+try
+    scanzfile = [bead_path,'\',froot,'.off'];
+    fid = fopen(scanzfile);
+    stage = textscan(fid, '%d\t%f\t%f\t%f','headerlines',1);
+    fclose(fid);
+catch
+    [scanzfileName,filePath] = uigetfile(bead_path,'Locate .off file');
+    fid = fopen([filePath,filesep,scanzfileName]);
+    stage = textscan(fid, '%d\t%f\t%f\t%f','headerlines',1);
+    fclose(fid);
+end
+
+
+
 
 zrange = max(stage{4}-stage{4}(1))*1000;
 [maxoffset,Zmaxoffset] = max(stage{2});
@@ -284,8 +296,8 @@ ypos = cell(Nfeducials,1);
 off = zeros(1,Nfeducials);
 
 if showExtraPlots
-    figure(1); clf;
-    figure(2); clf; 
+    figure(3); clf;
+    figure(4); clf; 
 end
 
 for i=1:Nfeducials
@@ -302,13 +314,20 @@ for i=1:Nfeducials
     xpos{i} = mlist.x(incirc(i,:));
     ypos{i} = mlist.y(incirc(i,:));
     if showExtraPlots
-        figure(1); hold on; 
+        figure(3); hold on; 
         rectangle('Position',feducial_boxes(i,:),'Curvature',[1,1]);
         plot( xpos{i},ypos{i},'.','MarkerSize',5,'color',Cmap(i,:));
-        figure(2); hold on; 
-        plot(stagepos{i}+off(i),Wx{i} ,'+','color',Cmap(i,:));
-        plot(stagepos{i}+off(i),Wy{i} ,'.','color',Cmap(i,:));
+        figure(4); hold on; 
+        % plot(stagepos{i}+off(i),Wx{i} ,'+','color',Cmap(i,:),'MarkerSize',1);
+       %  plot(stagepos{i}+off(i),Wy{i} ,'.','color',Cmap(i,:),'MarkerSize',1);
+        
+        plot(stagepos{i}+off(i),smooth(Wx{i},.1) ,'LineWidth',1,'color',Cmap(i,:));
+        plot(stagepos{i}+off(i),smooth(Wy{i},.1),'-.','LineWidth',1,'color',Cmap(i,:));
         ylim([0,2000]);
+        
+        figure(2); hold on;
+        plot(x1s(i),y1s(i),'o','color',Cmap(i,:),'LineWidth',2);
+
     end
 end
 

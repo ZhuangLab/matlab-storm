@@ -156,7 +156,14 @@ clear data dat data2 dat2
 data = MatchSampleAndRefFiles(beadmovie); 
 
 fighandle = figure(1); clf;
-figH = figure(2); clf;
+
+% structure for storing figure handles;
+figH.warperr = []; 
+figH.xyerr = [];
+figH.xyerr_all = [];
+figH.warperr_2d = [];
+figH.zdist = [];
+figH.xzerr = [];
 
 % use MatchFeducials to pair up samples data and reference data prior to warp  
 % this function uses a combination of 2D cross-correlation to compute an
