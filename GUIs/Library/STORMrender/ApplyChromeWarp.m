@@ -84,11 +84,24 @@ if nargin > 3
     end
 end
 
-%--------------------------------------------------------------------------
-%% Maing Function
-%--------------------------------------------------------------------------
 
+% handle non-cell input (for stucture arrays or single inputs)
+output = 'cell';
+if ~iscell(mlist)
+    alist = mlist;
+    mlist = cell(length(alist),1);
+    for c=1:length(alist)
+        mlist{c} = alist(c);
+    end
+    output = 'struct';
+end
+if ~iscell(chns)
+    chns = {chns};
+end
 
+%--------------------------------------------------------------------------
+%% Main Function
+%--------------------------------------------------------------------------
 
 if warpD ~= 0 && ~isempty(warpfile)  % No Chromewarp
     try
@@ -109,21 +122,30 @@ if warpD ~= 0 && ~isempty(warpfile)  % No Chromewarp
     end
 
     for c=1:length(mlist) % c =2
-        x = double(mlist{c}.xc); % shorthand.  TFORMINV can't handle singles (?!)
-        y = double(mlist{c}.yc);
-        z = double(mlist{c}.zc);
+        xc = double(mlist{c}.xc); % shorthand.  TFORMINV can't handle singles (?!)
+        yc = double(mlist{c}.yc);
+        zc = double(mlist{c}.zc);
+        x = double(mlist{c}.x); % shorthand.  TFORMINV can't handle singles (?!)
+        y = double(mlist{c}.y);
+        z = double(mlist{c}.z);
         k = find(strcmp(chns{c},chn_warp_names(:,1)));
         if ~isempty(k);  
-            [x,y] = tforminv(tform_1{k},x,y); %#ok<*USENS>
+            [xc,yc] = tforminv(tform_1{k},xc,yc); %#ok<*USENS>
+            [x,y] = tforminv(tform_1{k},x,y); 
             if warpD > 2
-            [x,y,z] = tforminv(tform{k},x,y,z);
+                [xc,yc,zc] = tforminv(tform{k},xc,yc,zc);
+                [x,y,z] = tforminv(tform{k},x,y,z);
             elseif warpD == 2
-            [x,y] = tforminv(tform{k},x,y);
+                [xc,yc] = tforminv(tform{k},xc,yc);
+                [x,y] = tforminv(tform{k},x,y);
             end 
-            mlist{c}.xc = single(x);
-            mlist{c}.yc = single(y); 
+            mlist{c}.xc = single(xc);
+            mlist{c}.yc = single(yc); 
+            mlist{c}.x = single(x);
+            mlist{c}.y = single(y); 
             if warpD ~=2.5
-                mlist{c}.zc = single(z);
+                mlist{c}.zc = single(zc);
+                mlist{c}.z = single(z);
             end
             if verbose
                 disp([fnames{c},' data mapped in ',num2str(warpD),'D using ',...
@@ -143,5 +165,14 @@ if warpD ~= 0 && ~isempty(warpfile)  % No Chromewarp
             warning('failed to apply chromatic warp');
             disp(er.getReport);
         end
+    end
+end
+
+
+if strcmp(output,'struct');
+    alist = mlist;
+    mlist = CreateMoleculeList(0);
+    for c=1:length(alist)
+        mlist(c) = alist{c};
     end
 end

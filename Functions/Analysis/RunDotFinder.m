@@ -116,7 +116,7 @@ global daoSTORMexe
 % this makes it easy to change default values
 batchsize = 2;
 overwrite = 4; % ask user
-minsize = 20E6;
+minsize = 0;
 daxroot = '';
 parsroot = '';
 method = 'DaoSTORM';
@@ -161,7 +161,7 @@ if nargin > 1
             case 'method'
                 method = CheckParameter(parameterValue, 'string', 'method');
             case 'minsize'
-                minsize = CheckParameter(parameterValue, 'positive', 'minsize');
+                minsize = CheckParameter(parameterValue, 'nonnegative', 'minsize');
             case 'overwrite'
                 overwrite = CheckParameter(parameterValue, 'nonnegative', 'overwrite');
             case 'parsfile'
