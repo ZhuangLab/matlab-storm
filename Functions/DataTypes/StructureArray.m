@@ -66,19 +66,19 @@ methods
     % obj = StructureArray(fieldName1, values1, fieldName2, values2, ...)
     % copyObj = StructureArray(originalObj)
     %
-        
-        % Handle the request for a copy
-        if nargin == 1 
-            if strcmp(class(varargin{1}), 'StructureArray')
-                oldObj = varargin{1};
-                fieldNames = fields(oldObj);
-                argIn = cell(1, length(fieldNames)*2);
-                argIn(1:2:end) = fieldNames;
-                for f=1:length(fieldNames)
-                    argIn{2*f} = oldObj.(fieldNames{f});
-                end
-                obj = StructureArray(argIn{:});
-                return;
+    
+        if nargin == 1 % Handle single input requests
+            switch class(varargin{1})
+                case {'StructureArray', 'struct'} % Handle the request for a copy or a conversion
+                    oldObj = varargin{1};
+                    fieldNames = fields(oldObj);
+                    argIn = cell(1, length(fieldNames)*2);
+                    argIn(1:2:end) = fieldNames;
+                    for f=1:length(fieldNames)
+                        argIn{2*f} = oldObj.(fieldNames{f});
+                    end
+                    obj = StructureArray(argIn{:});
+                    return;
             end
         end
         
