@@ -192,6 +192,16 @@ methods
     % Overload horizontal cat method
     % ------------------------------------------------------------------------
     function newObj = horzcat(A, B)
+        
+        % Handle the empty concatenation case
+        if isempty(A)
+            newObj = B;
+            return;
+        elseif isempty(B)
+            newObj = A;
+            return;
+        end
+        
         if length(fields(A)) ~= length(fields(B)) & ...
                 isempty(setdiff(fields(A), fields(B)))
             error('matlabFunctions:incongruentArrays', ['Names of fields in structure arrays being concatenated do not match. ' ...
@@ -211,6 +221,17 @@ methods
     % Overload vertical cat method
     % ------------------------------------------------------------------------
     function newObj = vertcat(A, B)
+
+        % Handle the empty concatenation case
+        if isempty(A)
+            newObj = B;
+            return;
+        elseif isempty(B)
+            newObj = A;
+            return;
+        end
+
+        
         if length(fields(A)) ~= length(fields(B)) & ...
                 isempty(setdiff(fields(A), fields(B)))
             error('matlabFunctions:incongruentArrays', ['Names of fields in structure arrays being concatenated do not match. ' ...
