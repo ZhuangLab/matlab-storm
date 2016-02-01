@@ -66,7 +66,6 @@ methods
     % obj = StructureArray(fieldName1, values1, fieldName2, values2, ...)
     % copyObj = StructureArray(originalObj)
     %
-    
         if nargin == 1 % Handle single input requests
             switch class(varargin{1})
                 case {'StructureArray', 'struct'} % Handle the request for a copy or a conversion
@@ -267,6 +266,14 @@ methods
             bool = false;
         end
     end
+    
+    % -------------------------------------------------------------------------
+    % Overload of length
+    % ------------------------------------------------------------------------
+    function num = length(obj)
+        num = max(obj.dataSize);
+    end
+
 end
     
 end
