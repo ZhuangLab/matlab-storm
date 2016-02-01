@@ -27,6 +27,7 @@ function value = CheckParameter(value, type, name)
 %           'float'
 %           'integer'
 %           'freeType'
+%           'parallel'
 % 
 % name/string: The name of the parameter to be checked
 %--------------------------------------------------------------------------
