@@ -129,7 +129,7 @@ mosaicImage = zeros(ys,xs,1,'uint16');
 for k = 1:length(frames); 
     i = frames(k);
     load([mosaicFolder,mtiles(i).name]);
-    im = data;
+    im = squeeze(data);
 
     % for plotting the 4x images, need to scale up:
     if showall
@@ -151,8 +151,11 @@ for k = 1:length(frames);
     x2 = X(i)+w2;
     
     
-    
+  try  
      mosaicImage(y1:y2,x1:x2) = im';
+  catch
+      mosaicImage(y1:y2-1,x1:x2-1) = im';
+  end
   %   mosaicImage(x1:x2,y1:y2) = fliplr( flipud(im) );
 
     if verbose
