@@ -40,6 +40,16 @@ if nargin < 1
 end
 
 % -------------------------------------------------------------------------
+% Check for empty mList
+% -------------------------------------------------------------------------
+foundFields = fields(MList);
+if isempty(MList.(foundFields{1}))
+    warning('mList is empty');
+    figHandle = figure();
+    return;
+end
+
+% -------------------------------------------------------------------------
 % Parse variable input
 % -------------------------------------------------------------------------
 parameters = ParseVariableArguments(varargin, defaults, mfilename);

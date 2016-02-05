@@ -200,3 +200,13 @@ end
 if verbose
     display(['Loaded ' infFilePath, filesep, name, '.inf']);
 end
+
+%--------------------------------------------------------------------------
+% Check frame dimensions
+%--------------------------------------------------------------------------
+if any(infoFile.frame_dimensions == 0)
+    warning('matlabSTORM:corruptedInfoFile', 'Unexpected frame dimensions');
+    infoFile.frame_dimensions = [infoFile.hend - infoFile.hstart + 1, ...
+        infoFile.vend - infoFile.vstart + 1];
+end
+
