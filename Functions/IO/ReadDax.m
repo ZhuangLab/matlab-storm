@@ -71,7 +71,7 @@ function [movie, infoFile, infoFileRoi] = ReadDax(varargin)
 % Hardcoded Variables
 %--------------------------------------------------------------------------
 quiet = 0;
-orientationValues = {'normal'};
+orientationValues = {'normal','nd2'};
 flags = {'file', 'infoFile', 'startFrame','endFrame', 'verbose', ...
     'orientation', 'path','allFrames'};
 
@@ -255,6 +255,8 @@ if DoThis
                 switch orientation % Change orientation
                     case 'normal'
                         movie = permute(reshape(movie, [frameDim framesToLoad]), [2 1 3]);
+                    case 'nd2'
+                        movie = permute(reshape(movie, [fliplr(frameDim) framesToLoad]), [2 1 3]);
                     otherwise
                 end
             end
