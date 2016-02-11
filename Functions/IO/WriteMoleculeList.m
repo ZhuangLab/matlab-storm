@@ -163,7 +163,7 @@ end
 %--------------------------------------------------------------------------
 if ~compact
     fwrite(fid, length(MList), 'int32');
-
+    
     for i=1:length(MList)
         for j=1:length(fieldNames)
             fwrite(fid, MList(i).(fieldNames{j}), fieldTypes{j});  %Could be faster
@@ -174,6 +174,11 @@ if ~compact
     end
 else
     fwrite(fid, length(MList.x), 'int32');
+    
+    % Handle empty case
+    if isempty(MList)
+        fieldnames = {}; % Flag to skip writing of all fields
+    end
     
     % Write first values
     i=1;
