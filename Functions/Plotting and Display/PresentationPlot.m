@@ -137,3 +137,5 @@ for i=1:length(ax)
         end
     end
 end
+
+box off; 
