@@ -37,6 +37,7 @@ quiet = false;
 % Default Variables
 %--------------------------------------------------------------------------
 verbose = false;
+overwrite = true;
 
 %--------------------------------------------------------------------------
 % Parse Required Input
@@ -59,15 +60,13 @@ for parameterIndex = 1:parameterCount,
     switch parameterName
         case 'verbose'
             verbose = CheckParameter(parameterValue, 'boolean', 'verbose');
+        case 'overwrite'
+            overwrite = CheckParameter(parameterValue, 'boolean', 'overwrite');
         otherwise
             error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
     end
 end
 
-%--------------------------------------------------------------------------
-% Write .dax and .ini files
-%--------------------------------------------------------------------------
-    
 %--------------------------------------------------------------------------
 % Write .ini files
 %--------------------------------------------------------------------------
@@ -77,7 +76,16 @@ WriteInfoFiles(infoFile, 'verbose', verbose);
 % Create dax name
 %--------------------------------------------------------------------------
 daxName = [infoFile.localName(1:(end-4)) '.dax'];
-    
+
+%--------------------------------------------------------------------------
+% Check for if file exists
+%--------------------------------------------------------------------------
+if ~overwrite
+    if exist([infoFile.localPath daxName])
+        error('matlabFunctions:overwriteError', 'A dax file with this names exists!');
+    end
+end
+
 %--------------------------------------------------------------------------
 % Write DAX file
 %--------------------------------------------------------------------------
