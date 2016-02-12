@@ -186,6 +186,22 @@ end
 fieldIndsToLoad = find(ismember(format(:,3), fieldsToLoad));
 
 %--------------------------------------------------------------------------
+% Handle empty MList case
+%--------------------------------------------------------------------------
+if numMoleculesFrame0 == 0
+    if transpose
+        emptyArray = zeros([0,1]);
+    else
+        emptyArray = zeros([1,0]);
+    end
+    for f=1:length(fieldsToLoad)
+        MList.(fieldsToLoad{f}) = cast(emptyArray, ...
+            format{fieldIndsToLoad(f), 1});
+    end
+    return % Exit function
+end
+
+%--------------------------------------------------------------------------
 % Create memory map
 %--------------------------------------------------------------------------
 try

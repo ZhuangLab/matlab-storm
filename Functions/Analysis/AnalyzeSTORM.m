@@ -34,7 +34,7 @@ function infoFiles = AnalyzeSTORM(varargin)
 %   includeSubdir is true
 %
 % 'outputInMatlab'/boolean(false): Determine if the process is run in the
-% matlab command line or in an extrernal dos line'
+% matlab command line or in an external dos line'
 %--------------------------------------------------------------------------
 % Outputs:
 %
