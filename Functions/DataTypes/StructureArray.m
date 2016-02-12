@@ -260,7 +260,7 @@ methods
     % Overload isempty
     % ------------------------------------------------------------------------
     function bool = isempty(obj)
-        if obj.dataSize == 0
+        if any(obj.dataSize == 0)
             bool = true;
         else
             bool = false;
