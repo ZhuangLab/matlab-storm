@@ -176,8 +176,8 @@ else
     fwrite(fid, length(MList.x), 'int32');
     
     % Handle empty case
-    if isempty(MList)
-        fieldnames = {}; % Flag to skip writing of all fields
+    if isempty(MList) | isempty(MList.x)
+        fieldNames = {}; % Flag to skip writing of all fields
     end
     
     % Write first values
