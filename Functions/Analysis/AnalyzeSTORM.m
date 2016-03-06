@@ -87,6 +87,7 @@ recursionDepth = 1;
 waitTime = 15; % Determines the wait between pooling jobs to see if they are done in seconds
 requiredString = '';
 prefix = [];
+altSavePath = '';
 
 %--------------------------------------------------------------------------
 % Parse Variable Input
@@ -133,6 +134,8 @@ if nargin > 1
                 waitTime = CheckParameter(parameterValue, 'positive', 'waitTime');
             case 'requiredString'
                 requiredString = CheckParameter(parameterValue, 'string', 'requiredString');
+            case 'altSavePath'
+                altSavePath = CheckParameter(parameterValue, 'string', 'altSavePath');
             otherwise
                 error(['The parameter ''' parameterName ''' is not recognized by the function ''' mfilename '''.']);
         end
@@ -258,6 +261,7 @@ end
 fileNames = {};
 binFileNames = {};
 filePaths = {};
+binFilePaths = {};
 
 switch method
     case 'insight'
@@ -274,41 +278,62 @@ for i=1:length(infoFiles)
     fileNames{i} =  [infoFiles(i).localName(1:(end-4)) '.dax'];
     binFileNames{i} = [infoFiles(i).localName(1:(end-4)) fileExt ];
     filePaths{i} = infoFiles(i).localPath;
+    binFilePaths{i} = filePaths{i};
 end
 
 %--------------------------------------------------------------------------
-% Find Paths for Analysis 
+% Change bin file pahts to alternative save path if requested 
 %--------------------------------------------------------------------------
-dataPaths = unique(filePaths);
+if ~isempty(altSavePath)
+    if strcmp(method, 'insight');
+        error('matlabFunctions:invalidArguments', 'insight requires that bin files be saved in the same location as the dax file.');
+    end
+    for i=1:length(binFilePaths)
+        binFilePaths{i} = strrep(binFilePaths{i}, analysisPath, altSavePath);
+        if ~exist(binFilePaths{i})
+            mkdir(binFilePaths{i});
+            if verbose
+                display(['Creating ' binFilePaths{i}]);
+            end
+        end
+    end
+end
 
 %--------------------------------------------------------------------------
 % Find _list.bin files
 %--------------------------------------------------------------------------
-for i=1:length(dataPaths)
-    existingBinFiles = dir([dataPaths{i} '*.bin']);
+for i=1:length(binFilePaths)
+    existingBinFiles = dir([binFilePaths{i} '*.bin']);
     existingBinFileNames = {existingBinFiles.name};
-    ind = ismember(binFileNames, existingBinFileNames) & strcmp(dataPaths{i}, filePaths);
-    if ~isempty(existingBinFiles)
+    binFileNamesToWrite = binFileNames(strcmp(binFilePaths, binFilePaths{i}));
+    ind = ismember(binFileNamesToWrite, existingBinFileNames);
+    if ~isempty(ind)
         if verbose
             display('-------------------------------------------------------------');
-            display(['Found ' num2str(length(existingBinFiles)) ' existing bin files']);
+            display(['Found ' num2str(length(existingBinFileNames)) ' existing bin files']);
         end
         if overwrite
             if verbose
                 for i=find(ind)
-                    display(['Overwriting ' filePaths{i} binFileNames{i}]);
-                    delete([filePaths{i} binFileNames{i}]);
+                    display(['Overwriting ' binFilePath{i} binFileNames{i}]);
+                    delete([binFilePath{i} binFileNames{i}]);
                 end
             end
         else
             if verbose
                 for i=find(ind)
-                    display(['Ignoring ' filePaths{i} binFileNames{i}]);
+                    display(['Ignoring ' binFilePath{i} binFileNames{i}]);
                 end
             end
-            fileNames = fileNames(~ind); %Remove these files from analysis
-            binFileNames = binFileNames(~ind);
-            filePaths = filePaths(~ind);
+            pathInds = strcmp(binFilePaths, binFilePaths{i}); % All files that are in this directory
+            fileNameInds = strcmp(binFileNames, existingBinFileNames); % All matching bin files
+            indsToKeep = ~(pathInds & fileNameInds);
+            
+            % Keep only files that will not be overwritten
+            fileNames = fileNames(indsToKeep);
+            binFileNames = binFileNames(indsToKeep);
+            filePaths = filePaths(indsToKeep);
+            binFilePaths = binFilePaths(indsToKeep);
         end
     end
 end
@@ -324,9 +349,9 @@ for i=1:length(fileNames)
             displayCommand = ['echo ' 'Analyzing: ' filePaths{i} fileNames{i} ' && '];
             commands{i} = [displayCommand exePath ' ' '"' filePaths{i} fileNames{i} '" "' configFile '" && exit &'];
         case {'multifit', 'daoSTORM'}
-            displayCommand = ['echo ' 'Analyzing: ' filePaths{i} fileNames{i} ' && '];
+            displayCommand = ['echo ' 'Analyzing: ' filePaths{i} fileNames{i} ' && '];            
             commands{i} = [displayCommand exePath ' ' '"' filePaths{i} fileNames{i} '" ' ... 
-                ' "' filePaths{i} binFileNames{i} '" ' ...
+                ' "' binFilePaths{i} binFileNames{i} '" ' ...
                 ' "' configFile '"'];
     end
     jobNames{i} = ''; 
