@@ -315,14 +315,14 @@ for i=1:length(binFilePaths)
         if overwrite
             if verbose
                 for i=find(ind)
-                    display(['Overwriting ' binFilePath{i} binFileNames{i}]);
-                    delete([binFilePath{i} binFileNames{i}]);
+                    display(['Overwriting ' binFilePaths{i} binFileNames{i}]);
+                    delete([binFilePaths{i} binFileNames{i}]);
                 end
             end
         else
             if verbose
                 for i=find(ind)
-                    display(['Ignoring ' binFilePath{i} binFileNames{i}]);
+                    display(['Ignoring ' binFilePaths{i} binFileNames{i}]);
                 end
             end
             pathInds = strcmp(binFilePaths, binFilePaths{i}); % All files that are in this directory
