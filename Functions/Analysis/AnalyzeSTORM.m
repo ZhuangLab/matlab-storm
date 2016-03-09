@@ -302,42 +302,38 @@ end
 %--------------------------------------------------------------------------
 % Find _list.bin files
 %--------------------------------------------------------------------------
+% Create a list of flags for removing files from analysis queue
+filesToKeep = true(1, length(binFilePaths));
+
+% Loop through all bin files
 for i=1:length(binFilePaths)
-    existingBinFiles = dir([binFilePaths{i} '*.bin']);
-    existingBinFileNames = {existingBinFiles.name};
-    binFileNamesToWrite = binFileNames(strcmp(binFilePaths, binFilePaths{i}));
-    ind = ismember(binFileNamesToWrite, existingBinFileNames);
-    if ~isempty(ind)
-        if verbose
-            display('-------------------------------------------------------------');
-            display(['Found ' num2str(length(existingBinFileNames)) ' existing bin files']);
-        end
+    % Check existance of each bin file that might be written
+    if exist([binFilePaths{i} binFileNames{i}])
+        
+        % Handle overwrite request
         if overwrite
             if verbose
-                for i=find(ind)
-                    display(['Overwriting ' binFilePaths{i} binFileNames{i}]);
-                    delete([binFilePaths{i} binFileNames{i}]);
-                end
+                display(['Overwriting ' binFilePaths{i} binFileNames{i}]);
             end
-        else
+            delete([binFilePaths{i} binFileNames{i}]);
+        else 
             if verbose
-                for i=find(ind)
-                    display(['Ignoring ' binFilePaths{i} binFileNames{i}]);
-                end
+                display(['Ignoring ' binFilePaths{i} binFileNames{i}]);
             end
-            pathInds = strcmp(binFilePaths, binFilePaths{i}); % All files that are in this directory
-            fileNameInds = strcmp(binFileNames, existingBinFileNames); % All matching bin files
-            indsToKeep = ~(pathInds & fileNameInds);
-            
-            % Keep only files that will not be overwritten
-            fileNames = fileNames(indsToKeep);
-            binFileNames = binFileNames(indsToKeep);
-            filePaths = filePaths(indsToKeep);
-            binFilePaths = binFilePaths(indsToKeep);
+            filesToKeep(i) = false;
         end
     end
 end
-
+       
+% Truncate list of files to reflect files that were removed (if any need to
+% be removed)
+if any(~filesToKeep)
+    fileNames = fileNames(filesToKeep);
+    binFileNames = binFIleNames(filesToKeep);
+    filePaths = filePaths(filesToKeep);
+    binFilePaths = binFilePaths(filesToKeep);
+end
+    
 %--------------------------------------------------------------------------
 % Create command strings
 %--------------------------------------------------------------------------
