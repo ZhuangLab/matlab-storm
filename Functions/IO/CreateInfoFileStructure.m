@@ -59,4 +59,4 @@ infoFile.Stage_Z = 0;
 infoFile.Lock_Target = 0;
 infoFile.scalemax = 0;
 infoFile.scalemin = 0;
-notes = '';
+infoFile.notes = '';
