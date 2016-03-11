@@ -98,13 +98,7 @@ else
     fileName = [];
 end
 if isempty(fileName)
-    [fileName, pathName] = uigetfile([defaultDataPath '*_list.bin']);
-    if fileName == 0
-        display('Canceled file load');
-        MList = CreateMoleculeList(0, 'compact', compact);
-        return;
-    end
-    fileName = [pathName fileName];
+    error('matlabSTORM:invalidArguments', 'A valid path must be provided');
 end
 if isstruct(fileName)
     fileName = [infoFile.localPath infoFile.localName(1:(end-4)) '*_list.bin'];
