@@ -329,7 +329,7 @@ end
 % be removed)
 if any(~filesToKeep)
     fileNames = fileNames(filesToKeep);
-    binFileNames = binFIleNames(filesToKeep);
+    binFileNames = binFileNames(filesToKeep);
     filePaths = filePaths(filesToKeep);
     binFilePaths = binFilePaths(filesToKeep);
 end
