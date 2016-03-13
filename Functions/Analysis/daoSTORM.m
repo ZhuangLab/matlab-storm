@@ -45,6 +45,7 @@ defaults(end+1,:) = {'waitTime', 'nonnegative', 15};    % The number of seconds 
 
 % Parameters for displaying progress
 defaults(end+1,:) = {'verbose', 'boolean', true};       % Report progress?
+defaults(end+1,:) = {'veryVerbose', 'boolean', false};   % Display all commands being called?
 defaults(end+1,:) = {'outputInMatlab', 'boolean', false}; % Useful for debug. Display output in matlab command window.
 % -------------------------------------------------------------------------
 % Parse necessary input
@@ -90,12 +91,40 @@ end
 if isempty(parameters.mListType)
     parameters.mListType = 'mList';
 end
-    
+
+% -------------------------------------------------------------------------
+% Handle formatting of savePath
+% -------------------------------------------------------------------------
+if ~isempty(parameters.savePath) && strcmp(parameters.savePath(end), filesep)
+    parameters.savePath(end+1) = filesep;
+end
+
+% -------------------------------------------------------------------------
+% Display progress
+% -------------------------------------------------------------------------
+if parameters.verbose
+    PageBreak();
+    display(['Analyzing ' num2str(length(filePaths)) ' files']);
+    uniqueConfigFiles = unique(configFilePaths);
+    if length(uniqueConfigFiles) == 1
+        display(['...configuration file: ' uniqueConfigFiles{1}]);
+    else
+        display(['...with ' num2str(length(uniqueConfigFiles)) ' unique configuration files']);
+    end
+    display(['...saving as ' parameters.mListType ' bin files']);
+    if isempty(parameters.savePath)
+        display(['...in the original data location']);
+    else
+        display(['...here: ' parameters.savePath]);
+    end
+end
+
 % -------------------------------------------------------------------------
 % Create bin file paths
 % -------------------------------------------------------------------------
 binFilePaths = {};
 indsToKeep = true(1, length(filePaths)); 
+numDeleted = 0;
 for f=1:length(filePaths)
     % Strip parts
     [filePath, fileName, fileExt] = fileparts(filePaths{f});
@@ -106,18 +135,23 @@ for f=1:length(filePaths)
     end
     
     % Create bin file path
-    binFilePaths{f} = [filePath filesep fileName '_' parameters.mListType '.bin'];
+    if isempty(parameters.savePath)
+        binFilePaths{f} = [filePath filesep fileName '_' parameters.mListType '.bin'];
+    else
+        binFilePaths{f} = [parameters.savePath fileName '_' parameters.mListType '.bin'];
+    end
     
     % Check if it exists
     if exist(binFilePaths{f})
         if parameters.overwrite
             delete(binFilePaths{f});
-            if parameters.verbose
+            numDeleted = numDeleted + 1;
+            if parameters.veryVerbose
                 display(['... deleted: ' binFilePaths{f}]);
             end
         else
             indsToKeep(f) = false;
-            if parameters.verbose
+            if parameters.veryVerbose
                 display(['... found and ignoring: ' binFilePaths{f}]);
             end
         end
@@ -128,6 +162,14 @@ end
 filePaths = filePaths(indsToKeep);
 binFilePaths = binFilePaths(indsToKeep);
 configFilePaths = configFilePaths(indsToKeep);
+
+% -------------------------------------------------------------------------
+% Display progress
+% -------------------------------------------------------------------------
+if parameters.verbose
+    display(['...overwriting ' num2str(numDeleted) ' files']);
+    display(['...ignoring ' num2str(sum(~indsToKeep)) ' files']);
+end
 
 %--------------------------------------------------------------------------
 % Create command strings
@@ -142,8 +184,17 @@ for i=1:length(filePaths)
     jobNames{i} = ''; 
 end
 
+% -------------------------------------------------------------------------
+% Display progress
+% -------------------------------------------------------------------------
+if parameters.verbose
+    PageBreak();
+    display(['Staring analysis: ' datestr(now)]);
+    batchTimer = tic;
+end
+
 %--------------------------------------------------------------------------
-% Start STORM Analysis
+% Batch process commands
 %--------------------------------------------------------------------------
 startTime = now;
 doneFlag = false(1, length(commands));
@@ -159,7 +210,7 @@ while any(~doneFlag)
                 break;
             end
             processes{nextInd} = SystemRun(commands{nextInd},'Hidden',parameters.hideterminal);
-            if parameters.verbose
+            if parameters.veryVerbose
                 display(['... analyzing ' filePaths{nextInd}]);
             end
         end
@@ -172,7 +223,7 @@ while any(~doneFlag)
             if doneFlag(i)
                 processes{i} = []; % Clear process
             end
-            if doneFlag(i) && parameters.verbose
+            if doneFlag(i) && parameters.veryVerbose
                 display(['...completed ' filePaths{i}]);
             end
         end
@@ -186,4 +237,12 @@ while any(~doneFlag)
             dos(commands{i});
         end
     end
+end
+
+% -------------------------------------------------------------------------
+% Display progress
+% -------------------------------------------------------------------------
+if parameters.verbose
+    display(['...completed ' datestr(now)]);
+    display(['...in ' num2str(toc(batchTimer)) ' s']);
 end
