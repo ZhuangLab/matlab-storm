@@ -4,14 +4,22 @@ function parameters = daoSTORM(filePaths, configFilePaths, varargin)
 %--------------------------------------------------------------------------
 % Necessary Inputs: 
 %   filePath -- A cell array of filePaths to analyze or a single file path. 
-%   configFilePaths -- The path to a daoSTORM configuration file or a cell
+%   configFilePaths -- The path to a daoSTORM configuration file or a cell 
 %   array of such paths. If a cell array is provided it must match the
 %   length of the cell array of filePaths. 
 %--------------------------------------------------------------------------
 % Outputs: 
 %--------------------------------------------------------------------------
 % Variable Inputs (Flag/ data type /(default)):
-% 
+% mListType -- A prefix that will be added before the mList tag (default is
+%   empty)
+% savePath -- The file path in which molecule lists will be saved (default
+%   is the data directory)
+% overwrite -- A boolean determining if existing files will be overwritten
+%   or ignored. 
+% numParallel -- The number of parallel processes to launch. Default is 1.
+% hideterminal -- Hide the command windows that are launched?
+% waitTime -- The number of seconds to pause before querying the job queue
 %--------------------------------------------------------------------------
 % Jeffrey Moffitt
 % jeffmoffitt@gmail.com
@@ -85,6 +93,12 @@ if ~all(cellfun(@exist, configFilePaths))
     error('matlabFunctions:invalidArguments', 'Some requested configuration files do not exist');
 end
 
+% -------------------------------------------------------------------------
+% Confirm that the same file is not analyzed twice (not yet supported)
+% -------------------------------------------------------------------------
+if length(filePaths) ~= length(unique(filePaths))
+    error('matlabFunctions:invalidArguments', 'Analysis of the same file twice is not yet supported.');
+end
 % -------------------------------------------------------------------------
 % Handle prefix formatting
 % -------------------------------------------------------------------------
@@ -175,13 +189,14 @@ end
 % Create command strings
 %--------------------------------------------------------------------------
 commands = {};
-jobNames = {};
 for i=1:length(filePaths)
     displayCommand = ['echo ' 'Analyzing: ' filePaths{i} ' && '];            
     commands{i} = [displayCommand daoSTORMexe ' ' '"' filePaths{i} '" ' ... 
         ' "' binFilePaths{i} '" ' ...
         ' "' configFilePaths{i} '"'];
-    jobNames{i} = ''; 
+    if parameters.outputInMatlab
+        commands{i} = [commands{i} ' &'];
+    end
 end
 
 % -------------------------------------------------------------------------
@@ -199,8 +214,8 @@ end
 startTime = now;
 doneFlag = false(1, length(commands));
 processes = cell(1, length(commands));
-while any(~doneFlag)
-    if ~parameters.outputInMatlab
+if ~parameters.outputInMatlab
+    while any(~doneFlag)
         %----------------------------------------------------------------------
         % Start a batch of commands
         %----------------------------------------------------------------------
@@ -232,10 +247,10 @@ while any(~doneFlag)
         % Wait to poll status again
         %----------------------------------------------------------------------
         pause(parameters.waitTime);
-    else
-        for i=1:length(commands)
-            dos(commands{i});
-        end
+    end
+else
+    for i=1:length(commands)
+        dos(commands{i});
     end
 end
 
