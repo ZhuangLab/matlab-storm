@@ -95,9 +95,9 @@ methods
             addprop(obj, fieldNames{f});
             
             if f==1 % Set the data size based on the first provided input
-                obj.dataSize = size(values{f});
+                obj.dataSize = size(values{f},1);
             else
-                if ~all(size(values{f}) == obj.dataSize) % Check size of all provided data
+                if ~all(size(values{f},1) == obj.dataSize) % Check size of all provided data
                     error('matlabFunctions:invalidArgument', 'Incorrect number of values');
                 end
             end
