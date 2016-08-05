@@ -194,9 +194,6 @@ for i=1:length(filePaths)
     commands{i} = [displayCommand daoSTORMexe ' ' '"' filePaths{i} '" ' ... 
         ' "' binFilePaths{i} '" ' ...
         ' "' configFilePaths{i} '"'];
-    if parameters.outputInMatlab
-        commands{i} = [commands{i} ' &'];
-    end
 end
 
 % -------------------------------------------------------------------------
