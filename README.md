@@ -32,6 +32,6 @@ Everyone is welcome to contribute to matlab-storm but any code contributed must 
 	`authors = {Alistair Boettiger and Jeffrey Moffitt}`
 
 ## Additional Software for Analysis
-Some aspects of this analysis package depend on the Insight3 which can be provided by request (contact Matt Kilroy kilroy at chem.harvard.edu). 
+Some aspects of this analysis package depend on the Insight3 which can be provided by request (contact Professor Xiaowei Zhuang zhuang at chem.harvard.edu). 
 For instructions on integrating this software with `matlab-storm`, contact Alistair or Jeff. 
 
