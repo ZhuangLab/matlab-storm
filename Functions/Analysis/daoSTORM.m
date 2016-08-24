@@ -201,7 +201,7 @@ end
 % -------------------------------------------------------------------------
 if parameters.verbose
     PageBreak();
-    display(['Staring analysis: ' datestr(now)]);
+    display(['Starting analysis: ' datestr(now)]);
     batchTimer = tic;
 end
 
