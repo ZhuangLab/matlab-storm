@@ -45,6 +45,7 @@ defaults = cell(0,3);
 defaults(end+1,:) = {'mListType', 'string', ''};        % A prefix to add before the mList tag
 defaults(end+1,:) = {'savePath', 'fileDir', ''};        % The path where mLists will be saved (default, same path as filePath)
 defaults(end+1,:) = {'overwrite', 'boolean', true};     % Overwrite existing files?
+defaults(end+1,:) = {'tryToComplete', 'boolean', false}; % If files will not be overwritten, still call daoSTORM to see if they need to be completed (i.e. analysis was not previously finished)
 
 % Parameters for batch processing
 defaults(end+1,:) = {'numParallel', 'positive', 1};     % The number of parallel processes to launch
@@ -163,7 +164,7 @@ for f=1:length(filePaths)
             if parameters.veryVerbose
                 display(['... deleted: ' binFilePaths{f}]);
             end
-        else
+        elseif ~parameters.tryToComplete % If tryToComplete is requested (and overwrite is not), keep these files and call daoSTORM, which will check to see if they need to be finalized
             indsToKeep(f) = false;
             if parameters.veryVerbose
                 display(['... found and ignoring: ' binFilePaths{f}]);
