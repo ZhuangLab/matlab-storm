@@ -89,6 +89,13 @@ end
 % -------------------------------------------------------------------------
 if ~all(cellfun(@exist, filePaths))
     error('matlabFunctions:invalidArguments', 'Some requested file paths do not exist');
+    % Display missing file paths to aid in troubleshooting
+    if parameters.verbose
+        ind = find(cellfun(@exist, filePaths));
+        for i=1:length(ind)
+            disp(['... ' filePaths{i}]);
+        end
+    end
 end
 if ~all(cellfun(@exist, configFilePaths))
     error('matlabFunctions:invalidArguments', 'Some requested configuration files do not exist');
