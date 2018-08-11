@@ -50,7 +50,7 @@ defaults(end+1,:) = {'threshold', 'positive', 100.0};   % The minimum brightness
 defaults(end+1,:) = {'sigma', 'positive', 1.0};         % The initial guess for the width (in pixels)
 
 % Parameters describing the camera
-defaults(end+1,:) = {'baseline', 'positive', 100.0};    % The background term of the CCD
+defaults(end+1,:) = {'baseline', 'nonnegative', 100.0};    % The background term of the CCD
 defaults(end+1,:) = {'pixel_size', 'positive', 160.0};  % The pixel size
 defaults(end+1,:) = {'orientation', {'normal', 'inverted'}, 'normal'}; % The orientation of the CCD
 
