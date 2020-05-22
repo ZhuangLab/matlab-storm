@@ -138,7 +138,7 @@ for i=1:length(type)
                 error([name 'is not a float']); 
             end
         case 'parallel'
-            if ~strcmp(class(value), 'parallel.Pool')
+            if ~(strcmp(class(value), 'parallel.Pool') | strcmp(class(value), 'parallel.ProcessPool'))
                 error([name ' is not a parallel.Pool object']);
             end
         case 'freeType'
